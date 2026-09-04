@@ -3,7 +3,7 @@ description: "Web boot kernel for the web GUI: two-stage boot of the client plug
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-client-web
+# @deepseek-ai/dsh-client-web
 
 English | [中文](README.zh.md)
 

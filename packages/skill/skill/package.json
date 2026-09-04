@@ -1,5 +1,5 @@
 {
-  "name": "@x1a0f3n9/dsh-skill",
+  "name": "@deepseek-ai/dsh-skill",
   "description": "Agent skill provider registry for the DeepSeek Harness",
   "version": "0.1.2-alpha.6",
   "publishConfig": {
@@ -28,16 +28,16 @@
   "license": "MIT",
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@x1a0f3n9/dsh-llm": "workspace:^",
-    "@x1a0f3n9/dsh-scope": "workspace:^"
+    "@deepseek-ai/dsh-llm": "workspace:^",
+    "@deepseek-ai/dsh-scope": "workspace:^"
   },
   "dependencies": {
-    "@x1a0f3n9/dsh-util-values": "workspace:^",
+    "@deepseek-ai/dsh-util-values": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@x1a0f3n9/dsh-llm": "workspace:^",
-    "@x1a0f3n9/dsh-scope": "workspace:^"
+    "@deepseek-ai/dsh-llm": "workspace:^",
+    "@deepseek-ai/dsh-scope": "workspace:^"
   }
 }

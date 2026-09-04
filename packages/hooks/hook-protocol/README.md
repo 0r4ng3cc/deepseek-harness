@@ -3,7 +3,7 @@ description: "The shared hook rules behind the Claude Code and Codex bridges —
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-hook-protocol
+# @deepseek-ai/dsh-hook-protocol
 
 English | [中文](README.zh.md)
 

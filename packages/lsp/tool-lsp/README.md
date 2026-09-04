@@ -3,7 +3,7 @@ description: "The model-facing lsp tool: four read-only code-navigation operatio
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-tool-lsp
+# @deepseek-ai/dsh-tool-lsp
 
 English | [中文](README.zh.md)
 

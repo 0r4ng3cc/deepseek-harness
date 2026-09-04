@@ -3,7 +3,7 @@ description: "面向用户与维护者的共享模型标题生成策略说明，
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-session-title-llm
+# @deepseek-ai/dsh-session-title-llm
 
 [English](README.md) | 中文
 

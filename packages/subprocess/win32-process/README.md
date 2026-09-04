@@ -3,7 +3,7 @@ description: "Low-level Win32 process primitives for maintainers implementing or
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-win32-process
+# @deepseek-ai/dsh-win32-process
 
 English | [中文](README.zh.md)
 

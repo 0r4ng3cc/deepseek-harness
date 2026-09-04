@@ -3,7 +3,7 @@ description: "In-process spawn subagent backend for users and maintainers choosi
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-subagent-spawn-in-process
+# @deepseek-ai/dsh-subagent-spawn-in-process
 
 English | [中文](README.zh.md)
 
@@ -36,9 +36,9 @@ Choose the spawn backend when the child needs no parent conversation and running
 Load the subagent service and this backend, then configure one delegation tool per target. This is the smallest composition that exposes a `subagent` tool backed by spawn:
 
 ```yaml
-- name: '@x1a0f3n9/dsh-subagent'
-- name: '@x1a0f3n9/dsh-subagent-spawn-in-process'
-- name: '@x1a0f3n9/dsh-tool-subagent'
+- name: '@deepseek-ai/dsh-subagent'
+- name: '@deepseek-ai/dsh-subagent-spawn-in-process'
+- name: '@deepseek-ai/dsh-tool-subagent'
   config:
     provider: spawn
 ```

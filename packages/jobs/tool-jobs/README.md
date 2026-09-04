@@ -3,7 +3,7 @@ description: "The model-facing background-job controls for users and maintainers
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-tool-jobs
+# @deepseek-ai/dsh-tool-jobs
 
 English | [中文](README.zh.md)
 
@@ -46,7 +46,7 @@ Waking is bounded: each owner may be woken `maxConsecutiveWakes` times before fu
 Loading the plugin with no config is the common path; a `waitTimeoutMs` above `maxWaitTimeoutMs` fails at load.
 
 ```yaml
-- name: '@x1a0f3n9/dsh-tool-jobs'
+- name: '@deepseek-ai/dsh-tool-jobs'
 ```
 
 | Field | Default | Meaning |

@@ -1,5 +1,5 @@
 {
-  "name": "@x1a0f3n9/dsh-experimental-agent-team-web-profile",
+  "name": "@deepseek-ai/dsh-experimental-agent-team-web-profile",
   "description": "Private Web profile layer for Agent Teams Remote and UI plugins",
   "version": "0.1.2-alpha.6",
   "private": true,
@@ -32,7 +32,7 @@
     }
   },
   "dependencies": {
-    "@x1a0f3n9/dsh-experimental-client-ui-agent-team": "workspace:^"
+    "@deepseek-ai/dsh-experimental-client-ui-agent-team": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"

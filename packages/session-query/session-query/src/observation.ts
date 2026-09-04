@@ -1,7 +1,7 @@
 /** Shared live/prepared observations for Session page and lifecycle consumers. */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { SessionLogOffset } from '@x1a0f3n9/dsh-session'
+import { SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type {
   Session,
   SessionEvent,
@@ -9,13 +9,13 @@ import type {
   SessionId,
   SessionLogOffset as SessionLogOffsetType,
   SessionSeqCursor,
-} from '@x1a0f3n9/dsh-session'
+} from '@deepseek-ai/dsh-session'
 import type {
   BorrowedSessionSource,
   SessionPersistenceRevision,
-} from '@x1a0f3n9/dsh-session-persistence'
-import type { ProjectionSnapshot } from '@x1a0f3n9/dsh-session-projection'
-import type {} from '@x1a0f3n9/dsh-session-projection-cache'
+} from '@deepseek-ai/dsh-session-persistence'
+import type { ProjectionSnapshot } from '@deepseek-ai/dsh-session-projection'
+import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import { SessionQueryError } from './config.ts'
 
 /** One exact immutable Session cut retained for the caller's read lifetime. */

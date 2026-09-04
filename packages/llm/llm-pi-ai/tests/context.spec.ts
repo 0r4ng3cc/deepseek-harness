@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AttachmentId, ImageVariantId } from '@x1a0f3n9/dsh-attachment'
+import { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
 import type {
   AttachmentStore,
   ImageAttachmentRef,
   ImageRequestPolicy,
   RequestImageAttachment,
-} from '@x1a0f3n9/dsh-attachment'
-import { ToolCallId, createMessage, createUserMessage, offloadedImageText } from '@x1a0f3n9/dsh-llm'
-import type { ContentBlock, GenerateOptions, Message } from '@x1a0f3n9/dsh-llm'
+} from '@deepseek-ai/dsh-attachment'
+import { ToolCallId, createMessage, createUserMessage, offloadedImageText } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
 import { toPiContext } from '../src/context.ts'
 import type { PiImageRequestContext } from '../src/context.ts'
 import { toPiAssistant } from '../src/replay.ts'

@@ -3,7 +3,7 @@ description: "The SDK wire protocol for client and server implementers: the newl
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-sdk-protocol
+# @deepseek-ai/dsh-sdk-protocol
 
 English | [中文](README.zh.md)
 

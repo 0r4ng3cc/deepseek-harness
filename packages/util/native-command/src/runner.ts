@@ -1,6 +1,6 @@
 /**
  * Shared no-shell `execFile` runner for host-native OS integrations.
- * @module @x1a0f3n9/dsh-native-command/runner
+ * @module @deepseek-ai/dsh-native-command/runner
  */
 
 import { execFile } from 'node:child_process'

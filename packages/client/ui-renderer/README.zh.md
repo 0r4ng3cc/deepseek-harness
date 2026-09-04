@@ -3,7 +3,7 @@ description: "浏览器 UI 渲染器：React slot 绑定、ctx.uiRenderer 与 ds
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-client-ui-renderer
+# @deepseek-ai/dsh-client-ui-renderer
 
 [English](README.md) | 中文
 

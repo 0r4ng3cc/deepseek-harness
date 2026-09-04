@@ -1,7 +1,7 @@
 /**
  * Shared filesystem path helpers for DeepSeek Harness user data.
  *
- * @module @x1a0f3n9/dsh-home-paths
+ * @module @deepseek-ai/dsh-home-paths
  */
 
 import { opendir, realpath } from 'node:fs/promises'

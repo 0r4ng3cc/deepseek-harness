@@ -1,7 +1,7 @@
 /**
  * Model-facing workspace instruction rendering within an explicit byte budget.
  *
- * @module @x1a0f3n9/dsh-agent-instructions/render
+ * @module @deepseek-ai/dsh-agent-instructions/render
  */
 
 import { basename, dirname } from 'node:path'

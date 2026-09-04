@@ -28,7 +28,7 @@ describe('real Loader composition', () => {
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
       '- name: fixture-dependencies',
-      "- name: '@x1a0f3n9/dsh-webhook'",
+      "- name: '@deepseek-ai/dsh-webhook'",
       '- name: fixture-rule',
       '',
     ].join('\n'))
@@ -65,7 +65,7 @@ describe('real Loader composition', () => {
     context.loader.builtins.include = Include
     const modules = new Map<string, unknown>([
       ['fixture-dependencies', dependencies],
-      ['@x1a0f3n9/dsh-webhook', WebhookRuntime],
+      ['@deepseek-ai/dsh-webhook', WebhookRuntime],
       ['fixture-rule', rule],
     ])
     context.loader.internal = {

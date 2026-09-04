@@ -3,7 +3,7 @@ description: "preset 挂载的可组装人设行，让单个 agent 拥有自己�
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-persona
+# @deepseek-ai/dsh-persona
 
 [English](README.md) | 中文
 
@@ -30,7 +30,7 @@ kind: "package-reference"
 ### 配置
 
 ```yaml
-- name: '@x1a0f3n9/dsh-persona'
+- name: '@deepseek-ai/dsh-persona'
   config:
     text: You are a terse systems engineer who answers in short commands.
 ```

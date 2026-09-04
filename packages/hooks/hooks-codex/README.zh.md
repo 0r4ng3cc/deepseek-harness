@@ -3,7 +3,7 @@ description: "在 agent 运行期间使用你现有的 Codex hooks.json 钩子�
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-hooks-codex
+# @deepseek-ai/dsh-hooks-codex
 
 [English](README.md) | 中文
 
@@ -34,7 +34,7 @@ kind: "package-reference"
 ### 最小配置
 
 ```yaml
-- name: '@x1a0f3n9/dsh-hooks-codex'
+- name: '@deepseek-ai/dsh-hooks-codex'
   config:
     configPath: ./.codex/hooks.json
     model: deepseek-v4

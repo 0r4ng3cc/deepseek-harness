@@ -3,7 +3,7 @@ description: "面向用户与维护者的 agent 平面呈现选择器说明，�
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-agent-tool-presentation
+# @deepseek-ai/dsh-agent-tool-presentation
 
 [English](README.md) | 中文
 
@@ -30,7 +30,7 @@ kind: "package-reference"
 ### 把这一行加入 preset
 
 ```yaml
-- name: '@x1a0f3n9/dsh-agent-tool-presentation'
+- name: '@deepseek-ai/dsh-agent-tool-presentation'
   config:
     mode: ptc
 ```

@@ -3,7 +3,7 @@ description: "Shared model-backed title generation policy for users and maintain
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-session-title-llm
+# @deepseek-ai/dsh-session-title-llm
 
 English | [中文](README.zh.md)
 

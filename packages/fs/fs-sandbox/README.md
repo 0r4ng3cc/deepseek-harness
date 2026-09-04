@@ -3,7 +3,7 @@ description: "The sandbox-enforcing ctx.fs backend for deployments and maintaine
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-fs-sandbox
+# @deepseek-ai/dsh-fs-sandbox
 
 English | [中文](README.zh.md)
 
@@ -32,11 +32,11 @@ Mount this backend instead of `fs-local` when the model's file writes and edits 
 Load the shared policy service, then this backend, then the tools; the read-before-edit policy plugin stays optional.
 
 ```yaml
-- name: '@x1a0f3n9/dsh-sandbox-policy'
-- name: '@x1a0f3n9/dsh-fs-sandbox'
+- name: '@deepseek-ai/dsh-sandbox-policy'
+- name: '@deepseek-ai/dsh-fs-sandbox'
   config:
     cwd: /absolute/path/to/workspace
-- name: '@x1a0f3n9/dsh-tool-fs'
+- name: '@deepseek-ai/dsh-tool-fs'
 ```
 
 The backend's config is the local backend's unchanged (`cwd` resolution default and `diffBasisMaxBytes` overwrite bound); the [configuration catalog](../../../docs/config-catalog.md#x1a0f3n9dsh-fs-sandbox) is the exhaustive source.

@@ -3,7 +3,7 @@
  * Every workspace package registers checks from a `./invariant` companion;
  * ordinary package entrypoints stay independent of diagnostics.
  *
- * @module @x1a0f3n9/dsh-invariants
+ * @module @deepseek-ai/dsh-invariants
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'

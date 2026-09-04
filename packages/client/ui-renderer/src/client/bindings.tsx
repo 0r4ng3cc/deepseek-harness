@@ -7,7 +7,7 @@ import type {
   SlotRendererHost,
   SnapshotSelectorHook,
   StandardSourceBinding,
-} from '@x1a0f3n9/dsh-client-ui-slots'
+} from '@deepseek-ai/dsh-client-ui-slots'
 import { bindSnapshotSelector } from './bind.ts'
 
 /** Missing renderer assembly dependency. */

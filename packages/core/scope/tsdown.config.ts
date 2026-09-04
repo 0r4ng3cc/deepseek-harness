@@ -22,6 +22,6 @@ export default defineConfig([
     dts: false,
     clean: false,
     // Preserve the root entry's carrier WeakMap identity across bundles.
-    deps: { neverBundle: ['@x1a0f3n9/dsh-scope'] },
+    deps: { neverBundle: ['@deepseek-ai/dsh-scope'] },
   },
 ])

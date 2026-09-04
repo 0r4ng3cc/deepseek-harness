@@ -11,13 +11,13 @@ import {
   JsonTree,
   MarkdownText,
   Tooltip,
-} from '@x1a0f3n9/dsh-client-ui-primitives'
-import type { JsonTreeLabels, MarkdownLabels } from '@x1a0f3n9/dsh-client-ui-primitives'
+} from '@deepseek-ai/dsh-client-ui-primitives'
+import type { JsonTreeLabels, MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import { structuredPatch } from 'diff'
-import type { ImageAttachmentRef } from '@x1a0f3n9/dsh-attachment'
+import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {
   AssistantRequestConfig, ConversationPromptSnapshot, RenderMessageImages,
-} from '@x1a0f3n9/dsh-client-ui-conversation/client'
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {
   AssistantMetricDetail, TrajectoryCellKind, TrajectoryCellProps, TrajectorySourceBlock,
 } from './trajectory-record.ts'

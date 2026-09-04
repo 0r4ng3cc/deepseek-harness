@@ -11,7 +11,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import {
   createSnapshotStore, type ObservableSnapshot, type SnapshotStore,
-} from '@x1a0f3n9/dsh-client-store'
+} from '@deepseek-ai/dsh-client-store'
 import type { LexicalEditor, NodeKey } from 'lexical'
 import {
   $addUpdateTag, $createParagraphNode, $createTextNode, $getRoot, $getSelection, $isRangeSelection,

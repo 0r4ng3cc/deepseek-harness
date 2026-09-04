@@ -3,7 +3,7 @@ description: "The event-sourced session log and in-memory store for users and ma
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-session
+# @deepseek-ai/dsh-session
 
 English | [中文](README.zh.md)
 

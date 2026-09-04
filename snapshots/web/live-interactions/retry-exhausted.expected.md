@@ -16,10 +16,10 @@
 - text: Reply with a one-sentence description of event sourcing, then stop. {{clock}}
 - button "Copy":
   - img
-- button "Context injection @x1a0f3n9/dsh-system-prompt":
+- button "Context injection @deepseek-ai/dsh-system-prompt":
   - img
   - img
-  - text: Context injection @x1a0f3n9/dsh-system-prompt
+  - text: Context injection @deepseek-ai/dsh-system-prompt
 - group:
   - status: Retried model request (2/2) · {{duration}}
 - status:

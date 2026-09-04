@@ -3,7 +3,7 @@ description: "dsh profile 与临时 Python SDK 运行时的共享 Loader 启动�
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-app-boot
+# @deepseek-ai/dsh-app-boot
 
 [English](README.md) | 中文
 

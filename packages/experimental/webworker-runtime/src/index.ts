@@ -1,6 +1,6 @@
 /**
  * Browser-only host runtime: the harness Cordis tree inside a dedicated Web Worker.
- * @module @x1a0f3n9/dsh-experimental-webworker-runtime
+ * @module @deepseek-ai/dsh-experimental-webworker-runtime
  */
 export {
   createAlsRuntime,

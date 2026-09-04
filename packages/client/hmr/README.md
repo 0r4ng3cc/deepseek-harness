@@ -3,7 +3,7 @@ description: "Development-only hot reload for browser client plugins: rebuilding
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-client-hmr
+# @deepseek-ai/dsh-client-hmr
 
 English | [中文](README.zh.md)
 

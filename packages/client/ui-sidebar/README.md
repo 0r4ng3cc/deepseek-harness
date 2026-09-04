@@ -3,7 +3,7 @@ description: "Sidebar shell plugin for the dsh web client: brand row, New Sessio
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-client-ui-sidebar
+# @deepseek-ai/dsh-client-ui-sidebar
 
 English | [中文](README.zh.md)
 

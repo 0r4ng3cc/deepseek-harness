@@ -1,5 +1,5 @@
 {
-  "name": "@x1a0f3n9/dsh-shell",
+  "name": "@deepseek-ai/dsh-shell",
   "description": "Abstract bash executor seam (ctx.shell) for the DeepSeek Harness",
   "version": "0.1.2-alpha.6",
   "publishConfig": {
@@ -27,15 +27,15 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@x1a0f3n9/dsh-subprocess": "workspace:^",
-    "@x1a0f3n9/dsh-sandbox": "workspace:^",
+    "@deepseek-ai/dsh-subprocess": "workspace:^",
+    "@deepseek-ai/dsh-sandbox": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^",
-    "@x1a0f3n9/dsh-settings": "workspace:^"
+    "@deepseek-ai/dsh-settings": "workspace:^"
   },
   "devDependencies": {
-    "@x1a0f3n9/dsh-subprocess": "workspace:^",
-    "@x1a0f3n9/dsh-sandbox": "workspace:^",
+    "@deepseek-ai/dsh-subprocess": "workspace:^",
+    "@deepseek-ai/dsh-sandbox": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^",
-    "@x1a0f3n9/dsh-settings": "workspace:^"
+    "@deepseek-ai/dsh-settings": "workspace:^"
   }
 }

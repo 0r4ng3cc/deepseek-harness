@@ -36,10 +36,10 @@ import {
   type NormalizeContext,
   type SnapshotManifest,
   type WorkspaceSnapshotEntry,
-} from '@x1a0f3n9/dsh-session-snapshot'
-import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@x1a0f3n9/dsh-loader-smoke'
-import { resolvePwshPath } from '@x1a0f3n9/dsh-pwsh-local'
-import { parseSessionLog } from '@x1a0f3n9/dsh-llm-replay'
+} from '@deepseek-ai/dsh-session-snapshot'
+import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { resolvePwshPath } from '@deepseek-ai/dsh-pwsh-local'
+import { parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
 const snapshotsRoot = fileURLToPath(new URL('./', import.meta.url))

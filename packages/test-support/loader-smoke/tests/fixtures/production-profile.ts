@@ -13,7 +13,7 @@ import {
   loadOverlayPatches,
   loadProfile,
   type ProfileLayer,
-} from '@x1a0f3n9/dsh-app-boot'
+} from '@deepseek-ai/dsh-app-boot'
 
 const installAnchor = fileURLToPath(new URL('../../../../../apps/cli/package.json', import.meta.url))
 

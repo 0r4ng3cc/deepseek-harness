@@ -3,7 +3,7 @@ description: "The tool-result spill policy: how deployments keep oversized plain
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-spill-policy
+# @deepseek-ai/dsh-spill-policy
 
 English | [中文](README.zh.md)
 
@@ -32,8 +32,8 @@ Mount the policy alongside a spill backend to cap how much of a tool's plain-tex
 Load the policy with a `maxInlineBytes` budget, in UTF-8 bytes, and a spill backend:
 
 ```yaml
-- name: '@x1a0f3n9/dsh-spill-local'
-- name: '@x1a0f3n9/dsh-spill-policy'
+- name: '@deepseek-ai/dsh-spill-local'
+- name: '@deepseek-ai/dsh-spill-policy'
   config:
     maxInlineBytes: 50000
 ```

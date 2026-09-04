@@ -1,0 +1,48 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2024"],
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "types": ["node", "react"],
+    "rootDir": "src",
+    "outDir": "lib/types",
+    // The ported Ink core is third-party code written against looser flags;
+    // keep the vendored renderer compiling without a rewrite.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noFallthroughCasesInSwitch": false
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../core/agent" },
+    { "path": "../../core/tools" },
+    { "path": "../../core/session" },
+    { "path": "../../core/system-prompt" },
+    { "path": "../../llm/llm" },
+    { "path": "../../interaction/commands" },
+    { "path": "../../interaction/user-approval" },
+    { "path": "../../interaction/user-questions" },
+    { "path": "../../interaction/tool-ask-user" },
+    { "path": "../../settings/settings" },
+    { "path": "../../context/agent-instructions" },
+    { "path": "../../skill/skill" },
+    { "path": "../../storage/storage" },
+    { "path": "../../workspace/workspace" },
+    { "path": "../../extensions/cordis-host-runner" },
+    { "path": "../../runtime-diagnostics/invariants" },
+    { "path": "../../util/atomic-write" },
+    { "path": "../dsh-auth" }
+  ]
+}

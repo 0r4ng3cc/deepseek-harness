@@ -3,7 +3,7 @@ description: "Web ask_user_question feature for the dsh web client: the composer
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-client-ui-user-questions
+# @deepseek-ai/dsh-client-ui-user-questions
 
 English | [中文](README.zh.md)
 

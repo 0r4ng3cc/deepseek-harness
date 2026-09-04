@@ -3,7 +3,7 @@ description: "Claude Code 与 Codex 桥接背后的共享钩子规则——钩�
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-hook-protocol
+# @deepseek-ai/dsh-hook-protocol
 
 [English](README.md) | 中文
 

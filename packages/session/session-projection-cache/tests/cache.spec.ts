@@ -21,22 +21,22 @@ import SessionStore, {
   SessionId,
   SessionLogOffset,
   SessionSeq,
-} from '@x1a0f3n9/dsh-session'
-import type { SessionEvent } from '@x1a0f3n9/dsh-session'
-import SessionProjectionRegistry from '@x1a0f3n9/dsh-session-projection'
-import type { ProjectionDefinition } from '@x1a0f3n9/dsh-session-projection'
-import Storage from '@x1a0f3n9/dsh-storage'
+} from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+import Storage from '@deepseek-ai/dsh-storage'
 import {
   apply as storageJsonApply, Config as storageJsonConfig, inject as storageJsonInject, name as storageJsonName,
-} from '@x1a0f3n9/dsh-storage-json'
+} from '@deepseek-ai/dsh-storage-json'
 import {
   apply as storageDomainApply, Config as storageDomainConfig, inject as storageDomainInject, name as storageDomainName,
-} from '@x1a0f3n9/dsh-storage-domain'
+} from '@deepseek-ai/dsh-storage-domain'
 import SessionProjectionCache from '../src/index.ts'
 import { checkpointRecord, projectionCacheDomainSpec } from '../src/spec.ts'
 import type { CheckpointRecord } from '../src/spec.ts'
 
-declare module '@x1a0f3n9/dsh-session-projection/types' {
+declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionStateMap {
     'cache-test/marks': MarksState
     'cache-test/marks2': Map<string, string>
@@ -48,7 +48,7 @@ declare module '@x1a0f3n9/dsh-session-projection/types' {
   }
 }
 
-declare module '@x1a0f3n9/dsh-session/types' {
+declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     'cache-test/mark': { marks: string[] }
   }

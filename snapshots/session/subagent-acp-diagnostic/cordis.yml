@@ -3,7 +3,7 @@
 # remote-abort parity.
 - insert:
     - id: subagent-acp-diagnostic
-      name: '@x1a0f3n9/dsh-subagent-acp'
+      name: '@deepseek-ai/dsh-subagent-acp'
       config:
         providerName: acp-diagnostic
         command: !!js process.execPath
@@ -14,7 +14,7 @@
           MOCK_PERMISSION: '1'
           MOCK_TOOL_KIND: execute
     - id: tool-subagent-acp-diagnostic
-      name: '@x1a0f3n9/dsh-tool-subagent'
+      name: '@deepseek-ai/dsh-tool-subagent'
       config:
         provider: acp-diagnostic
         toolName: subagent_acp

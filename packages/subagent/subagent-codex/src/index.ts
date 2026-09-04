@@ -3,12 +3,12 @@
  * fresh official package-local Codex wrapper with `app-server --stdio` in the
  * delegating Session's workspace and publishes only after an ephemeral thread exists.
  *
- * @module @x1a0f3n9/dsh-subagent-codex
+ * @module @deepseek-ai/dsh-subagent-codex
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { MAX_TIMER_DELAY_MS } from '@x1a0f3n9/dsh-timeout'
+import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import {
   assertPositiveFinite,
   NO_START_CAPABILITIES,
@@ -16,7 +16,7 @@ import {
   type ResolvedSubagentStartRequest,
   type SubagentCapabilities,
   type SubagentProvider,
-} from '@x1a0f3n9/dsh-subagent'
+} from '@deepseek-ai/dsh-subagent'
 import {
   CODEX_PERMISSION_MODES,
   DEFAULT_CODEX_PERMISSION_MODE,

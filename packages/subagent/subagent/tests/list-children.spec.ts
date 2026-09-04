@@ -4,29 +4,29 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { z } from 'zod'
 import { Context } from '@deepseek-ai/cordis'
-import { createUserMessage } from '@x1a0f3n9/dsh-llm'
-import AgentLoop from '@x1a0f3n9/dsh-agent-loop'
-import { mountAgentLoopTestDependencies } from '@x1a0f3n9/dsh-agent-loop-testkit'
-import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq } from '@x1a0f3n9/dsh-session'
-import type { SessionEvent, SessionHeader } from '@x1a0f3n9/dsh-session'
-import type { SessionObservation } from '@x1a0f3n9/dsh-session-query'
-import JsonlSessionPersistence from '@x1a0f3n9/dsh-session-persistence-jsonl'
-import SessionProjectionRegistry from '@x1a0f3n9/dsh-session-projection'
-import type { ProjectionDefinition } from '@x1a0f3n9/dsh-session-projection'
-import SessionProjectionCache from '@x1a0f3n9/dsh-session-projection-cache'
-import Storage from '@x1a0f3n9/dsh-storage'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
+import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
+import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+import SessionProjectionCache from '@deepseek-ai/dsh-session-projection-cache'
+import Storage from '@deepseek-ai/dsh-storage'
 import {
   apply as storageJsonApply, Config as storageJsonConfig, inject as storageJsonInject, name as storageJsonName,
-} from '@x1a0f3n9/dsh-storage-json'
+} from '@deepseek-ai/dsh-storage-json'
 import {
   apply as storageDomainApply, Config as storageDomainConfig, inject as storageDomainInject, name as storageDomainName,
-} from '@x1a0f3n9/dsh-storage-domain'
+} from '@deepseek-ai/dsh-storage-domain'
 import SubagentRuntime, {
   SUBAGENT_DESCRIPTOR_VERSION,
   SubagentError,
-} from '@x1a0f3n9/dsh-subagent'
-import * as SubagentSpawn from '@x1a0f3n9/dsh-subagent-spawn-in-process'
-import * as SubagentFork from '@x1a0f3n9/dsh-subagent-fork-in-process'
+} from '@deepseek-ai/dsh-subagent'
+import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
+import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { TestSessionQuery } from './test-session-query.ts'
 
@@ -137,7 +137,7 @@ function descriptorPayload(label: string, version = SUBAGENT_DESCRIPTOR_VERSION)
   return { version, mode: 'continuable' as const, provider: 'spawn', label }
 }
 
-declare module '@x1a0f3n9/dsh-session-projection/types' {
+declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionStateMap {
     subagentListHostileProbe: { poisoned?: boolean | undefined }
   }

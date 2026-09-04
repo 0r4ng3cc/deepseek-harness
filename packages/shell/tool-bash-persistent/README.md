@@ -3,7 +3,7 @@ description: "The model-facing persistent bash tool for users and maintainers ch
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-tool-bash-persistent
+# @deepseek-ai/dsh-tool-bash-persistent
 
 English | [中文](README.zh.md)
 
@@ -36,9 +36,9 @@ Choose the persistent tool when work depends on cross-call state: a one-shot `ds
 The default `shell` backend starts an interactive bash through `dsh-terminal-bash`; deployments may register another PTY backend and select it by name.
 
 ```yaml
-- name: '@x1a0f3n9/dsh-terminal'
-- name: '@x1a0f3n9/dsh-terminal-bash'
-- name: '@x1a0f3n9/dsh-tool-bash-persistent'
+- name: '@deepseek-ai/dsh-terminal'
+- name: '@deepseek-ai/dsh-terminal-bash'
+- name: '@deepseek-ai/dsh-tool-bash-persistent'
 ```
 
 | Field | Default | Meaning |

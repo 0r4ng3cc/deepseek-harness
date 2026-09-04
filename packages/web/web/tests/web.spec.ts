@@ -7,7 +7,7 @@ import WebRuntime, {
   type WebSearchProvider,
   type WebSearchRequest,
   type WebSearchResult,
-} from '@x1a0f3n9/dsh-web'
+} from '@deepseek-ai/dsh-web'
 
 /** A scripted search provider for contract tests. */
 function makeSearchProvider(

@@ -3,7 +3,7 @@ description: "The browser GUI for dsh: interactive chat, model and settings mana
 kind: "package-bundle"
 ---
 
-# @x1a0f3n9/dsh-web-app
+# @deepseek-ai/dsh-web-app
 
 English | [中文](README.zh.md)
 

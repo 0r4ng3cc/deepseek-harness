@@ -328,6 +328,8 @@
     { "path": "./packages/lsp/lsp" },
     { "path": "./packages/lsp/lsp-stdio" },
     { "path": "./packages/lsp/tool-lsp" },
+    { "path": "./packages/ui/dsh-auth" },
+    { "path": "./packages/ui/tui" },
     { "path": "./apps/cli" }
   ]
 }

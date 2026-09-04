@@ -13,7 +13,7 @@ import {
   scrubToolSchemas,
   sessionFixtureNames,
   type SnapshotManifest,
-} from '@x1a0f3n9/dsh-session-snapshot'
+} from '@deepseek-ai/dsh-session-snapshot'
 
 const repoRoot = resolve(import.meta.dirname, '..')
 const corpusRoot = join(repoRoot, 'snapshots')

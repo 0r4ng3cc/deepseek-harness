@@ -4,8 +4,8 @@ import type {
   RemoteEventHostInfo,
   TypertRemoteEventInvocation,
   TypertRemoteEventSource,
-} from '@x1a0f3n9/dsh-api-gateway'
-import { scopeTarget } from '@x1a0f3n9/dsh-scope'
+} from '@deepseek-ai/dsh-api-gateway'
+import { scopeTarget } from '@deepseek-ai/dsh-scope'
 import { describe, expect, it } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 

@@ -3,7 +3,7 @@ description: "原生目录选择表面：驱动宿主操作系统选择器的浏
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-client-ui-directory-picker-native
+# @deepseek-ai/dsh-client-ui-directory-picker-native
 
 [English](README.md) | 中文
 

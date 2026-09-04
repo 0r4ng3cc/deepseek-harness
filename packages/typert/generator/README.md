@@ -3,7 +3,7 @@ description: "The build-time Typert generator: source type analysis, compiler-in
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-typert-generator
+# @deepseek-ai/dsh-typert-generator
 
 English | [中文](README.zh.md)
 

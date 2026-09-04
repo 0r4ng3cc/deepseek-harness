@@ -3,7 +3,7 @@ description: "面向部署方与后端作者的会话遥测捕获 seam 说明，
 kind: "package-library"
 ---
 
-# @x1a0f3n9/dsh-session-telemetry
+# @deepseek-ai/dsh-session-telemetry
 
 [English](README.md) | 中文
 

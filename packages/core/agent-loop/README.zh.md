@@ -3,7 +3,7 @@ description: "面向用户与维护者的默认 agent 驱动器说明，用于�
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-agent-loop
+# @deepseek-ai/dsh-agent-loop
 
 [English](README.md) | 中文
 
@@ -32,7 +32,7 @@ kind: "package-reference"
 配置中声明的 agent 会在插件加载时自动启动。每个条目需要一个 `id` 标签；模型调用还同时需要 `provider` 与 `model`（`agent/request` 可以在分发前补齐缺失的这一对值）。
 
 ```yaml
-- name: '@x1a0f3n9/dsh-agent-loop'
+- name: '@deepseek-ai/dsh-agent-loop'
   config:
     maxParallelToolCalls: 10
     agents:

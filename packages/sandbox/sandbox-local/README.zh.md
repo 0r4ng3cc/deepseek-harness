@@ -3,7 +3,7 @@ description: "面向 Linux、macOS 或 Windows 上选择、配置或排查进程
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-sandbox-local
+# @deepseek-ai/dsh-sandbox-local
 
 [English](README.md) | 中文
 
@@ -37,7 +37,7 @@ kind: "package-reference"
 
 ```yaml
 - id: sandbox
-  name: '@x1a0f3n9/dsh-sandbox-local'
+  name: '@deepseek-ai/dsh-sandbox-local'
 ```
 
 | 字段 | 默认值 | 含义 |

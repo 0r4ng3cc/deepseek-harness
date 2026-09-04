@@ -1,4 +1,4 @@
-# `@x1a0f3n9/dsh`
+# `@deepseek-ai/dsh`
 
 English | [中文](README.zh.md)
 
@@ -40,7 +40,7 @@ The tree composes over an empty root:
 - then the profile's `cordis.patch.yml`, then the home-level `$DSH_HOME/cordis.patch.yml`
 - then `--patch` overlays
 
-Bundles named in `dsh.profile.bundles` resolve from the dsh installation first (`@x1a0f3n9/dsh-base`, `@x1a0f3n9/dsh-web-app`, `@x1a0f3n9/dsh-headless`, `@x1a0f3n9/dsh-sdk-app`, `@x1a0f3n9/dsh-sdk-minimal`, `@x1a0f3n9/dsh-acp-app`), then from the profile's own `node_modules`, where pnpm installs out-of-tree plugins. The fork shares the Harness home with the upstream launcher, so an exact shipped profile tuple using the former `@deepseek-ai/dsh-*` names is rewritten to the corresponding fork tuple before resolution; custom bundle lists are preserved.
+Bundles named in `dsh.profile.bundles` resolve from the dsh installation first (`@deepseek-ai/dsh-base`, `@deepseek-ai/dsh-web-app`, `@deepseek-ai/dsh-headless`, `@deepseek-ai/dsh-sdk-app`, `@deepseek-ai/dsh-sdk-minimal`, `@deepseek-ai/dsh-acp-app`), then from the profile's own `node_modules`, where pnpm installs out-of-tree plugins. The fork shares the Harness home with the upstream launcher, so an exact shipped profile tuple using the former `@deepseek-ai/dsh-*` names is rewritten to the corresponding fork tuple before resolution; custom bundle lists are preserved.
 
 Use `--dump-default-config` and `--dump-config` to inspect the composed tree without booting it.
 

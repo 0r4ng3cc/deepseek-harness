@@ -3,7 +3,7 @@ description: "The runtime Typert registry: stores generated package reflection, 
 kind: "package-reference"
 ---
 
-# @x1a0f3n9/dsh-typert-registry
+# @deepseek-ai/dsh-typert-registry
 
 English | [中文](README.zh.md)
 
@@ -32,7 +32,7 @@ Mount the registry in any Host or Client composition that stores or consumes gen
 Load the registry plugin; the Client face is installed the same way by the Client runtime's own metadata, and both faces run the same implementation:
 
 ```yaml
-- name: '@x1a0f3n9/dsh-typert-registry'
+- name: '@deepseek-ai/dsh-typert-registry'
 ```
 
 ### Querying schemas and reflection

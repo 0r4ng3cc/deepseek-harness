@@ -33,6 +33,12 @@
       "path": "../../packages/bundle/web-app"
     },
     {
+      "path": "../../packages/ui/tui"
+    },
+    {
+      "path": "../../packages/ui/dsh-auth"
+    },
+    {
       "path": "../../packages/host/webserver"
     },
     {
