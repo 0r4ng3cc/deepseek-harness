@@ -1,8 +1,8 @@
 /**
  * Upstream compatibility contract.
  *
- * The TUI is validated against a set of upstream prerelease lines — the
- * current primary (0.1.2-rc.1) plus older lines kept in backward
+ * The TUI is validated against a set of workspace prerelease lines — the
+ * current local primary (0.1.2-alpha.6) plus upstream lines kept in backward
  * compatibility across the 0.1.1 and 0.1.0 release families. Every official
  * package this adapter touches is blessed here; anything else must go
  * through upstream channels or the adapter, never the UI.
@@ -13,15 +13,18 @@
  * single natural-language boot notice the logo header shows (see LogoV2).
  */
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
-/** Primary validated upstream line (newest). */
-export const UPSTREAM_VALIDATED_VERSION = '0.1.2-rc.1'
+const resolveRequire = createRequire(import.meta.url)
+
+/** Primary validated workspace line (newest). */
+export const UPSTREAM_VALIDATED_VERSION = '0.1.2-alpha.6'
 
 /**
  * Explicitly supported upstream prerelease lines, oldest first.
  *
- * 0.1.2-rc.1 = primary continuous-CI line; alpha.5, alpha.4, and alpha.3 are
+ * 0.1.2-alpha.6 = primary workspace line; alpha.5, alpha.4, and alpha.3 are
  * mapped compatibility lines source-checked when the primary line moves;
  * 0.1.1-rc.2 and rc.1 are compatibility lines (install- and
  * type-level compatibility); 0.1.0-rc.8 = previous family (full CI coverage);
@@ -40,6 +43,7 @@ export const UPSTREAM_VALIDATED_VERSIONS = [
   '0.1.2-alpha.3',
   '0.1.2-alpha.4',
   '0.1.2-alpha.5',
+  '0.1.2-alpha.6',
   '0.1.2-rc.1',
 ] as const
 
@@ -140,7 +144,11 @@ function resolvePackageJson(packageName: string): string | undefined {
     const path = import.meta.resolve(`${packageName}/package.json`)
     return path.startsWith('file:') ? fileURLToPath(path) : path
   } catch {
-    return undefined
+    try {
+      return resolveRequire.resolve(`${packageName}/package.json`)
+    } catch {
+      return undefined
+    }
   }
 }
 

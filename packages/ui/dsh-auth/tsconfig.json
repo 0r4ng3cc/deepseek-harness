@@ -9,7 +9,8 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "declaration": true,
-    "outDir": "lib",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo",
     "rootDir": "src",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true

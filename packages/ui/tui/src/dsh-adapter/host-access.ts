@@ -43,6 +43,32 @@ interface ActivationToken {
 installGlobalFiberInstrumentation()
 
 /**
+ * 给 runner 的 execute 增加 activation 上下文。
+ *
+ * TUI 在开发态可能同时被宿主 bundle 和 workspace 源码加载，两个模块
+ * 副本各自维护 WeakSet。通过检查属性描述符，让后加载的副本识别已经
+ * 完成的不可配置包装，避免重复 defineProperty 让进程在启动阶段崩溃。
+ */
+function wrapRunnerExecute(runner: object, fiber: object): void {
+  if (wrappedRunners.has(runner)) return
+  const descriptor = Object.getOwnPropertyDescriptor(runner, 'execute')
+  if (descriptor?.configurable === false) {
+    wrappedRunners.add(runner)
+    return
+  }
+  const execute = (runner as { execute?: (...args: unknown[]) => unknown }).execute
+  if (typeof execute !== 'function') return
+  Object.defineProperty(runner, 'execute', {
+    configurable: false,
+    writable: false,
+    value: function (this: unknown, ...args: unknown[]): unknown {
+      return runActivation(fiber, execute, this, args)
+    },
+  })
+  wrappedRunners.add(runner)
+}
+
+/**
  * Cordis contexts are prototype-scoped objects. A plugin can therefore make
  * `ctx.extend({ fiber: fake })`, which passes a shape-only check while making
  * cleanup land on an attacker-controlled effect object. Track the fibers
@@ -88,16 +114,8 @@ function rememberFiber(value: unknown, root?: Context): object | undefined {
     // LOADING before its private runner executes the new callback. Keep the
     // old activation rejected through that window, but allow synchronous
     // registrations made by the callback currently being executed.
-    if (runner !== undefined && typeof runner.execute === 'function' && !wrappedRunners.has(runner)) {
-      const execute = runner.execute
-      wrappedRunners.add(runner)
-      Object.defineProperty(runner, 'execute', {
-        configurable: false,
-        writable: false,
-        value: function (this: unknown, ...args: unknown[]): unknown {
-          return runActivation(actual, execute, this, args)
-        },
-      })
+    if (runner !== undefined && typeof runner.execute === 'function') {
+      wrapRunnerExecute(runner, actual)
     }
     const restart = (actual as unknown as { restart?: (...args: unknown[]) => unknown }).restart
     if (typeof restart === 'function' && !wrappedRestarts.has(actual)) {
@@ -240,17 +258,8 @@ function installGlobalFiberInstrumentation(): void {
     writable: true,
     value: function (this: any, runner: any): unknown {
       if (runner === this._runner && runner !== null && typeof runner === 'object'
-        && typeof runner.execute === 'function' && !wrappedRunners.has(runner)) {
-        const execute = runner.execute
-        const fiber = this as object
-        wrappedRunners.add(runner)
-        Object.defineProperty(runner, 'execute', {
-          configurable: false,
-          writable: false,
-          value: function (this: unknown, ...args: unknown[]): unknown {
-            return runActivation(fiber, execute, this, args)
-          },
-        })
+        && typeof runner.execute === 'function') {
+        wrapRunnerExecute(runner, this as object)
       }
       return Reflect.apply(original, this, [runner])
     },
