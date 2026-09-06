@@ -1,10 +1,10 @@
 version: 1
-scenario: tool-call-turn
+scenario: empty-response-retry-current
 profile: headless
-composition: default
-recording: live
+composition: retry
+recording: authored
 header:
-  class: default
+  class: retry
   pin: true
   systemPromptSource: text-turn
   toolSchemasSource: text-turn
