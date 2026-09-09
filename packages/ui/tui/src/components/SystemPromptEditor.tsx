@@ -20,7 +20,7 @@ export function SystemPromptEditor({
   const [cursor, setCursor] = React.useState(initial.length)
   const { columns, rows } = useTerminalSize()
   const inset = usePageInset()
-  const bodyRows = Math.max(6, rows + 2 * inset.y - 6)
+  const bodyRows = Math.max(6, rows + inset.y - 6)
 
   useInput((input, key) => {
     if (key.escape) {
@@ -80,7 +80,7 @@ export function SystemPromptEditor({
       top={-inset.y}
       left={-inset.x}
       width={columns + 2 * inset.x}
-      height={rows + 2 * inset.y}
+      height={rows + inset.y}
       flexDirection="column"
       flexShrink={0}
       overflow="hidden"

@@ -7,7 +7,6 @@ import { formatDuration } from '../../cc/format.js'
 import {
   THINKING_SPINNER_FRAMES,
   THINKING_SPINNER_INTERVAL_MS,
-  THINKING_SETTLED_MARKER,
 } from '../../cc/figures.js'
 import { BRAND, ICE } from '../shimmer.js'
 import { interpolateColor } from '../Spinner/spinnerUtils.js'
@@ -49,12 +48,12 @@ type Props = {
 }
 
 /**
- * Thinking block: settled rows fold to `⚓ Thinking (ctrl+o to expand)`;
+ * Thinking block: settled rows fold to `🐳 Thinking (ctrl+o to expand)`;
  * streaming rows switch between a three-line preview and the full reasoning
  * text on click. The live leading mark is a rotating braille spinner
- * (`⠋⠙⠹…`, Kimi Code style), settling back to the static anchor (`⚓`). When
+ * (`⠋⠙⠹…`, Kimi Code style), settling back to the static whale marker (`🐳`). When
  * the channel records the reasoning duration, the label carries it
- * (`⚓ Thinking · 12s …`) — dsh-tui's take on making thinking time visible in
+ * (`🐳 Thinking · 12s …`) — dsh-tui's take on making thinking time visible in
  * the transcript.
  */
 export function AssistantThinkingMessage({
@@ -93,7 +92,12 @@ export function AssistantThinkingMessage({
   // header's brand→ice ladder, one sine period per ~7 frames (≈0.56s) —
   // lively without strobing. Minimal mode drops the color (plain glyph);
   // settled always keeps the plain dim anchor.
-  const label = `${t('thinking-label')}${duration}${streaming ? '…' : ` ${t('hint-expand-ctrl-o')}`}`
+  const settledLabel = durationMs !== undefined && durationMs >= 1000
+    ? t('thinking-thought-for', { duration: formatDuration(durationMs) })
+    : t('thinking-label')
+  const label = streaming
+    ? `${t('thinking-label')}${duration}…`
+    : `${settledLabel} ${t('hint-expand-ctrl-o')}`
   const minimal = isMinimalMode()
   const pulse = (Math.sin(frame * 0.9) + 1) / 2
   const pulseColor = interpolateColor(BRAND, ICE, pulse)
@@ -112,7 +116,7 @@ export function AssistantThinkingMessage({
         <Text dimColor={!hovered} color={hovered ? 'text' : undefined} italic>{` ${label}`}</Text>
       </Box>
     ) : (
-      <Text italic dimColor={!hovered} color={hovered ? 'text' : undefined}>{`${minimal ? '*' : THINKING_SETTLED_MARKER} ${label}`}</Text>
+      <Text italic dimColor={!hovered} color={hovered ? 'text' : undefined}>{`${minimal ? '*' : '  '} ${label}`}</Text>
     )
 
   if (preview) {

@@ -14,10 +14,6 @@ export interface JobsPanelProps {
   onClose: () => void
   /** Kill the focused live job (`job_kill` with the session's authority). */
   onKill: (id: string) => void
-  /** ← 切到上一运行面板（工具详情）。 */
-  onCycleBack?: () => void
-  /** → 切到下一运行面板（队列）。 */
-  onCycleForward?: () => void
 }
 
 function statusInfo(status: BackgroundJobStatus): { glyph: string; label: string; color: keyof Theme | undefined } {
@@ -123,7 +119,7 @@ function timeOf(ms: number): string {
  * row expands a detail block (full label, start/finish times, mirrored
  * output tail). The panel is the deep view behind the transcript job cards.
  */
-export function JobsPanel({ jobs, onClose, onKill, onCycleBack, onCycleForward }: JobsPanelProps): React.ReactNode {
+export function JobsPanel({ jobs, onClose, onKill }: JobsPanelProps): React.ReactNode {
   const [focusIndex, setFocusIndex] = React.useState(0)
   const scrollRef = React.useRef<ScrollBoxHandle | null>(null)
   const { rows } = useTerminalSize()
@@ -136,18 +132,6 @@ export function JobsPanel({ jobs, onClose, onKill, onCycleBack, onCycleForward }
     if (key.escape || (key.ctrl && input === 'c')) {
       event.stopImmediatePropagation()
       onClose()
-      return
-    }
-    if (key.leftArrow) {
-      event.stopImmediatePropagation()
-      if (onCycleBack !== undefined) onCycleBack()
-      else onClose()
-      return
-    }
-    if (key.rightArrow) {
-      event.stopImmediatePropagation()
-      if (onCycleForward !== undefined) onCycleForward()
-      else onClose()
       return
     }
     if (key.upArrow) {

@@ -42,7 +42,7 @@ export interface StatusBarConfig {
   goal: boolean
   /** Non-default session mode. */
   mode: boolean
-  /** Segmented context progress bar on its own footer row. */
+  /** 行内迷你上下文进度条（`▕██░░░░░░▏ 1.4%`），跟在底栏其他字段同一行。 */
   contextBar: boolean
   /** Idle working-activity summary. */
   activity: boolean
@@ -59,9 +59,9 @@ export const DEFAULT_STATUS_BAR: Readonly<StatusBarConfig> = Object.freeze({
   thinking: true,
   cwd: true,
   contextUsage: true,
-  cache: true,
+  cache: false,
   tokens: false,
-  cost: true,
+  cost: false,
   tps: false,
   gitBranch: false,
   sessionTitle: false,

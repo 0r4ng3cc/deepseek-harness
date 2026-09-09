@@ -577,7 +577,6 @@ const dict = {
   'tool-tip-signal': { zh: '信号 {{name}}', en: 'signal {{name}}' },
 
   // ── components/SuggestionCard.tsx（/ 命令菜单 · @ 文件菜单）─────────
-  'sugg-commands-title': { zh: '命令', en: 'commands' },
   'sugg-files-title': { zh: '文件', en: 'files' },
   'sugg-count': { zh: '共 {{n}} 项', en: '{{n}} items' },
   'sugg-more-above': { zh: '↑{{n}}', en: '↑{{n}}' },
@@ -695,15 +694,18 @@ const dict = {
   // Prompt footer (CC agent-view parity): the ← affordance's hint.
   'input-background-hint-count': { zh: '← {{n}} 个会话等待输入', en: '← {{n}} agents' },
   'input-background-hint-idle': { zh: '← 会话总览', en: '← for agents' },
-  'runpane-queue-title': { zh: '运行队列', en: 'Run queue' },
-  'runpane-queue-empty': { zh: '没有待发送的 steer / followup', en: 'No pending steer / followup' },
-  'runpane-queue-steer': { zh: '下一边界注入（steer）', en: 'Inject at next step (steer)' },
-  'runpane-queue-followup': { zh: '本回合结束后发送', en: 'Send after this turn' },
-  'runpane-queue-hint': { zh: 'Enter 拉回编辑 · Delete 丢弃 · Esc 关闭 · ←/→ 切换面板', en: 'Enter recall · Delete drop · Esc close · ←/→ panes' },
-  'runpane-tools-title': { zh: '本回合工具', en: 'Turn tools' },
-  'runpane-tools-empty': { zh: '这一回合还没有工具调用', en: 'No tool calls in this turn' },
-  'runpane-tools-hint': { zh: '↑/↓ 选择 · Esc 关闭 · ←/→ 切换面板', en: '↑/↓ select · Esc close · ←/→ panes' },
-  'runpane-hint': { zh: '←/→ 运行面板（队列 · 工具 · jobs）', en: '←/→ run panes (queue · tools · jobs)' },
+  'stats-tps': { zh: '{{tps}} tok/s', en: '{{tps}} tok/s' },
+  'context-source-skill': { zh: '技能 {{name}}', en: 'skill {{name}}' },
+  'context-source-skill-catalog': { zh: '技能目录', en: 'skill catalog' },
+  'context-source-instructions': { zh: '工作区指令', en: 'workspace instructions' },
+  'context-source-session': { zh: '会话引用', en: 'session reference' },
+  'context-source-plugin': { zh: '插件 {{name}}', en: 'plugin {{name}}' },
+  'context-source-webhook': { zh: 'Webhook', en: 'webhook' },
+  'context-source-team': { zh: '团队消息', en: 'team message' },
+  'context-source-model': { zh: '模型消息', en: 'model message' },
+  'context-source-tool': { zh: '工具消息', en: 'tool message' },
+  'context-source-other': { zh: '注入 {{kind}}', en: 'injected {{kind}}' },
+  'context-injected-folded': { zh: '上下文注入', en: 'context' },
   'workflow-unavailable': { zh: '当前 profile 未挂载工作流服务；可用 dsh web 或安装 workflow 插件', en: 'No workflow service in this profile; use dsh web or install the workflow plugin' },
   'schedule-unavailable': { zh: '当前 profile 未挂载定时任务服务；可用 dsh web 或安装 schedule 插件', en: 'No schedule service in this profile; use dsh web or install the schedule plugin' },
 
@@ -905,6 +907,7 @@ const dict = {
   'thinking-disabled': { zh: '隐藏', en: 'Hidden' },
   'thinking-disabled-desc': { zh: '隐藏思考过程；模型仍会照常思考', en: 'Hide reasoning; the model will still think as usual' },
   'thinking-label': { zh: '思考', en: 'Thinking' },
+  'thinking-thought-for': { zh: '思考了 {{duration}}', en: 'Thought for {{duration}}' },
 
   // ── components/HistorySearchDialog.tsx ──────────────────────────────
   'history-search-title': { zh: '搜索历史', en: 'Search history' },
@@ -1178,8 +1181,6 @@ const dict = {
   'cmd-desc-init': { zh: '在工作目录创建 AGENTS.md' },
   'cmd-desc-agents': { zh: '查看本会话的子代理' },
   'cmd-desc-jobs': { zh: '查看本会话的后台任务' },
-  'cmd-desc-queue': { zh: '查看运行中的 steer/followup 队列' },
-  'cmd-desc-tools': { zh: '查看本回合工具调用详情' },
   'cmd-desc-workflow': { zh: '查看工作流（需 profile 挂载）' },
   'cmd-desc-schedule': { zh: '查看定时任务（需 profile 挂载）' },
   // Model / display

@@ -30,7 +30,6 @@ import { TuiDialogStore } from '../dsh-adapter/dialogs.js'
 import { TuiStatusStore } from '../dsh-adapter/status.js'
 import type { TuiShortcutHost } from '../dsh-adapter/shortcuts.js'
 import type { TuiThemeHost } from '../dsh-adapter/themes.js'
-import type { TuiRewindMode } from '../dsh-adapter/extension-events.js'
 import { runProviderWizard } from '../dsh-adapter/providerWizard.js'
 import { ApprovalStore } from '../dsh-adapter/approvals.js'
 import { AskUserQuestionPanel } from '../components/questions/AskUserQuestionPanel.js'
@@ -59,7 +58,6 @@ import { GoalTodoPanel } from '../components/GoalTodoPanel.js'
 import { AutoRecapRow } from '../components/AutoRecapRow.js'
 import { BalanceReportRow } from '../components/BalanceReportRow.js'
 import type { BalanceResult } from '../deepseekBalance.js'
-import { LoadedContextPanel } from '../components/LoadedContextPanel.js'
 import { StatusLine } from './StatusLine.js'
 import { WorkingSpinner, useThinkingStatus } from '../components/WorkingSpinner.js'
 import { ActivityLine, contextPressurePct } from '../components/ActivityLine.js'
@@ -92,8 +90,6 @@ import { isValidSessionColor, SESSION_COLOR_NAMES } from '../cc/sessionColors.js
 import { TipsPanel } from '../components/TipsPanel.js'
 import { SubagentDashboard } from '../components/SubagentDashboard.js'
 import { JobsPanel } from '../components/JobsPanel.js'
-import { QueuePanel } from '../components/QueuePanel.js'
-import { ToolsPanel, countToolRows } from '../components/ToolsPanel.js'
 import { SubagentDetailScene } from '../components/SubagentDetailScene.js'
 import { FileActionsPanel, FILE_ACTION_COUNT } from '../components/FileActionsPanel.js'
 import { openExternal, openFile, revealInFileManager } from '../utils/openExternal.js'
@@ -334,7 +330,7 @@ export function Chat({
   // outlives its channel.
   React.useEffect(() => {
     if (extensionShortcuts === undefined) return
-    return extensionShortcuts.setErrorHandler(combo => {
+    return extensionShortcuts.setErrorHandler((combo) => {
       channel.notify(t('ext-shortcut-failed', { combo }), { color: 'error', timeoutMs: 4000 })
     })
   }, [extensionShortcuts, channel])
@@ -469,9 +465,6 @@ export function Chat({
     listener => channel.subscribeAgentView?.(listener) ?? (() => {}),
     () => channel.agentViewRows?.() ?? EMPTY_AGENT_VIEW_ROWS,
   )
-  const backgroundAgentsNeedingInput = agentViewRows.filter(
-    row => row.status === 'needs-input' && !row.current,
-  ).length
   /** CC parity: background the attached session and open the agent view
    *  (`/bg`, `/background`, and ← on an empty prompt all land here). The
    *  backgrounded session becomes the view's return target (final Esc
@@ -554,7 +547,7 @@ export function Chat({
   const runBalance = React.useCallback(() => {
     const seq = ++balanceSeqRef.current
     setBalance(prev => ({ result: prev?.result ?? null, refreshing: true }))
-    void channel.balanceInfo().then(result => {
+    void channel.balanceInfo().then((result) => {
       if (balanceSeqRef.current !== seq) return
       setBalance({ result, refreshing: false })
     })
@@ -583,9 +576,9 @@ export function Chat({
     void channel.recapRecent({
       signal: controller.signal,
       onText: delta => setRecap(prev => (prev ? { ...prev, raw: prev.raw + delta } : prev)),
-    }).then(result => {
+    }).then((result) => {
       if (controller.signal.aborted) return
-      setRecap(prev => {
+      setRecap((prev) => {
         if (prev === null || !prev.auto) return prev
         // Auto mode stays quiet on failure (no activity / llm missing / error).
         if (result.summary === null) return null
@@ -641,7 +634,6 @@ export function Chat({
     setSelectedId(null)
     setSelectionActive(false)
     setShowAllMessages(false)
-    setLoadedContextOpen(false)
     setSearchQuery('')
     setSearchCursor(0)
     setSearchCount(0)
@@ -694,29 +686,13 @@ export function Chat({
   /** Open the scene, mark failures seen, and retire the key hint for good. */
   const openScene = React.useCallback(() => {
     seenFailuresRef.current = trajectoryRef.current?.counts.errors ?? 0
-    setTrajectorySeen(previous => {
+    setTrajectorySeen((previous) => {
       if (!previous) writeTrajectorySeen()
       return true
     })
     setSceneOpen(true)
   }, [])
-  /** The startup summary gives way to transcript rows after the first local command or message. */
-  const loadedContextVisible = false
-  /** Startup context panel: collapsed by default, toggled with Ctrl+P. */
-  const [loadedContextOpen, setLoadedContextOpen] = React.useState(false)
   const [systemPromptOpen, setSystemPromptOpen] = React.useState(false)
-  /**
-   * The context panel changes the height of the main-screen transcript by a
-   * large amount. In inline mode that invalidates the renderer's previous
-   * scrollback/layout correspondence; asking it to repaint from the physical
-   * viewport prevents the collapsed frame from reusing stale blank cells.
-   */
-  const toggleLoadedContext = React.useCallback(() => {
-    setLoadedContextOpen(previous => !previous)
-    const ink = instances.get(process.stdout) ?? instances.values().next().value
-    ink?.invalidatePrevFrame()
-    ink?.reanchorViewport()
-  }, [])
 
   /**
    * Click-to-act targets: the Ink instance's hyperlink-open callback (wired
@@ -1379,7 +1355,6 @@ export function Chat({
           setSelectedId(null)
           setSelectionActive(false)
           setShowAllMessages(false)
-          setLoadedContextOpen(false)
           handle?.scrollTo(0)
           channel.notify(t('new-session-started'))
           const ink = instances.get(process.stdout) ?? instances.values().next().value
@@ -1777,14 +1752,6 @@ export function Chat({
         setHelpOpen(false)
         setJobsPanelOpen(true)
         return true
-      case 'queue':
-        setHelpOpen(false)
-        dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
-        return true
-      case 'tools':
-        setHelpOpen(false)
-        dispatchOverlay({ type: 'open', overlay: { kind: 'tools', index: 0 } })
-        return true
       case 'workflow':
         setHelpOpen(false)
         channel.notify(t('workflow-unavailable'), { color: 'warning', timeoutMs: 8000 })
@@ -1803,7 +1770,7 @@ export function Chat({
         setHelpOpen(false)
         void channel.describeCredential('DEEPSEEK_API_KEY')
           .catch(() => undefined)
-          .then(async status => {
+          .then(async (status) => {
             const keyStatus = status === undefined
               ? t('login-credentials-unavailable')
               : status.configured
@@ -1818,26 +1785,26 @@ export function Chat({
               ...(status === undefined
                 ? []
                 : [
-                    t('login-credential-source', { source: status.source ?? t('login-source-none') }),
-                    t('login-credential-storage', {
-                      mode: t(status.writable ? 'login-storage-writable' : 'login-storage-read-only'),
-                    }),
-                  ]),
+                  t('login-credential-source', { source: status.source ?? t('login-source-none') }),
+                  t('login-credential-storage', {
+                    mode: t(status.writable ? 'login-storage-writable' : 'login-storage-read-only'),
+                  }),
+                ]),
               t('login-base-url', { url: process.env.DEEPSEEK_BASE_URL ?? t('login-official-endpoint') }),
               ...(oauth === undefined
                 ? []
                 : [
-                    t('login-oauth-heading'),
-                    ...oauth.map(row => t('login-oauth-row', {
-                      provider: row.provider,
-                      state: row.signedIn
-                        ? t('login-oauth-in', { time: new Date(row.expiresAt ?? 0).toISOString() })
-                        : row.expired
-                          ? t('login-oauth-expired')
-                          : t('login-oauth-signed-out'),
-                    })),
-                    t('login-oauth-hint'),
-                  ]),
+                  t('login-oauth-heading'),
+                  ...oauth.map(row => t('login-oauth-row', {
+                    provider: row.provider,
+                    state: row.signedIn
+                      ? t('login-oauth-in', { time: new Date(row.expiresAt ?? 0).toISOString() })
+                      : row.expired
+                        ? t('login-oauth-expired')
+                        : t('login-oauth-signed-out'),
+                  })),
+                  t('login-oauth-hint'),
+                ]),
             ])
           })
         return true
@@ -2085,16 +2052,16 @@ export function Chat({
         void channel.recapRecent({
           signal: controller.signal,
           onText: delta => setRecap(prev => (prev ? { ...prev, raw: prev.raw + delta } : prev)),
-        }).then(result => {
+        }).then((result) => {
           if (controller.signal.aborted) return
           setRecap(prev => (prev
             ? {
-                ...prev,
-                summary: result.summary ?? prev.raw,
-                title: result.title,
-                error: result.error,
-                done: true,
-              }
+              ...prev,
+              summary: result.summary ?? prev.raw,
+              title: result.title,
+              error: result.error,
+              done: true,
+            }
             : prev))
         })
         return true
@@ -2115,7 +2082,7 @@ export function Chat({
         void channel.sideQuestion(question, {
           signal: controller.signal,
           onText: delta => setBtw(prev => (prev ? { ...prev, answer: prev.answer + delta } : prev)),
-        }).then(result => {
+        }).then((result) => {
           if (controller.signal.aborted) return
           setBtw(prev => (prev ? { ...prev, answer: result.answer ?? prev.answer, error: result.error, done: true } : prev))
         })
@@ -2267,7 +2234,7 @@ export function Chat({
   const pageInsetX = usePageInset().x
   const wakeWidth = miniWakeWidth(terminalColumns)
   const wakeBand = React.useMemo(
-        () =>
+    () =>
       wakeWidth === 0
         ? undefined
         // `sequence`, not the scene's `compressed`: at sixteen columns an idle
@@ -2813,40 +2780,6 @@ export function Chat({
       }
       return
     }
-    if (overlay.kind === 'queue') {
-      const count = channel.pending.length
-      if (key.upArrow || key.downArrow) {
-        dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: Math.max(count, 1) })
-      } else if (key.rightArrow) {
-        dispatchOverlay({ type: 'open', overlay: { kind: 'tools', index: 0 } })
-      } else if (key.leftArrow) {
-        dispatchOverlay({ type: 'close' })
-      } else if (key.delete || key.backspace) {
-        const item = channel.pending[overlay.index]
-        if (item) channel.removePending(item.id)
-      } else if (plainReturn) {
-        const item = channel.pending[overlay.index]
-        dispatchOverlay({ type: 'close' })
-        if (item && channel.removePending(item.id)) setHistoryFill(item.text)
-      } else if (key.escape) {
-        dispatchOverlay({ type: 'close' })
-      }
-      return
-    }
-    if (overlay.kind === 'tools') {
-      const count = countToolRows(channel.rows)
-      if (key.upArrow || key.downArrow) {
-        dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: Math.max(count, 1) })
-      } else if (key.rightArrow) {
-        dispatchOverlay({ type: 'close' })
-        setJobsPanelOpen(true)
-      } else if (key.leftArrow) {
-        dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
-      } else if (key.escape) {
-        dispatchOverlay({ type: 'close' })
-      }
-      return
-    }
     if (overlay.kind === 'plan') {
       if (key.upArrow || key.downArrow) {
         dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: 2 })
@@ -3031,13 +2964,6 @@ export function Chat({
       // press both opens the overlay and jumps the cursor.
       setSubagentDashboardOpen(true)
       event.stopImmediatePropagation()
-      return
-    }
-    if (actionMatches('contextPanel', input, key) && loadedContextVisible) {
-      // The loaded-context panel key (default Ctrl+P) toggles the startup
-      // panel while it is on screen (transcript still empty); once rows take
-      // over and the panel disappears the key has nothing left to do.
-      toggleLoadedContext()
       return
     }
     if (actionMatches('history', input, key) && !helpOpen) {
@@ -3357,7 +3283,7 @@ export function Chat({
     const scene = (
       <SubagentDetailScene
         subagent={subagent}
-        onInterrupt={(id) => channel.subagentControl.interrupt(id)}
+        onInterrupt={id => channel.subagentControl.interrupt(id)}
         onBack={() => {
           setSubagentDetailId(null)
           setSubagentDashboardOpen(true)
@@ -3374,14 +3300,6 @@ export function Chat({
       <JobsPanel
         jobs={channel.backgroundJobs ?? []}
         onClose={() => setJobsPanelOpen(false)}
-        onCycleBack={() => {
-          setJobsPanelOpen(false)
-          dispatchOverlay({ type: 'open', overlay: { kind: 'tools', index: 0 } })
-        }}
-        onCycleForward={() => {
-          setJobsPanelOpen(false)
-          dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
-        }}
         onKill={(id) => {
           // Stub channels (verify harnesses) have no jobControl — surface
           // the same failure toast as a refused kill instead of throwing.
@@ -3481,66 +3399,54 @@ export function Chat({
           stretch with the margin yields exactly content+margin. */}
       <Box flexDirection="row" flexGrow={1} flexShrink={1} marginRight={-pageInsetX}>
         <ScrollBox ref={setHandle} flexDirection="column" flexGrow={1} flexShrink={1} stickyScroll>
-        <LogoHeader
-          key={logoNonce}
-          model={channel.model}
-          effort={channel.reasoningEffort}
-          cwd={channel.displayCwd}
-          whale={channel.whale}
-          petAnimation={petAnimation}
-          // Resuming a long session skips the ~1.2s opening animation: it
-          // keeps firing low-frequency React commits that compete with the
-          // transcript mount batches (and the first wheel events) for the
-          // frame budget right when the user wants to read history. Fresh
-          // sessions keep the full intro; restored ones settle instantly.
-          // A remount after a whole screen closed also settles instantly
-          // (see suppressLogoIntroRef).
-          skipIntro={suppressLogoIntroRef.current || channel.rows.length > 30}
-        />
-        {/* The startup loaded-context panel: before the first message the
-            transcript is empty, so the inventory of what this conversation
-            will load (system prompt, workspace instructions, skills, tools)
-            sits at the top, collapsed to a summary line and expandable with
-            Ctrl+P; the first rows take over. */}
-        {loadedContextVisible && (
-          <LoadedContextPanel
-            context={channel.loadedContext}
-            open={loadedContextOpen}
-            onToggle={toggleLoadedContext}
+          <LogoHeader
+            key={logoNonce}
+            model={channel.model}
+            effort={channel.reasoningEffort}
+            cwd={channel.displayCwd}
+            whale={channel.whale}
+            petAnimation={petAnimation}
+            // Resuming a long session skips the ~1.2s opening animation: it
+            // keeps firing low-frequency React commits that compete with the
+            // transcript mount batches (and the first wheel events) for the
+            // frame budget right when the user wants to read history. Fresh
+            // sessions keep the full intro; restored ones settle instantly.
+            // A remount after a whole screen closed also settles instantly
+            // (see suppressLogoIntroRef).
+            skipIntro={suppressLogoIntroRef.current || channel.rows.length > 30}
           />
-        )}
-        <MessageList
-          rows={channel.rows}
-          failureHintRowId={failureHintRowId}
-          failureHint={t('traj-hint-failure', { key: `${modLabel}t` })}
-          expanded={expanded}
-          expandedRows={expandedRows}
-          selectedId={selectionActive ? selectedId : null}
-          onToggleRow={toggleRowExpanded}
-          streamViewToggledRows={streamViewToggledRows}
-          onToggleStreamView={toggleStreamView}
-          model={channel.model}
-          diffLayout={channel.diffLayout}
-          thinkingFold={channel.thinkingFold}
-          toolBackground={channel.toolBackground}
-          foldTerminalCommand={channel.foldTerminalCommand}
-          smoothStreaming={channel.smoothStreaming}
-          activityFrames={channel.activityFrames}
-          showAll={showAllMessages}
-          thinkingVisible={thinkingVisible}
-          historyPaintEnabled={!fullscreen}
-          onToggleAll={() =>{  setShowAllMessages(previous => !previous) }}
-          onLoadOlder={() => channel.loadOlder()}
-          registerRowRef={registerRowRef}
-          scrollHandle={handle}
-          forceMountRowId={forceMountRowId}
-          newSinceRowId={isSticky ? null : lastSeenRowIdRef.current}
-          onUnseenCount={setUnseenCount}
-          onTimeline={setTimeline}
-          onOpenSubagent={(agentId) => setSubagentDetailId(agentId)}
-          onOpenJobs={() => setJobsPanelOpen(true)}
-          onOpenFile={openFileActions}
-        />
+          <MessageList
+            rows={channel.rows}
+            failureHintRowId={failureHintRowId}
+            failureHint={t('traj-hint-failure', { key: `${modLabel}t` })}
+            expanded={expanded}
+            expandedRows={expandedRows}
+            selectedId={selectionActive ? selectedId : null}
+            onToggleRow={toggleRowExpanded}
+            streamViewToggledRows={streamViewToggledRows}
+            onToggleStreamView={toggleStreamView}
+            model={channel.model}
+            diffLayout={channel.diffLayout}
+            thinkingFold={channel.thinkingFold}
+            toolBackground={channel.toolBackground}
+            foldTerminalCommand={channel.foldTerminalCommand}
+            smoothStreaming={channel.smoothStreaming}
+            activityFrames={channel.activityFrames}
+            showAll={showAllMessages}
+            thinkingVisible={thinkingVisible}
+            historyPaintEnabled={!fullscreen}
+            onToggleAll={() =>{  setShowAllMessages(previous => !previous) }}
+            onLoadOlder={() => channel.loadOlder()}
+            registerRowRef={registerRowRef}
+            scrollHandle={handle}
+            forceMountRowId={forceMountRowId}
+            newSinceRowId={isSticky ? null : lastSeenRowIdRef.current}
+            onUnseenCount={setUnseenCount}
+            onTimeline={setTimeline}
+            onOpenSubagent={agentId => setSubagentDetailId(agentId)}
+            onOpenJobs={() => setJobsPanelOpen(true)}
+            onOpenFile={openFileActions}
+          />
         </ScrollBox>
         {(() => {
           // Gutter mode (settings `dsh-tui.scrollGutter`): the timeline
@@ -3566,17 +3472,20 @@ export function Chat({
             />
           )
         })()}
-      </Box>
-      {/* Bottom chrome (pill, spinners, dialogs, prompt, statusline): never
-          let flex shrink squeeze these fixed-height rows — the ScrollBox
-          above absorbs all overflow (it is the scroll container). */}
-      <Box flexDirection="column" flexShrink={0}>
+        {/* 悬浮在滚动区底部中央（CC 的 pill 同款绝对定位）：绝不占布局行，
+            否则 pill 显隐会改变 ScrollBox 高度 → maxScroll 变 → 到底判定
+            重算 → pill 再翻，形成闪烁循环。 */}
         {showPill && (
           <NewMessagesPill
             count={unseenCount}
             onClick={() => handle?.scrollToBottom()}
           />
         )}
+      </Box>
+      {/* Bottom chrome (spinners, dialogs, prompt, statusline): never
+          let flex shrink squeeze these fixed-height rows — the ScrollBox
+          above absorbs all overflow (it is the scroll container). */}
+      <Box flexDirection="column" flexShrink={0}>
         {channel.working &&
           (channel.activityEnabled &&
           !channel.minimal &&
@@ -3678,7 +3587,7 @@ export function Chat({
                 }
               }}
               onCopy={() => {
-                void setClipboard(recap.summary ?? '').then(raw => { if (raw) writeRaw?.(raw) })
+                void setClipboard(recap.summary ?? '').then((raw) => { if (raw) writeRaw?.(raw) })
                 channel.notify(t('copied-chars', { n: (recap.summary ?? '').length }), { timeoutMs: 1500 })
               }}
               onApplyTitle={() => {
@@ -3698,7 +3607,7 @@ export function Chat({
               streaming={!btw.done}
               onClose={closeBtw}
               onCopy={() => {
-                void setClipboard(btw.answer ?? '').then(raw => { if (raw) writeRaw?.(raw) })
+                void setClipboard(btw.answer ?? '').then((raw) => { if (raw) writeRaw?.(raw) })
                 channel.notify(t('copied-chars', { n: (btw.answer ?? '').length }), { timeoutMs: 1500 })
               }}
             />
@@ -3715,12 +3624,6 @@ export function Chat({
             fillText={historyFill}
             onFillConsumed={() =>{  setHistoryFill(null) }}
             onRewindRequest={openRewind}
-            onBackgroundRequest={() => {
-              // Empty-prompt ←/→ cycles run panes (queue → tools → jobs).
-              // Agent switching stays on /agentview and /bg.
-              dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
-            }}
-            backgroundAgentsNeedingInput={0}
             controllerRef={promptControllerRef}
           />
         )}
@@ -3732,10 +3635,10 @@ export function Chat({
             wakeBand === undefined
               ? undefined
               : {
-                  band: wakeBand,
-                  hint: trajectorySeen ? undefined : `${modLabel}t`,
-                  tick: Math.floor(wakeTime / 120),
-                }
+                band: wakeBand,
+                hint: trajectorySeen ? undefined : `${modLabel}t`,
+                tick: Math.floor(wakeTime / 120),
+              }
           }
         />
         {/* 瞬态面板浮层：absolute + bottom:'100%' 钉在本 chrome Box 顶边，向上
@@ -3744,339 +3647,321 @@ export function Chat({
             一份启动画的根因）。maxHeight 预留 prompt/statusline 行，防短会话
             高列表探出帧顶。整体条件挂载：见 dialogOverlayOpen 注释。 */}
         {dialogOverlayOpen && (
-        <OverlayAbove maxHeight={Math.max(terminalRows - 8, 1)}>
-          {overlay.kind === 'thinking' && (
-            <ThinkingToggle
-              currentValue={thinkingVisible}
-              focusIndex={overlay.focus}
-              onPick={(index) => {
-                // 点击行 = 设焦点 + 应用（与 Enter 同一条路径）
-                const visible = index === 0
-                setThinkingVisible(visible)
-                dispatchOverlay({ type: 'close' })
-                channel.notify(t('thinking-toggled', { state: visible ? t('thinking-on') : t('thinking-off') }))
-              }}
-            />
-          )}
-          {overlay.kind === 'workspace-picker' && workspaceTargets.length > 0 && (
-            <Box flexDirection="column" marginTop={1}>
-              <WorkspacePicker
-                targets={workspaceTargets}
-                focusIndex={overlay.index}
-                currentCwd={channel.cwd}
-                onPick={(index) => {
-                  // 点击行 = 切换该行目标（与 Enter 同一条路径）
-                  const target = workspaceTargets[index]
-                  dispatchOverlay({ type: 'close' })
-                  if (target !== undefined) void channel.switchWorkspace(target)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'workspace-menu' && (
-            <Box flexDirection="column" marginTop={1}>
-              <WorkspaceMenuPicker
-                options={workspaceMenuOptions}
-                focusIndex={overlay.index}
-                onPick={(index) => {
-                  // 点击行 = 执行该行（与 Enter 同一条路径）
-                  runWorkspaceMenuOption(workspaceMenuOptions[index])
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'workspace-flow' && (
-            <Box flexDirection="column" marginTop={1}>
-              <WorkspaceFlowPicker
-                title={overlay.flow.title}
-                choices={overlay.flow.choices}
-                focusIndex={overlay.index}
-                busy={overlay.busy}
-                input={overlay.input}
-                onPick={(index) => {
-                  // 点击行 = 设焦点 + 执行分支（与 Enter 同一条路径）；
-                  // busy/输入态在组件侧禁点
-                  const choice = overlay.flow.choices[index]
-                  if (choice === undefined) return
-                  dispatchOverlay({ type: 'set-index', kind: 'workspace-flow', index })
-                  runWorkspaceFlowAction(signal => choice.choose(signal))
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'model' && (
-            <Box flexDirection="column" marginTop={1}>
-              {models.length === 0 ? (
-                <ModelPickerLoading />
-              ) : activeModelGroup === undefined ? (
-                <ModelPicker
-                  groups={modelGroups}
-                  focusIndex={overlay.index}
-                  currentProvider={channel.provider}
-                  onPick={(index) => {
-                    // 点击分组行 = 进入该组（与 Enter 同一条路径）
-                    const group = modelGroups[index]
-                    if (!group) return
-                    setModelGroup(group.provider)
-                    if (group.provider === RECENTS_GROUP_PROVIDER) {
-                      dispatchOverlay({ type: 'set-index', kind: 'model', index: 0 })
-                      return
-                    }
-                    const landing = modelPickerLanding(
-                      models.filter(model => model.provider === group.provider),
-                      channel.provider,
-                      channel.model,
-                    )
-                    dispatchOverlay({ type: 'set-index', kind: 'model', index: landing.index })
-                  }}
-                />
-              ) : (
-                <ModelPicker
-                  models={groupModels}
-                  groupLabel={activeModelGroup === RECENTS_GROUP_PROVIDER
-                    ? t('picker-group-recent')
-                    : modelGroups.find(group => group.provider === activeModelGroup)?.label}
-                  showBack={modelGroups.length > 1 && !modelPickerDirect}
-                  showProviderPrefix={activeModelGroup === RECENTS_GROUP_PROVIDER}
-                  focusIndex={overlay.index}
-                  currentModel={`${channel.provider}/${channel.model}`}
-                  onPick={(index) => {
-                    // 点击行 = 应用该行模型（与 Enter 同一条路径）
-                    const model = groupModels[index]
-                    if (!model) return
-                    dispatchOverlay({ type: 'close' })
-                    void switchModelRecorded(model.provider, model.id, model.name)
-                  }}
-                />
-              )}
-            </Box>
-          )}
-          {overlay.kind === 'skills' && (
-            <Box flexDirection="column" marginTop={1}>
-              {skillsList === null ? (
-                <SkillsPickerLoading />
-              ) : (
-                <SkillsPicker
-                  skills={skillsList}
-                  focusIndex={overlay.index}
-                  onPick={(index) => {
-                    const skill = skillsList[index]
-                    if (!skill) return
-                    dispatchOverlay({ type: 'close' })
-                    if (skill.userInvocable) setHistoryFill(`/${skill.name} `)
-                  }}
-                />
-              )}
-            </Box>
-          )}
-          {overlay.kind === 'activity' && (
-            <Box flexDirection="column" marginTop={1}>
-              <ActivityPicker
-                focusIndex={overlay.index}
-                currentPreset={channel.activityFrames}
-                onPick={(index) => {
-                  dispatchOverlay({ type: 'close' })
-                  const name = PRESET_NAMES[index]
-                  if (name) channel.setActivityFrames(name)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'color' && (
-            <Box flexDirection="column" marginTop={1}>
-              <ColorPicker
-                focusIndex={overlay.index}
-                currentColor={channel.sessionColor}
-                onPick={(index) => {
-                  dispatchOverlay({ type: 'close' })
-                  const name = SESSION_COLOR_NAMES[index]
-                  if (name) {
-                    channel.setSessionColor(name)
-                    channel.notify(t('color-set', { name }), { color: 'success' })
-                  }
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'effort' && effortOptions.length > 1 && (
-            <Box flexDirection="column" marginTop={1}>
-              <EffortSlider
-                options={effortOptions}
-                focusIndex={overlay.index}
-                currentId={channel.reasoningEffort}
-                // 点击档位 = 移到该档并即时应用（与 ←/→ 同语义）
-                onPick={(index) => {
-                  dispatchOverlay({ type: 'set-index', kind: 'effort', index })
-                  const option = effortOptions[index]
-                  if (option) void channel.setEffort(option.id)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'preset' && presetOptions.length > 0 && (
-            <Box flexDirection="column" marginTop={1}>
-              <PresetPicker
-                presets={presetOptions}
-                focusIndex={overlay.index}
-                currentPreset={channel.agentPreset}
-                onPick={(index) => {
-                  dispatchOverlay({ type: 'close' })
-                  const option = presetOptions[index]
-                  if (option) void channel.switchPreset(option.id)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'permission' && overlay.snapshot.options.length > 0 && (
-            <Box flexDirection="column" marginTop={1}>
-              <PermissionsPicker
-                options={overlay.snapshot.options}
-                focusIndex={overlay.index}
-                currentValue={overlay.snapshot.current?.value}
-                cwd={channel.cwd}
-                onPick={(index) => {
-                  if (approvalSnapshot !== null || questionSnapshot !== null || dialogSnapshot !== null) return
-                  const option = overlay.snapshot.options[index]
-                  dispatchOverlay({ type: 'close' })
-                  if (option !== undefined) runPermissionCommand(` ${option.value}`)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'queue' && (
-            <Box flexDirection="column" marginTop={1}>
-              <QueuePanel
-                pending={channel.pending}
-                focusIndex={overlay.index}
-                onPick={(index) => {
-                  const item = channel.pending[index]
-                  dispatchOverlay({ type: 'close' })
-                  if (item && channel.removePending(item.id)) setHistoryFill(item.text)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'tools' && (
-            <Box flexDirection="column" marginTop={1}>
-              <ToolsPanel rows={channel.rows} focusIndex={overlay.index} />
-            </Box>
-          )}
-          {overlay.kind === 'plan' && (
-            <Box flexDirection="column" marginTop={1}>
-              <PlanPicker
-                focusIndex={overlay.index}
-                currentOn={channel.mode.plan === true}
-                onPick={(index) => {
-                  dispatchOverlay({ type: 'close' })
-                  const on = index === 0
-                  void channel.runExternalCommand('plan', on ? '' : ' off').then((text) => {
-                    if (text !== undefined && text !== '') channel.notify(text)
-                  })
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'lang' && (
-            <Box flexDirection="column" marginTop={1}>
-              <LangPicker
-                focusIndex={overlay.index}
-                currentLang={getLang()}
-                onPick={(index) => {
-                  const lang = LANGS[index]
-                  if (lang === undefined) return
-                  dispatchOverlay({ type: 'close' })
-                  applyLang(lang)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'theme' && (
-            <Box flexDirection="column" marginTop={1}>
-              <ThemePicker
-                focusIndex={overlay.index}
-                currentTheme={themeName}
-                themeHost={themeHost}
-                onPick={(index) => {
-                  dispatchOverlay({ type: 'close' })
-                  const name = getThemeOptions(themeHost)[index]?.value
-                  if (name !== undefined) {
-                    const ok = setTheme(name)
-                    channel.notify(
-                      ok ? t('theme-switched-saved', { name }) : t('theme-switch-failed', { name }),
-                      { color: ok ? 'success' : 'error' },
-                    )
-                  }
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'history' && (
-            <Box flexDirection="column" marginTop={1}>
-              <HistorySearchDialog
-                query={overlay.query}
-                cursorOffset={overlay.cursor}
-                matches={historyMatches}
+          <OverlayAbove maxHeight={Math.max(terminalRows - 8, 1)}>
+            {overlay.kind === 'thinking' && (
+              <ThinkingToggle
+                currentValue={thinkingVisible}
                 focusIndex={overlay.focus}
                 onPick={(index) => {
-                  // 点击行 = 填入该历史命令（与 Enter 同路径）
-                  const entry = historyMatches[index]
-                  if (entry) {
-                    setHistoryFill(entry.text)
+                // 点击行 = 设焦点 + 应用（与 Enter 同一条路径）
+                  const visible = index === 0
+                  setThinkingVisible(visible)
+                  dispatchOverlay({ type: 'close' })
+                  channel.notify(t('thinking-toggled', { state: visible ? t('thinking-on') : t('thinking-off') }))
+                }}
+              />
+            )}
+            {overlay.kind === 'workspace-picker' && workspaceTargets.length > 0 && (
+              <Box flexDirection="column" marginTop={1}>
+                <WorkspacePicker
+                  targets={workspaceTargets}
+                  focusIndex={overlay.index}
+                  currentCwd={channel.cwd}
+                  onPick={(index) => {
+                  // 点击行 = 切换该行目标（与 Enter 同一条路径）
+                    const target = workspaceTargets[index]
                     dispatchOverlay({ type: 'close' })
-                  }
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'rewind' && (
-            <Box flexDirection="column" marginTop={1}>
-              <RewindPicker
-                rows={rewindRows}
-                focusIndex={overlay.index}
-                confirmRow={overlay.confirm}
-                modes={overlay.modes}
-                modeIndex={overlay.modeIndex}
-                busy={overlay.busy}
-                onPickRow={(index) => {
+                    if (target !== undefined) void channel.switchWorkspace(target)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'workspace-menu' && (
+              <Box flexDirection="column" marginTop={1}>
+                <WorkspaceMenuPicker
+                  options={workspaceMenuOptions}
+                  focusIndex={overlay.index}
+                  onPick={(index) => {
+                  // 点击行 = 执行该行（与 Enter 同一条路径）
+                    runWorkspaceMenuOption(workspaceMenuOptions[index])
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'workspace-flow' && (
+              <Box flexDirection="column" marginTop={1}>
+                <WorkspaceFlowPicker
+                  title={overlay.flow.title}
+                  choices={overlay.flow.choices}
+                  focusIndex={overlay.index}
+                  busy={overlay.busy}
+                  input={overlay.input}
+                  onPick={(index) => {
+                  // 点击行 = 设焦点 + 执行分支（与 Enter 同一条路径）；
+                  // busy/输入态在组件侧禁点
+                    const choice = overlay.flow.choices[index]
+                    if (choice === undefined) return
+                    dispatchOverlay({ type: 'set-index', kind: 'workspace-flow', index })
+                    runWorkspaceFlowAction(signal => choice.choose(signal))
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'model' && (
+              <Box flexDirection="column" marginTop={1}>
+                {models.length === 0 ? (
+                  <ModelPickerLoading />
+                ) : activeModelGroup === undefined ? (
+                  <ModelPicker
+                    groups={modelGroups}
+                    focusIndex={overlay.index}
+                    currentProvider={channel.provider}
+                    onPick={(index) => {
+                    // 点击分组行 = 进入该组（与 Enter 同一条路径）
+                      const group = modelGroups[index]
+                      if (!group) return
+                      setModelGroup(group.provider)
+                      if (group.provider === RECENTS_GROUP_PROVIDER) {
+                        dispatchOverlay({ type: 'set-index', kind: 'model', index: 0 })
+                        return
+                      }
+                      const landing = modelPickerLanding(
+                        models.filter(model => model.provider === group.provider),
+                        channel.provider,
+                        channel.model,
+                      )
+                      dispatchOverlay({ type: 'set-index', kind: 'model', index: landing.index })
+                    }}
+                  />
+                ) : (
+                  <ModelPicker
+                    models={groupModels}
+                    groupLabel={activeModelGroup === RECENTS_GROUP_PROVIDER
+                      ? t('picker-group-recent')
+                      : modelGroups.find(group => group.provider === activeModelGroup)?.label}
+                    showBack={modelGroups.length > 1 && !modelPickerDirect}
+                    showProviderPrefix={activeModelGroup === RECENTS_GROUP_PROVIDER}
+                    focusIndex={overlay.index}
+                    currentModel={`${channel.provider}/${channel.model}`}
+                    onPick={(index) => {
+                    // 点击行 = 应用该行模型（与 Enter 同一条路径）
+                      const model = groupModels[index]
+                      if (!model) return
+                      dispatchOverlay({ type: 'close' })
+                      void switchModelRecorded(model.provider, model.id, model.name)
+                    }}
+                  />
+                )}
+              </Box>
+            )}
+            {overlay.kind === 'skills' && (
+              <Box flexDirection="column" marginTop={1}>
+                {skillsList === null ? (
+                  <SkillsPickerLoading />
+                ) : (
+                  <SkillsPicker
+                    skills={skillsList}
+                    focusIndex={overlay.index}
+                    onPick={(index) => {
+                      const skill = skillsList[index]
+                      if (!skill) return
+                      dispatchOverlay({ type: 'close' })
+                      if (skill.userInvocable) setHistoryFill(`/${skill.name} `)
+                    }}
+                  />
+                )}
+              </Box>
+            )}
+            {overlay.kind === 'activity' && (
+              <Box flexDirection="column" marginTop={1}>
+                <ActivityPicker
+                  focusIndex={overlay.index}
+                  currentPreset={channel.activityFrames}
+                  onPick={(index) => {
+                    dispatchOverlay({ type: 'close' })
+                    const name = PRESET_NAMES[index]
+                    if (name) channel.setActivityFrames(name)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'color' && (
+              <Box flexDirection="column" marginTop={1}>
+                <ColorPicker
+                  focusIndex={overlay.index}
+                  currentColor={channel.sessionColor}
+                  onPick={(index) => {
+                    dispatchOverlay({ type: 'close' })
+                    const name = SESSION_COLOR_NAMES[index]
+                    if (name) {
+                      channel.setSessionColor(name)
+                      channel.notify(t('color-set', { name }), { color: 'success' })
+                    }
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'effort' && effortOptions.length > 1 && (
+              <Box flexDirection="column" marginTop={1}>
+                <EffortSlider
+                  options={effortOptions}
+                  focusIndex={overlay.index}
+                  currentId={channel.reasoningEffort}
+                  // 点击档位 = 移到该档并即时应用（与 ←/→ 同语义）
+                  onPick={(index) => {
+                    dispatchOverlay({ type: 'set-index', kind: 'effort', index })
+                    const option = effortOptions[index]
+                    if (option) void channel.setEffort(option.id)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'preset' && presetOptions.length > 0 && (
+              <Box flexDirection="column" marginTop={1}>
+                <PresetPicker
+                  presets={presetOptions}
+                  focusIndex={overlay.index}
+                  currentPreset={channel.agentPreset}
+                  onPick={(index) => {
+                    dispatchOverlay({ type: 'close' })
+                    const option = presetOptions[index]
+                    if (option) void channel.switchPreset(option.id)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'permission' && overlay.snapshot.options.length > 0 && (
+              <Box flexDirection="column" marginTop={1}>
+                <PermissionsPicker
+                  options={overlay.snapshot.options}
+                  focusIndex={overlay.index}
+                  currentValue={overlay.snapshot.current?.value}
+                  cwd={channel.cwd}
+                  onPick={(index) => {
+                    if (approvalSnapshot !== null || questionSnapshot !== null || dialogSnapshot !== null) return
+                    const option = overlay.snapshot.options[index]
+                    dispatchOverlay({ type: 'close' })
+                    if (option !== undefined) runPermissionCommand(` ${option.value}`)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'plan' && (
+              <Box flexDirection="column" marginTop={1}>
+                <PlanPicker
+                  focusIndex={overlay.index}
+                  currentOn={channel.mode.plan === true}
+                  onPick={(index) => {
+                    dispatchOverlay({ type: 'close' })
+                    const on = index === 0
+                    void channel.runExternalCommand('plan', on ? '' : ' off').then((text) => {
+                      if (text !== undefined && text !== '') channel.notify(text)
+                    })
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'lang' && (
+              <Box flexDirection="column" marginTop={1}>
+                <LangPicker
+                  focusIndex={overlay.index}
+                  currentLang={getLang()}
+                  onPick={(index) => {
+                    const lang = LANGS[index]
+                    if (lang === undefined) return
+                    dispatchOverlay({ type: 'close' })
+                    applyLang(lang)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'theme' && (
+              <Box flexDirection="column" marginTop={1}>
+                <ThemePicker
+                  focusIndex={overlay.index}
+                  currentTheme={themeName}
+                  themeHost={themeHost}
+                  onPick={(index) => {
+                    dispatchOverlay({ type: 'close' })
+                    const name = getThemeOptions(themeHost)[index]?.value
+                    if (name !== undefined) {
+                      const ok = setTheme(name)
+                      channel.notify(
+                        ok ? t('theme-switched-saved', { name }) : t('theme-switch-failed', { name }),
+                        { color: ok ? 'success' : 'error' },
+                      )
+                    }
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'history' && (
+              <Box flexDirection="column" marginTop={1}>
+                <HistorySearchDialog
+                  query={overlay.query}
+                  cursorOffset={overlay.cursor}
+                  matches={historyMatches}
+                  focusIndex={overlay.focus}
+                  onPick={(index) => {
+                  // 点击行 = 填入该历史命令（与 Enter 同路径）
+                    const entry = historyMatches[index]
+                    if (entry) {
+                      setHistoryFill(entry.text)
+                      dispatchOverlay({ type: 'close' })
+                    }
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'rewind' && (
+              <Box flexDirection="column" marginTop={1}>
+                <RewindPicker
+                  rows={rewindRows}
+                  focusIndex={overlay.index}
+                  confirmRow={overlay.confirm}
+                  modes={overlay.modes}
+                  modeIndex={overlay.modeIndex}
+                  busy={overlay.busy}
+                  onPickRow={(index) => {
                   // 列表页点击只选中：进入确认态保留键盘 Enter 显式触发
-                  dispatchOverlay({ type: 'set-index', kind: 'rewind', index })
-                }}
-                onConfirm={() => {
+                    dispatchOverlay({ type: 'set-index', kind: 'rewind', index })
+                  }}
+                  onConfirm={() => {
                   // 确认页即显式确认层，点击直接执行（与 Enter 同路径）
-                  const row = overlay.confirm
-                  if (row === null) return
-                  dispatchOverlay({ type: 'close' })
-                  void performRewind(row)
-                }}
-                onPickMode={(index) => {
+                    const row = overlay.confirm
+                    if (row === null) return
+                    dispatchOverlay({ type: 'close' })
+                    void performRewind(row)
+                  }}
+                  onPickMode={(index) => {
                   // 模式列表点击直接执行该模式（与 Enter 同路径）
-                  const row = overlay.confirm
-                  if (row === null) return
-                  // 模式页仅当 modes 非空才渲染，这里空安全取值
-                  const mode = index === 0 ? null : (overlay.modes?.[index - 1]?.id ?? null)
-                  dispatchOverlay({ type: 'close' })
-                  void performRewind(row, mode)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'file-actions' && (
-            <Box flexDirection="column" marginTop={1}>
-              <FileActionsPanel
-                path={overlay.path}
-                isDir={overlay.isDir}
-                focusIndex={overlay.index}
-                onPick={(index) => {
+                    const row = overlay.confirm
+                    if (row === null) return
+                    // 模式页仅当 modes 非空才渲染，这里空安全取值
+                    const mode = index === 0 ? null : (overlay.modes?.[index - 1]?.id ?? null)
+                    dispatchOverlay({ type: 'close' })
+                    void performRewind(row, mode)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'file-actions' && (
+              <Box flexDirection="column" marginTop={1}>
+                <FileActionsPanel
+                  path={overlay.path}
+                  isDir={overlay.isDir}
+                  focusIndex={overlay.index}
+                  onPick={(index) => {
                   // 点击行直接执行该动作（与 Enter 同路径）
-                  const path = overlay.path
-                  dispatchOverlay({ type: 'close' })
-                  runFileAction(index, path)
-                }}
-              />
-            </Box>
-          )}
-          {overlay.kind === 'search' && <TranscriptSearchBar query={searchQuery} cursorOffset={searchCursor} count={searchCount} current={searchCurrent} />}
-        </OverlayAbove>
+                    const path = overlay.path
+                    dispatchOverlay({ type: 'close' })
+                    runFileAction(index, path)
+                  }}
+                />
+              </Box>
+            )}
+            {overlay.kind === 'search' && <TranscriptSearchBar query={searchQuery} cursorOffset={searchCursor} count={searchCount} current={searchCurrent} />}
+          </OverlayAbove>
         )}
       </Box>
       {/* Tooltip 悬停浮层：absolute 零布局高度，挂在根 Box 最后确保盖在
@@ -4139,7 +4024,14 @@ function StickyPromptHeader({
   )
 }
 
-/** The `↓ N new messages` pill shown while scrolled up with new content. */
+/**
+ * The `↓ N new messages` pill shown while scrolled up with new content.
+ * Absolutely positioned at the scroll area's bottom edge (Claude Code's
+ * pill), so showing/hiding it never changes the ScrollBox height — a pill
+ * that occupied a layout row shifted maxScroll on every toggle, which
+ * re-ran the renderer's at-bottom check and flipped the pill again (the
+ * flicker loop the user hit while wheeling home).
+ */
 function NewMessagesPill({
   count,
   onClick,
@@ -4155,7 +4047,7 @@ function NewMessagesPill({
     // "↓ 回到底部（Enter/End）" into the copy on release. noSelect keeps the
     // click/hover wiring (dispatchClick ignores noSelect) and only removes
     // the cells from the highlight and getSelectedText.
-    <NoSelect paddingX={2} paddingTop={1}>
+    <NoSelect position="absolute" bottom={0} left={0} right={0} justifyContent="center">
       <Box
         backgroundColor={hover ? 'userMessageBackgroundHover' : 'background'}
         onClick={onClick}

@@ -273,7 +273,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         if (process.stderr.isTTY) {
           process.stderr.write(
             `\ndsh-tui: 更新后版本未变化（仍为 ${now ?? 'unknown'}，原为 ${updatedFrom}）；` +
-              `可能是镜像 registry 未同步，请稍后重试或检查 registry 配置。\n`,
+              '可能是镜像 registry 未同步，请稍后重试或检查 registry 配置。\n',
           )
         }
       } else if (process.stderr.isTTY) {
@@ -369,7 +369,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     else stderrBacklog.push([text, options])
   })
   ctx.effect(() => {
-    const restoreSpawn = installChildStderrGuard(line => {
+    const restoreSpawn = installChildStderrGuard((line) => {
       logForDebugging(`[child-stderr] ${line}`)
       stderrReporter.push(line)
     })
@@ -556,7 +556,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // Without the extensions row (tuiToast absent) plugin toasts are dropped
   // by the runtime itself — same soft-degrade contract as the other seams.
   const toastStore = getHostToastStore(ctx.get('tuiToast') as TuiToastRuntime | undefined)
-  toastStore?.setSink(delivery => {
+  toastStore?.setSink((delivery) => {
     channel.notify(delivery.text, { color: delivery.color, timeoutMs: delivery.timeoutMs })
   })
   if (questionAnswererRegistration.kind === 'waterfall') {
@@ -581,7 +581,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // mount must therefore WAIT for the first settings application (bounded —
   // a bare embedder without a settings service must not deadlock).
   let resolveSettingsReady: (() => void) | undefined
-  const settingsReady = new Promise<void>(resolve => {
+  const settingsReady = new Promise<void>((resolve) => {
     resolveSettingsReady = () => resolve()
     setTimeout(resolve, 300)
   })
@@ -774,7 +774,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }
     const { fullscreen: staleFullscreen, ...migratedSettings } = bootSettings
     apply(fullscreenMigration === 'unset' ? migratedSettings : bootSettings)
-    scope.watch(next => {
+    scope.watch((next) => {
       apply(next)
       if (typeof next.fullscreen === 'boolean' && next.fullscreen !== bootedFullscreen) {
         channel.notify(t('settings-fullscreen-restart'), { color: 'warning' })
@@ -859,7 +859,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       hintZh: d => `切换全屏草稿编辑器（Enter 换行、Ctrl+Enter 发送）。默认 ${d}。`,
     },
   }
-  const shortcutFields: TuiSettingsField[] = SHORTCUT_ACTIONS.map(action => {
+  const shortcutFields: TuiSettingsField[] = SHORTCUT_ACTIONS.map((action) => {
     const meta = shortcutFieldMeta[action.id]
     const defaults = action.defaults.join(', ')
     return {
@@ -1199,8 +1199,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           path: ['statusBar', 'contextBar'],
           label: 'Show context progress bar',
           descriptions: { zh: '显示上下文进度条' },
-          hint: 'Show the segmented context progress bar on its own footer row.',
-          hintDescriptions: { zh: '在底部单独一行显示分段上下文进度条。' },
+          hint: 'Show the inline context gauge and percentage on the status line.',
+          hintDescriptions: { zh: '在状态行内联显示上下文小进度条和百分比。' },
           group: 'status-bar',
           kind: 'boolean',
         },
@@ -1335,7 +1335,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // runs the full leave sequence below (resume marker, terminal restore,
   // update handoff or resume hint).
   const funnel = createExitFunnel({
-    onUserExit: error => {
+    onUserExit: (error) => {
       // Mirror the funnel's internal exited flag for the /update and
       // background-check guards that still read the outer one.
       exited = true
@@ -1558,10 +1558,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     agent.session.id,
     channel.cwd,
     {
-      append: (text) => injectControllerRef.current?.append(text),
+      append: text => injectControllerRef.current?.append(text),
       submit: () => injectControllerRef.current?.submit(),
     },
-    (message) => ctx.logger.warn(`dsh-tui: ${message}`),
+    message => ctx.logger.warn(`dsh-tui: ${message}`),
   )
   if (injectChannel) {
     ctx.effect(() => () => injectChannel.close())
@@ -1934,7 +1934,7 @@ function cursorMoveToFrameEnd(runtime: InkShutdownState | undefined): string {
 
 function writeStream(stream: NodeJS.WriteStream, data: string): Promise<void> {
   if (data.length === 0) return Promise.resolve()
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let settled = false
     const finish = (): void => {
       if (settled) return
@@ -1968,7 +1968,7 @@ function runRestart(ctx: Context, profile: string | undefined, sessionId: string
   disposeRootAndThen(ctx, () => {
     logRestartEvent('runRestart: root disposed, starting restartTui')
     void restartTui(sessionId).then(
-      restartCode => {
+      (restartCode) => {
         logRestartEvent('runRestart: restartTui resolved', { restartCode })
         if (restartCode !== 0) {
           writeHandoffNotice(
@@ -1978,7 +1978,7 @@ function runRestart(ctx: Context, profile: string | undefined, sessionId: string
         }
         process.exit(restartCode)
       },
-      restartError => {
+      (restartError) => {
         const message = restartError instanceof Error ? restartError.message : String(restartError)
         logRestartEvent('runRestart: restartTui rejected', { message })
         writeHandoffNotice(
@@ -2012,7 +2012,7 @@ function runUpdate(
         }
         process.exit(restartCode)
       },
-      updateError => {
+      (updateError) => {
         const message = updateError instanceof Error ? updateError.message : String(updateError)
         process.stderr.write(
           `\ndsh-tui update failed: ${message}. Your session is preserved — resume with:\n` +

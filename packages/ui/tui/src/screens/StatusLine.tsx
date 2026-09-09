@@ -1,9 +1,9 @@
 import React from 'react'
-import { Box, Text, useTerminalSize, useTheme } from '../ui.js'
-import type { Color } from '../ink/styles.js'
+import { Box, Text, useTerminalSize } from '../ui.js'
 import { formatTokens } from '../cc/format.js'
 import { t } from '../i18n.js'
 import { formatContextUsage, DEFAULT_STATUS_BAR, normalizeStatusBar, type StatusBarConfig } from '../tuiDisplayPrefs.js'
+import { formatRunStats } from '../components/StatsLine.js'
 import { estimateSessionCostCny, estimateSessionCostSplitCny, isDeepSeekOfficialProvider, isPeakHour } from '../deepseekPricing.js'
 import { ActivityLine, contextPressurePct } from '../components/ActivityLine.js'
 import { GoalStatusChip } from '../components/GoalTodoPanel.js'
@@ -15,12 +15,12 @@ const NO_BACKGROUND_JOBS: readonly BackgroundJobState[] = []
 import type { Channel } from '../dsh-adapter/channel.js'
 import { modeDisplayName } from '../sessionModes.js'
 import { MiniWake } from '../components/trajectory/MiniWake.js'
-import { ContextBarView } from '../components/ContextBarView.js'
 import { TooltipTarget } from '../components/Tooltip.js'
 import { formatProject } from '../sessions/format.js'
 import { homeDir } from '../utils/paths.js'
 import {
   USED_SEGMENTS,
+  renderMiniContextBar,
   renderTpsGauge,
   renderTpsSparkline,
   speedColor,
@@ -81,16 +81,7 @@ type FieldPart = {
  * rects — at the cost of truncating each field on its own under pressure
  * instead of truncating the joined string's tail.
  */
-function FieldLine({
-  parts,
-  hoverProps,
-}: {
-  parts: readonly FieldPart[]
-  hoverProps: (id: HoverTarget) => {
-    onMouseEnter: () => void
-    onMouseLeave: () => void
-  }
-}): React.ReactNode {
+function FieldLine({ parts }: { parts: readonly FieldPart[] }): React.ReactNode {
   const visible = parts.filter(
     part => part.node !== null && part.node !== undefined && part.node !== false,
   )
@@ -99,10 +90,7 @@ function FieldLine({
       {visible.map((part, index) => (
         <React.Fragment key={part.key}>
           {index > 0 ? <Text dimColor> · </Text> : null}
-          <Box
-            flexShrink={1}
-            {...(part.id === undefined ? {} : hoverProps(part.id))}
-          >
+          <Box flexShrink={1}>
             {part.tooltip === undefined || part.tooltip === '' ? (
               <Text wrap="truncate">{part.node}</Text>
             ) : (
@@ -138,8 +126,6 @@ export function StatusLine({
   wake?: { band: WaveBand; hint?: string; tick: number }
 }) {
   const { columns } = useTerminalSize()
-  const [themeName] = useTheme()
-  const hoverProps = React.useCallback((_id: HoverTarget) => ({}), [])
 
   const statusBar: StatusBarConfig = channel.minimal
     // Minimal mode overrides every field switch: model + cwd only, so the
@@ -179,16 +165,33 @@ export function StatusLine({
     })
   }
 
+  // 上下文占用：默认是行内迷你条 + 百分比（`▕██░░░░░░▏ 1.4%`），关掉
+  // 进度条则退化为纯文本读数。整行宽度只占十来格，跟其他字段并排。
+  const contextWindow = channel.contextWindow
+  const miniBarShown =
+    statusBar.contextBar &&
+    channel.contextBarEnabled &&
+    contextUsed !== undefined &&
+    contextWindow !== undefined &&
+    contextWindow > 0
   const formattedContext = statusBar.contextUsage
-    ? formatContextUsage(contextUsed, channel.contextWindow, statusBar.compact)
+    ? formatContextUsage(contextUsed, contextWindow, statusBar.compact)
     : undefined
-  const ctxNode = formattedContext === undefined
-    ? undefined
-    : (
+  const ctxNode = miniBarShown
+    ? (
       <Text color="inactiveShimmer">
-        <Text dimColor>ctx </Text>{formattedContext}
+        <Text dimColor>ctx </Text>
+        {renderMiniContextBar(contextUsed ?? 0, contextWindow ?? 0, 8)}
+        {' '}{((contextUsed ?? 0) / (contextWindow ?? 1) * 100).toFixed(1)}%
       </Text>
     )
+    : formattedContext === undefined
+      ? undefined
+      : (
+        <Text color="inactiveShimmer">
+          <Text dimColor>ctx </Text>{formattedContext}
+        </Text>
+      )
   if (statusBar.cache) {
     const cacheRate = formatCacheHitRate(usage)
     if (cacheRate !== undefined) {
@@ -252,15 +255,16 @@ export function StatusLine({
   const jobsPart: FieldPart | undefined = liveJobs.length === 0
     ? undefined
     : {
-        key: 'jobs',
-        id: 'jobs',
-        node: (
-          <Text color="toolDotTask">
-            {'● '}{liveJobs.length}
-          </Text>
-        ),
-      }
+      key: 'jobs',
+      id: 'jobs',
+      node: (
+        <Text color="toolDotTask">
+          {'● '}{liveJobs.length}
+        </Text>
+      ),
+    }
 
+  const runStats = formatRunStats(channel)
   const leftFields: FieldPart[] = [
     ...(statusBar.model
       ? [{ key: 'model', id: 'model' as const, node: <Text color="inactiveShimmer">{channel.model}</Text> }]
@@ -270,14 +274,14 @@ export function StatusLine({
     ...contextParts,
     ...(statusBar.tokens
       ? [{
-          key: 'tokens',
-          id: 'tokens' as const,
-          node: (
-            <Text color="inactiveShimmer">
-              {formatTokens(channel.tokens.input)}→{formatTokens(channel.tokens.output)}
-            </Text>
-          ),
-        }]
+        key: 'tokens',
+        id: 'tokens' as const,
+        node: (
+          <Text color="inactiveShimmer">
+            {formatTokens(channel.tokens.input)}→{formatTokens(channel.tokens.output)}
+          </Text>
+        ),
+      }]
       : []),
     // Estimated session spend (≈¥): only for official DeepSeek providers
     // whose model has a known price, and only once the estimate is non-zero
@@ -289,66 +293,69 @@ export function StatusLine({
         return estimate === undefined || estimate <= 0
           ? []
           : [{
-              key: 'cost',
-              id: 'cost' as const,
-              node: (
-                <Text color="inactiveShimmer">
-                  {t('status-cost-label')}¥{estimate.toFixed(2)} {t(isPeakHour() ? 'cost-now-peak' : 'cost-now-idle')}
-                </Text>
-              ),
-            }]
+            key: 'cost',
+            id: 'cost' as const,
+            node: (
+              <Text color="inactiveShimmer">
+                {t('status-cost-label')}¥{estimate.toFixed(2)} {t(isPeakHour() ? 'cost-now-peak' : 'cost-now-idle')}
+              </Text>
+            ),
+          }]
       })()
       : []),
+    ...(runStats === ''
+      ? []
+      : [{ key: 'run', node: <Text color="inactiveShimmer">{runStats}</Text> }]),
   ]
 
   const rightFields: FieldPart[] = [
     // Goal chip first: session-level state outranks repo/location details.
     ...(statusBar.goal && channel.goal !== undefined
       ? [{
-          key: 'goal',
-          id: 'goal' as const,
-          node: <GoalStatusChip goal={channel.goal} minimal={channel.minimal} />,
-        }]
+        key: 'goal',
+        id: 'goal' as const,
+        node: <GoalStatusChip goal={channel.goal} minimal={channel.minimal} />,
+      }]
       : []),
     ...(statusBar.gitBranch && channel.gitBranch
       ? [
-          {
-            key: 'git',
-            id: 'git' as const,
-            node: <Text color="professionalBlue">{channel.gitBranch}</Text>,
-          },
-        ]
+        {
+          key: 'git',
+          id: 'git' as const,
+          node: <Text color="professionalBlue">{channel.gitBranch}</Text>,
+        },
+      ]
       : []),
     ...(statusBar.cwd
       ? [{
-          key: 'cwd',
-          id: 'cwd' as const,
-          node: (
-            <Text color="inactiveShimmer">
-              {statusBar.compact ? basename(displayCwd) : displayCwd}
-            </Text>
-          ),
-        }]
+        key: 'cwd',
+        id: 'cwd' as const,
+        node: (
+          <Text color="inactiveShimmer">
+            {statusBar.compact ? basename(displayCwd) : displayCwd}
+          </Text>
+        ),
+      }]
       : []),
     ...(statusBar.sessionTitle && channel.sessionTitle
       ? [{
-          key: 'title',
-          id: 'title' as const,
-          // The title truncates mid-word when the right-aligned group
-          // overflows; the tooltip carries the full string.
-          tooltip: channel.sessionTitle,
-          node: <Text dimColor>{channel.sessionTitle}</Text>,
-        }]
+        key: 'title',
+        id: 'title' as const,
+        // The title truncates mid-word when the right-aligned group
+        // overflows; the tooltip carries the full string.
+        tooltip: channel.sessionTitle,
+        node: <Text dimColor>{channel.sessionTitle}</Text>,
+      }]
       : []),
     // Short id last: a provenance tag trails the content it identifies, and
     // the 8-char form is what the session log filename starts with, so a
     // truncated rendering still names the right log for --resume.
     ...(statusBar.sessionId && channel.agentId
       ? [{
-          key: 'sessionId',
-          id: 'sessionId' as const,
-          node: <Text dimColor>{`#${channel.agentId.slice(0, 8)}`}</Text>,
-        }]
+        key: 'sessionId',
+        id: 'sessionId' as const,
+        node: <Text dimColor>{`#${channel.agentId.slice(0, 8)}`}</Text>,
+      }]
       : []),
   ]
 
@@ -368,17 +375,6 @@ export function StatusLine({
     activity.phase !== 'idle'
   const showTrajectory = statusBar.trajectory && wake !== undefined
 
-  const barWidth = columns - 4
-  const barColors: { freeFill: Color; freeText: Color } | undefined =
-    themeName === 'light'
-      ? undefined
-      : { freeFill: '#2E3440', freeText: '#8D95A6' }
-  const barVisible =
-    statusBar.contextBar &&
-    channel.contextBarEnabled &&
-    barWidth >= 14 &&
-    usage !== undefined &&
-    channel.contextWindow !== undefined
 
   // The supplemental-row readout for the hovered field: replaces the idle
   // hint (never the activity line) while the pointer dwells on a field.
@@ -400,7 +396,7 @@ export function StatusLine({
   // content. Minimal mode keeps the old contract — no hover details, the
   // row appears only for real content (which its defaults never produce).
   const showSupplementalRow =
-    (!channel.minimal && (hasStatusFields || barVisible)) ||
+    (!channel.minimal && hasStatusFields) ||
     showActivity ||
     showTrajectory ||
     hint !== ''
@@ -418,27 +414,14 @@ export function StatusLine({
     // ladder of widths and asserts the wake reaches the right margin at each.
     <Box paddingX={1} width={columns} flexShrink={0}>
       <Box flexDirection="column" width="100%">
-        {/* Row 1: segmented context bar, its own line, first (pi-nano-context
-            placement — the bar sits directly under the transcript). Rendered
-            as per-segment Boxes so each segment is hoverable; hovering one
-            parks its token breakdown on the supplemental row. */}
-        {barVisible ? (
-          <ContextBarView
-            segments={channel.contextSegments}
-            usedTokens={contextUsed ?? 0}
-            contextWindow={channel.contextWindow ?? 0}
-            width={barWidth}
-            colors={barColors}
-          />
-        ) : null}
         {/* Row 2: optional status fields — every field is independently gated. */}
         {hasStatusFields ? statusBar.compact ? (
           <Box flexDirection="row" justifyContent="space-between" gap={2}>
             <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
-              <FieldLine parts={compactFields} hoverProps={hoverProps} />
+              <FieldLine parts={compactFields} />
             </Box>
             {ctxNode !== undefined ? (
-              <Box flexShrink={0} {...hoverProps('ctx')}>
+              <Box flexShrink={0}>
                 <Text wrap="truncate">{ctxNode}</Text>
               </Box>
             ) : null}
@@ -446,7 +429,7 @@ export function StatusLine({
         ) : (
           <Box flexDirection="row" justifyContent="space-between" gap={2}>
             <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
-              <FieldLine parts={fullLeftFields} hoverProps={hoverProps} />
+              <FieldLine parts={fullLeftFields} />
             </Box>
             <Box
               justifyContent="flex-end"
@@ -454,7 +437,7 @@ export function StatusLine({
               flexDirection="row"
               overflow="hidden"
             >
-              <FieldLine parts={rightFields} hoverProps={hoverProps} />
+              <FieldLine parts={rightFields} />
             </Box>
           </Box>
         ) : null}
@@ -499,171 +482,6 @@ type UsageSnapshot = {
   input: number
   cacheRead: number
   cacheWrite: number
-}
-
-/**
- * The supplemental-row readout for a hovered footer field. Technical label
- * tokens (ctx, free, read, sys…) stay unlocalized like the footer fields
- * themselves; sentences go through t(). Returns null when nothing is
- * hovered (or the hover outlived its data, which the field gating makes
- * near-impossible).
- */
-function buildHoverDetail(
-  hover: HoverTarget | null,
-  channel: Channel,
-  usage: UsageSnapshot | undefined,
-  contextUsed: number | undefined,
-): React.ReactNode | null {
-  if (hover === null) return null
-  const window = channel.contextWindow
-  const dim = (label: string): React.ReactNode => <Text dimColor>{label}</Text>
-
-  if (hover.startsWith('segment:')) {
-    if (window === undefined || window <= 0 || contextUsed === undefined) return null
-    const key = hover.slice('segment:'.length)
-    const free = Math.max(0, window - contextUsed)
-    if (key === 'free') {
-      return (
-        <Text wrap="truncate">
-          {dim('free ')}{formatTokens(free)} · {((free / window) * 100).toFixed(1)}% {t('status-detail-of-window')}
-        </Text>
-      )
-    }
-    const segment = USED_SEGMENTS.find(s => s.key === key)
-    if (segment === undefined) return null
-    const tokens = channel.contextSegments[segment.key]
-    return (
-      <Text wrap="truncate">
-        {dim(`${segment.labels[1] ?? segment.key} `)}{formatTokens(tokens)} ·{' '}
-        {((tokens / window) * 100).toFixed(1)}% {t('status-detail-of-window')}
-      </Text>
-    )
-  }
-
-  switch (hover) {
-    case 'ctx': {
-      if (contextUsed === undefined || window === undefined || window <= 0) return null
-      const free = Math.max(0, window - contextUsed)
-      // The hover payoff for the ctx ask: percent + counts + free, then the
-      // segment breakdown as the truncate-able tail (no bar — the row's
-      // in-place morph and the segment bar above already carry the gauge).
-      const segments = USED_SEGMENTS.map(
-        segment => `${segment.labels[1] ?? segment.key} ${formatTokens(channel.contextSegments[segment.key])}`,
-      ).join(' · ')
-      return (
-        <Text wrap="truncate">
-          {((contextUsed / window) * 100).toFixed(1)}% ·{' '}
-          {formatTokens(contextUsed)}/{formatTokens(window)} · {dim('free ')}{formatTokens(free)}
-          {' · '}{segments}
-        </Text>
-      )
-    }
-    case 'cache': {
-      const rate = formatCacheHitRate(usage)
-      if (usage === undefined || rate === undefined) return null
-      return (
-        <Text wrap="truncate">
-          {dim('cache ')}{rate} · {dim('read ')}{formatTokens(usage.cacheRead)} ·{' '}
-          {dim('write ')}{formatTokens(usage.cacheWrite)} · {dim('input ')}{formatTokens(usage.input)}
-        </Text>
-      )
-    }
-    case 'tps': {
-      if (channel.tps === undefined) return null
-      const stats = tpsStats(channel.tpsSamples, Date.now())
-      return (
-        <Text wrap="truncate">
-          {dim('tps ')}{Math.round(channel.tps)} · {dim('avg60 ')}{stats.avg.toFixed(1)} ·{' '}
-          {dim('mean ')}{stats.mean.toFixed(1)} · {dim('p95 ')}{stats.p95.toFixed(1)}
-        </Text>
-      )
-    }
-    case 'tokens': {
-      const { input, output } = channel.tokens
-      return (
-        <Text wrap="truncate">
-          {dim('in ')}{input.toLocaleString()} · {dim('out ')}{output.toLocaleString()} ·{' '}
-          {dim('total ')}{(input + output).toLocaleString()}
-        </Text>
-      )
-    }
-    case 'cost': {
-      const split = estimateSessionCostSplitCny(channel.tokens, channel.model)
-      if (split === undefined) return null
-      const { input, output, cacheRead } = channel.tokens
-      return (
-        <Text wrap="truncate">
-          {dim('≈¥')}{split.total.toFixed(2)} · {dim('peak ')}¥{split.peak.toFixed(2)}
-          {' · '}{dim('idle ')}¥{split.idle.toFixed(2)} · {dim('in ')}{formatTokens(input)}
-          {' · '}{dim('out ')}{formatTokens(output)} · {dim('cache ')}{formatTokens(cacheRead)}
-          {' · '}{t('status-cost-note')}
-        </Text>
-      )
-    }
-    case 'goal': {
-      const goal = channel.goal
-      if (goal === undefined) return null
-      return (
-        <Text wrap="truncate">
-          {dim('goal ')}{goal.phase} · {dim('r')}{goal.roundsStarted}/{goal.maxGoalRounds} ·{' '}
-          {goal.objective}
-        </Text>
-      )
-    }
-    case 'jobs': {
-      const live = (channel.backgroundJobs ?? NO_BACKGROUND_JOBS).filter(
-        job => job.status === 'running' || job.status === 'stopping',
-      )
-      if (live.length === 0) return null
-      const shown = live.slice(0, 3)
-      const rest = live.length - shown.length
-      return (
-        <Text wrap="truncate">
-          {dim('jobs ')}
-          {shown.map(job => `${job.id} ${job.label} (${formatJobDuration(job)})`).join(' · ')}
-          {rest > 0 ? ` · +${rest}` : ''}
-        </Text>
-      )
-    }
-    case 'model': {
-      return (
-        <Text wrap="truncate">
-          {dim('model ')}{channel.model} · {dim('provider ')}{channel.provider}
-          {channel.contextWindow !== undefined
-            ? <> · {dim('ctx ')}{formatTokens(channel.contextWindow)}</>
-            : null}
-        </Text>
-      )
-    }
-    case 'git': {
-      if (channel.gitBranch === undefined) return null
-      return (
-        <Text wrap="truncate">
-          {dim('git ')}{channel.gitBranch}
-        </Text>
-      )
-    }
-    case 'sessionId':
-      return (
-        <Text wrap="truncate">
-          {dim('# ')}{channel.agentId} · {t('status-detail-session-id')}
-        </Text>
-      )
-    case 'cwd':
-      return (
-        <Text wrap="truncate">
-          {dim('cwd ')}{channel.displayCwd}
-        </Text>
-      )
-    case 'title':
-      return (
-        <Text wrap="truncate">
-          {dim('title ')}{channel.sessionTitle}
-        </Text>
-      )
-    default:
-      return null
-  }
 }
 
 /** Return the prompt-cache hit rate, or nothing when usage is unavailable. */

@@ -44,9 +44,9 @@ const VERSION = (() => {
 })()
 
 /** 终端过窄时只保留文字，避免小鲸挤压模型和路径信息。 */
-const WHALE_MIN_COLUMNS = 64
+const WHALE_MIN_COLUMNS = 52
 /** 4 行小鲸加上标题后，常见 24 行终端仍保留标记。 */
-const WHALE_MIN_ROWS = 18
+const WHALE_MIN_ROWS = 17
 
 /** `max` → `Max` (effort levels arrive lower-case from the adapter). */
 function capitalize(text: string): string {

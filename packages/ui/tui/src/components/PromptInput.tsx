@@ -285,7 +285,7 @@ export interface PromptController {
   toggleVim(): boolean
   /** True while vim mode is on (either submode). Esc belongs to vim then —
    *  Chat's working-turn Esc interrupt must yield in BOTH submodes. */
-  vimActive(): boolean}
+  vimActive(): boolean }
 
 export interface PromptInputProps {
   channel: Channel
@@ -308,17 +308,6 @@ export interface PromptInputProps {
   onFillConsumed?(): void
   /** Double-tap Esc with an empty input: open the rewind picker (CC rewind). */
   onRewindRequest?(): void
-  /**
-   * CC agent-view parity: ← on an EMPTY prompt backgrounds this session and
-   * opens the agent view (with text, ← moves the caret as usual).
-   */
-  onBackgroundRequest?(): void
-  /**
-   * Background sessions waiting on the user (agent view "needs input" rows
-   * excluding this session); the prompt footer shows the CC-style
-   * "← N agents" hint when provided (hidden when undefined).
-   */
-  backgroundAgentsNeedingInput?: number
   /** Filled with the live controller each render (see PromptController). */
   controllerRef?: React.RefObject<PromptController | null>
 }
@@ -363,8 +352,6 @@ export function PromptInput({
   fillText,
   onFillConsumed,
   onRewindRequest,
-  onBackgroundRequest,
-  backgroundAgentsNeedingInput,
   controllerRef,
 }: PromptInputProps) {
   const [themeName] = useTheme()
@@ -445,7 +432,6 @@ export function PromptInput({
   /** Latest expanded viewport metrics for the useInput wheel branch. */
   const editorViewportRef = React.useRef<{ maxRows: number; total: number } | null>(null)
   /** Hover state of the ⤢/⛶ expand affordance in the input row. */
-  const [expandHovered, setExpandHovered] = React.useState(false)
   /** Pointer over the input box (drives the hover peek card). */
   const [hovered, setHovered] = React.useState(false)
   /** 120ms grace so the pointer crossing the input border row from the
@@ -502,7 +488,7 @@ export function PromptInput({
         const sel = selectionRef.current
         if (!sel) return false
         const text = valueRef.current.slice(sel.start, sel.end)
-        void setClipboard(text).then(raw => {
+        void setClipboard(text).then((raw) => {
           if (raw) writeRaw?.(raw)
         })
         // The selection stays: copy never clears it (Esc/typing/delete do).
@@ -522,7 +508,7 @@ export function PromptInput({
         vimUndoRef.current = []
         return next
       },
-      vimActive: () => vimEnabledRef.current,    }
+      vimActive: () => vimEnabledRef.current    }
     return () => {
       controllerRef.current = null
     }
@@ -612,7 +598,7 @@ export function PromptInput({
     // within the same token must NOT refetch, and `selectedFile`/`fileSelected`
     // are read as their render-time values only to seed selection preservation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    void channel.listFileCandidates(mention.query, { topK: 50 }).then(next => {
+    void channel.listFileCandidates(mention.query, { topK: 50 }).then((next) => {
       if (requestId !== fileRequestId.current) return
       setFileMatches(next)
       setFileSelected(preserveSelection(previous, next, fileSelected))
@@ -1138,7 +1124,7 @@ export function PromptInput({
       setFileSelected(0)
       clipboardBusyRef.current = true
       void readClipboard()
-        .then(async content => {
+        .then(async (content) => {
           if (content === null) {
             channel.notify(t('input-clipboard-empty'), { color: 'warning' })
             return
@@ -1532,12 +1518,6 @@ export function PromptInput({
       return
     }
     if (key.leftArrow) {
-      // Empty prompt ←/→ cycles run panes (queue · tools · jobs).
-      // Agent switching stays on /agentview and /bg.
-      if (value.length === 0 && !helpOpen) {
-        onBackgroundRequest?.()
-        return
-      }
       // Grapheme-step: skip the whole cluster (surrogate pair, ZWJ emoji,
       // combining mark) so the caret never sits inside one. With a
       // selection, collapse to its start edge instead.
@@ -1546,10 +1526,6 @@ export function PromptInput({
       return
     }
     if (key.rightArrow) {
-      if (value.length === 0 && !helpOpen) {
-        onBackgroundRequest?.()
-        return
-      }
       const sel = selectionRef.current
       setInput(value, sel ? sel.end : nextGraphemeBoundary(bounds, cursor))
       return
@@ -2077,12 +2053,12 @@ export function PromptInput({
   // updateSelection clamps the selection into the head or the tail side).
   const lineRanges: Array<[number, number]> = block
     ? [
-        ...visualLineRanges(head, inputWidth),
-        [block.start, block.end],
-        ...visualLineRanges(tail, inputWidth).map(
-          ([s, e]): [number, number] => [s + block.end, e + block.end],
-        ),
-      ]
+      ...visualLineRanges(head, inputWidth),
+      [block.start, block.end],
+      ...visualLineRanges(tail, inputWidth).map(
+        ([s, e]): [number, number] => [s + block.end, e + block.end],
+      ),
+    ]
     : visualLineRanges(value, inputWidth)
 
   /**
@@ -2192,39 +2168,39 @@ export function PromptInput({
   }
   const editorRows = expanded
     ? visibleLines.map((line, index) => {
-        const absoluteLine = windowStart + index
-        const isCaretRow = absoluteLine === caretVisualLine
-        const logicalNo = editorRowLogical[absoluteLine]
-        const gutterLabel =
-          logicalNo === undefined
-            ? ' '.repeat(editorNoWidth)
-            : String(logicalNo + 1).padStart(editorNoWidth, ' ')
-        const pieces = rowHighlightPieces(line, absoluteLine)
-        return (
+      const absoluteLine = windowStart + index
+      const isCaretRow = absoluteLine === caretVisualLine
+      const logicalNo = editorRowLogical[absoluteLine]
+      const gutterLabel =
+        logicalNo === undefined
+          ? ' '.repeat(editorNoWidth)
+          : String(logicalNo + 1).padStart(editorNoWidth, ' ')
+      const pieces = rowHighlightPieces(line, absoluteLine)
+      return (
+        <Text
+          key={absoluteLine}
+          wrap="truncate-end"
+          backgroundColor={isCaretRow ? 'toolCardBackgroundDim' : undefined}
+        >
           <Text
-            key={absoluteLine}
-            wrap="truncate-end"
-            backgroundColor={isCaretRow ? 'toolCardBackgroundDim' : undefined}
+            dimColor={!isCaretRow}
+            bold={isCaretRow}
+            color={isCaretRow ? promptAccent : undefined}
           >
-            <Text
-              dimColor={!isCaretRow}
-              bold={isCaretRow}
-              color={isCaretRow ? promptAccent : undefined}
-            >
-              {`${gutterLabel} │ `}
-            </Text>
-            {pieces.map((piece, pieceIndex) =>
-              piece.inverse ? (
-                <Text key={pieceIndex} inverse>
-                  {piece.text}
-                </Text>
-              ) : (
-                piece.text
-              ),
-            )}
+            {`${gutterLabel} │ `}
           </Text>
-        )
-      })
+          {pieces.map((piece, pieceIndex) =>
+            piece.inverse ? (
+              <Text key={pieceIndex} inverse>
+                {piece.text}
+              </Text>
+            ) : (
+              piece.text
+            ),
+          )}
+        </Text>
+      )
+    })
     : null
 
   // Peek card content: the BLOCK's text wrapped to the card's inner width,
@@ -2478,10 +2454,10 @@ export function PromptInput({
   const topRightLabel: InputBorderLabel | undefined =
     channel.promptSessionLabel === true && sessionTitle !== ''
       ? {
-          text: truncateToWidth(sessionTitle, Math.max(8, Math.min(28, columns - 8))),
-          color: channel.mode.plan === true ? 'planMode' : (sessionAccent ?? 'claude'),
-          ink: 'inverseText',
-        }
+        text: truncateToWidth(sessionTitle, Math.max(8, Math.min(28, columns - 8))),
+        color: channel.mode.plan === true ? 'planMode' : (sessionAccent ?? 'claude'),
+        ink: 'inverseText',
+      }
       : undefined
 
   // 浮层最佳路径（/ 命令卡、@ 文件卡、帮助/队列）经渲染器 absolute-overlay
@@ -2631,116 +2607,115 @@ export function PromptInput({
           帧高不随面板开关涨落——否则帧顶行会被滚进 scrollback 并在关闭
           重绘时二次写入（/model 切换多一份启动画的根因，见 OverlayAbove）。 */}
       {floatersOpen && (
-      <OverlayAbove maxHeight={Math.max(terminalRows - 6, 1)}>
-        {helpOpen && (
-          <Box marginBottom={1}>
-            <HelpMenu
-              commands={channel.commandList}
-              viewportHeight={helpViewportHeight}
-              viewportWidth={columns}
-              scrollRef={helpScrollRef}
-              onCommandPick={(name) => {
+        <OverlayAbove maxHeight={Math.max(terminalRows - 6, 1)}>
+          {helpOpen && (
+            <Box marginBottom={1}>
+              <HelpMenu
+                commands={channel.commandList}
+                viewportHeight={helpViewportHeight}
+                viewportWidth={columns}
+                scrollRef={helpScrollRef}
+                onCommandPick={(name) => {
                 // 点击命令行 = 填入 /name 并关闭帮助（Tab 补全的鼠标等价）
-                updateFoldBlock(null)
-                setInput(`/${name} `)
-                onToggleHelp()
+                  updateFoldBlock(null)
+                  setInput(`/${name} `)
+                  onToggleHelp()
+                }}
+              />
+            </Box>
+          )}
+          {!helpOpen && channel.pending.length > 0 && (
+            <Box flexDirection="column" paddingLeft={2} paddingBottom={1}>
+              {channel.pending.some(item => item.placement === 'steer') && (
+                <Box flexDirection="column">
+                  <Text dimColor>⚡ {t('input-pending-steer-label')}</Text>
+                  {channel.pending
+                    .filter(item => item.placement === 'steer')
+                    .map(item => (
+                      <Text key={item.id} dimColor wrap="truncate">
+                        {'  '}↳ {item.text}
+                      </Text>
+                    ))}
+                </Box>
+              )}
+              {channel.pending.some(item => item.placement === 'followup') && (
+                <Box flexDirection="column">
+                  <Text dimColor>⏳ {t('input-pending-queue-label')}</Text>
+                  {channel.pending
+                    .filter(item => item.placement === 'followup')
+                    .map(item => (
+                      <Text key={item.id} dimColor wrap="truncate">
+                        {'  '}↳ {item.text}
+                      </Text>
+                    ))}
+                </Box>
+              )}
+              <Text dimColor>Alt+↑ {t('input-pending-actions-hint')}</Text>
+            </Box>
+          )}
+          {fileOverlayOpen && (
+            <FileSuggestions
+              files={fileMatches}
+              selectedIndex={fileSelected}
+              columns={columns}
+              query={mention?.query ?? ''}
+              accent={promptAccent}
+              // 点击行 = 接受该项（与 Enter 同路径）
+              onPick={(index) => {
+                const file = fileMatches[index]
+                if (file) acceptFile(file)
+              }}
+              // 滚轮 = 移动选中行（与 ↑/↓ 同路径，窗口跟随）
+              onWheelStep={(step) => {
+                setFileSelected(i => Math.max(0, Math.min(fileMatches.length - 1, i + step)))
               }}
             />
-          </Box>
-        )}
-        {!helpOpen && channel.pending.length > 0 && (
-          <Box flexDirection="column" paddingLeft={2} paddingBottom={1}>
-            {channel.pending.some(item => item.placement === 'steer') && (
-              <Box flexDirection="column">
-                <Text dimColor>⚡ {t('input-pending-steer-label')}</Text>
-                {channel.pending
-                  .filter(item => item.placement === 'steer')
-                  .map(item => (
-                    <Text key={item.id} dimColor wrap="truncate">
-                      {'  '}↳ {item.text}
-                    </Text>
-                  ))}
-              </Box>
-            )}
-            {channel.pending.some(item => item.placement === 'followup') && (
-              <Box flexDirection="column">
-                <Text dimColor>⏳ {t('input-pending-queue-label')}</Text>
-                {channel.pending
-                  .filter(item => item.placement === 'followup')
-                  .map(item => (
-                    <Text key={item.id} dimColor wrap="truncate">
-                      {'  '}↳ {item.text}
-                    </Text>
-                  ))}
-              </Box>
-            )}
-            <Text dimColor>Alt+↑ {t('input-pending-actions-hint')}</Text>
-          </Box>
-        )}
-        {fileOverlayOpen && (
-          <FileSuggestions
-            files={fileMatches}
-            selectedIndex={fileSelected}
-            columns={columns}
-            query={mention?.query ?? ''}
-            accent={promptAccent}
-            // 点击行 = 接受该项（与 Enter 同路径）
-            onPick={(index) => {
-              const file = fileMatches[index]
-              if (file) acceptFile(file)
-            }}
-            // 滚轮 = 移动选中行（与 ↑/↓ 同路径，窗口跟随）
-            onWheelStep={(step) => {
-              setFileSelected(i => Math.max(0, Math.min(fileMatches.length - 1, i + step)))
-            }}
-          />
-        )}
-        {overlayOpen && (
-          <CommandSuggestions
-            commands={suggestions}
-            selectedIndex={selectedCommand}
-            columns={columns}
-            query={value}
-            accent={promptAccent}
-            // 点击行 = 运行该命令（与 Enter 同路径）
-            onPick={(index) => {
-              const command = suggestions[index]
-              if (command) tryRunCommand(command.commandLine)
-            }}
-            // 滚轮 = 移动选中行（与 ↑/↓ 同路径，窗口跟随）
-            onWheelStep={(step) => {
-              setSelectedCommand(i => Math.max(0, Math.min(suggestions.length - 1, i + step)))
-            }}
-          />
-        )}
-        {peekOpen && (
+          )}
+          {overlayOpen && (
+            <CommandSuggestions
+              commands={suggestions}
+              selectedIndex={selectedCommand}
+              columns={columns}
+              query={value}
+              // 点击行 = 运行该命令（与 Enter 同路径）
+              onPick={(index) => {
+                const command = suggestions[index]
+                if (command) tryRunCommand(command.commandLine)
+              }}
+              // 滚轮 = 移动选中行（与 ↑/↓ 同路径，窗口跟随）
+              onWheelStep={(step) => {
+                setSelectedCommand(i => Math.max(0, Math.min(suggestions.length - 1, i + step)))
+              }}
+            />
+          )}
+          {peekOpen && (
           // 悬停预览卡片：只读展示折叠内容的头部（输入框自身保持一行，
           // 布局零跳动）。点击任一行 = 固定展开进入真实输入框编辑；悬停
           // 期间鼠标直接打字同样先展开（见折叠态按键分支）。卡片自身的
           // enter/leave 维持 hovered，防止 chip→卡片过渡闪烁。
-          <Box onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
-            <SuggestionCard
-              title={stats}
-              columns={columns}
-              accent={promptAccent}
-              footer={
-                peekClipped
-                  ? t('input-fold-peek-footer', { lines: foldText.split('\n').length })
-                  : undefined
-              }
-              rows={peekVisualLines.map((row, index) => (
-                <Text key={index} wrap="truncate-end">
-                  {row}
-                </Text>
-              ))}
-              onRowPick={() => {
-                updateFoldBlock(null)
-                setHovered(false)
-              }}
-            />
-          </Box>
-        )}
-      </OverlayAbove>
+            <Box onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
+              <SuggestionCard
+                title={stats}
+                columns={columns}
+                accent={promptAccent}
+                footer={
+                  peekClipped
+                    ? t('input-fold-peek-footer', { lines: foldText.split('\n').length })
+                    : undefined
+                }
+                rows={peekVisualLines.map((row, index) => (
+                  <Text key={index} wrap="truncate-end">
+                    {row}
+                  </Text>
+                ))}
+                onRowPick={() => {
+                  updateFoldBlock(null)
+                  setHovered(false)
+                }}
+              />
+            </Box>
+          )}
+        </OverlayAbove>
       )}
       {lastNotification && (
         // position=absolute takes zero layout height so the transcript never
@@ -2818,19 +2793,6 @@ export function PromptInput({
           </Box>
         </Box>
       </EffortInputBorder>
-      {/* CC agent-view footer: "← N agents" when background sessions are
-          waiting on the user, "← for agents" otherwise — the ← affordance's
-          discoverability hint. Only rendered when the Chat screen supplies
-          the count. */}
-      {backgroundAgentsNeedingInput !== undefined && (
-        <Box flexDirection="row" justifyContent="flex-end" paddingRight={2}>
-          <Text dimColor>
-            {backgroundAgentsNeedingInput > 0
-              ? t('input-background-hint-count', { n: backgroundAgentsNeedingInput })
-              : t('runpane-hint')}
-          </Text>
-        </Box>
-      )}
     </Box>
   )
 }

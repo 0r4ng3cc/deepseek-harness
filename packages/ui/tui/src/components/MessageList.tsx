@@ -32,7 +32,7 @@ import { useRevealVersion } from '../hooks/useRevealVersion.js'
  * Transcript rows rendered in the Claude Code visual language: user prompts
  * on a grey bubble with a `❯` pointer, assistant text with a `●` bullet and
  * markdown, thinking as a live three-line/full toggle then a settled
- * `⚓ Thinking (ctrl+o to expand)` row, and tool calls as status-dot cards.
+ * `🐳 Thinking (ctrl+o to expand)` row, and tool calls as status-dot cards.
  * Completed turns add a dim `✻ Cogitated for … · done …` summary row.
  * `expanded` (Ctrl+O) shows full reasoning + full tool
  * args/results; `expandedRows` (message-selection mode, Enter) expands single
@@ -61,7 +61,7 @@ const OVERSCAN_LINES = 128
 const DEFAULT_ROW_HEIGHT = 2
 /** Cold-start estimate of the header block above the rows; corrected by the
  *  first layout measurement. */
-const DEFAULT_HEADER_LINES = 8
+const DEFAULT_HEADER_LINES = 12
 /** Stable fallbacks for the stream-view toggle props: verify/repro harnesses
  *  and embedders render MessageList with prop sets that predate them, and the
  *  render must not throw (same rule as Chat's stubbed channel APIs). Module
@@ -190,6 +190,10 @@ function signatureParts(
       break
     case 'compact':
       // Folded one-liner vs full summary text.
+      signatureScratch.push(expanded, expandedRows.has(row.id))
+      break
+    case 'context':
+      // 折叠一行 / 展开注入正文。
       signatureScratch.push(expanded, expandedRows.has(row.id))
       break
     default:
@@ -395,9 +399,9 @@ export function MessageList({
     }
     const out = hasEmptyAssistant
       ? sliced.filter(row =>
-          !rendersEmptyAssistant(row) &&
+        !rendersEmptyAssistant(row) &&
           (thinkingVisible || row.kind !== 'reasoning'),
-        )
+      )
       : thinkingVisible
         ? sliced
         : sliced.filter(row => row.kind !== 'reasoning')
@@ -1162,6 +1166,7 @@ export function MessageList({
               text={displayText}
               textFull={row.kind === 'reasoning' ? row.text : undefined}
               executionTarget={row.executionTarget}
+              contextLabel={row.label}
               streaming={displayStreaming}
               durationMs={row.durationMs}
               time={row.time}
@@ -1227,6 +1232,8 @@ type MemoRowProps = {
    *  expanded body shows the revealed slice in `text`. */
   textFull?: string
   executionTarget: string | undefined
+  /** `context` 行的来源标签（技能/指令/插件…）。 */
+  contextLabel: string | undefined
   streaming: boolean
   durationMs: number | undefined
   time: number | undefined
@@ -1307,6 +1314,7 @@ function TranscriptRow({
   text,
   textFull,
   executionTarget,
+  contextLabel,
   streaming,
   durationMs,
   time,
@@ -1561,6 +1569,34 @@ function TranscriptRow({
           )}
         </Box>
       )
+    case 'context': {
+      // 注入上下文：折叠态只报来源 + 预览，展开看完整正文（点击或 Ctrl+O）。
+      const label = contextLabel ?? t('context-injected-folded')
+      return (
+        <Box
+          marginTop={addMargin ? 1 : 0}
+          paddingLeft={2}
+          backgroundColor={background}
+          ref={ref}
+          onClick={foldOnClick}
+          onMouseEnter={() => setCompactHovered(true)}
+          onMouseLeave={() => setCompactHovered(false)}
+        >
+          {expanded || isExpanded ? (
+            <Box flexDirection="column">
+              <Text dimColor italic>{`▾ ${label}`}</Text>
+              <Text dimColor>{text}</Text>
+            </Box>
+          ) : (
+            <Text dimColor italic color={compactHovered ? 'text' : undefined}>
+              <Text color={compactHovered ? 'text' : undefined}>▸</Text>
+              {' '}{label} · {compactPreview(text)}{' '}
+              {t('hint-expand-ctrl-o')}
+            </Text>
+          )}
+        </Box>
+      )
+    }
     case 'subagent':
       if (!subagent) return null
       return (

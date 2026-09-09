@@ -97,8 +97,6 @@ export const LOCAL_COMMANDS: LocalCommand[] = [
   { name: 'init', description: 'Create AGENTS.md in the working directory' },
   { name: 'agents', description: 'Show subagents of this session' },
   { name: 'jobs', description: 'Show background jobs of this session' },
-  { name: 'queue', description: 'Show the in-turn steer/followup queue' },
-  { name: 'tools', description: 'Show this turn\'s tool-call details' },
   { name: 'workflow', description: 'Show workflow runs (if the profile mounts them)' },
   { name: 'schedule', description: 'Show scheduled tasks (if the profile mounts them)' },
   // Model / display
@@ -261,7 +259,7 @@ export function completeCommands(
   }
 
   const normalizedPrefix = prefix.toLowerCase()
-  return candidates.flatMap(candidate => {
+  return candidates.flatMap((candidate) => {
     const completionToken = matchingCompletionToken(candidate, normalizedPrefix)
     if (completionToken === undefined || !isCommandCompletionToken(completionToken)) return []
     const path = [...tokens, completionToken]

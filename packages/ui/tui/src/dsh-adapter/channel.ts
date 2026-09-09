@@ -404,13 +404,13 @@ export type ToolResultView =
   | { readonly card: 'diff'; readonly title?: string; readonly diffs: readonly ToolFileDiff[] }
   | { readonly card: 'read'; readonly title?: string; readonly path?: string; readonly content?: ReadonlyArray<{ readonly type: string; readonly text?: string }> }
   | {
-      readonly card: 'search'
-      readonly shape: 'matches'
-      readonly title?: string
-      readonly files: ReadonlyArray<{ readonly path: string; readonly matches: ReadonlyArray<{ readonly lineNumber: number; readonly line: string }> }>
-      readonly truncated: boolean
-      readonly total: number
-    }
+    readonly card: 'search'
+    readonly shape: 'matches'
+    readonly title?: string
+    readonly files: ReadonlyArray<{ readonly path: string; readonly matches: ReadonlyArray<{ readonly lineNumber: number; readonly line: string }> }>
+    readonly truncated: boolean
+    readonly total: number
+  }
   | { readonly card: 'search'; readonly shape: 'paths'; readonly title?: string; readonly paths: readonly string[]; readonly truncated: boolean; readonly total: number }
 
 /** The dsh-tools registry seam dsh-tui reads presentations through. The
@@ -487,8 +487,9 @@ export interface JobRow {
  */
 export interface ChatRow {
   id: number
-  kind: 'user' | 'assistant' | 'tool' | 'notice' | 'reasoning' | 'turn-summary' | 'interrupt' | 'local' | 'local-output' | 'compact' | 'subagent' | 'job'
-  /** Extra label for non-human user rows (e.g. `steering`). */
+  kind: 'user' | 'assistant' | 'tool' | 'notice' | 'reasoning' | 'turn-summary' | 'interrupt' | 'local' | 'local-output' | 'compact' | 'context' | 'subagent' | 'job'
+  /** Extra label for non-human user rows (e.g. `steering`), and the
+   *  producer label on `context` rows (skill / instructions / plugin …). */
   label?: string
   /** Actual execution location for `!command` rows. */
   executionTarget?: string
@@ -527,6 +528,40 @@ export interface ChatRow {
  * observation (a provider whose directory watcher is still warming).
  */
 const SKILL_COMMAND_RETRY_MS = 800
+
+/**
+ * 注入来源的一行人话标签（web ContextInjectionRow 的 provenance 对齐）：
+ * 技能、工作区指令、插件上下文、跨会话引用…按 `source.kind` 分派；未知
+ * 类型回落到 kind 原文，绝不吞掉信息。
+ * @param source - `user/message` 事件的 durable source。
+ * @returns 可直接显示的来源标签。
+ */
+function contextSourceLabel(source: unknown): string {
+  const s = (source ?? {}) as Record<string, unknown>
+  const kind = typeof s.kind === 'string' ? s.kind : 'unknown'
+  switch (kind) {
+    case 'skill-invocation':
+      return t('context-source-skill', { name: typeof s.name === 'string' ? s.name : '' })
+    case 'skill-catalog':
+      return t('context-source-skill-catalog')
+    case 'agent-instructions':
+      return t('context-source-instructions')
+    case 'session-reference':
+      return t('context-source-session')
+    case 'plugin':
+      return t('context-source-plugin', { name: typeof s.plugin === 'string' ? s.plugin : '' })
+    case 'webhook':
+      return t('context-source-webhook')
+    case 'team-message':
+      return t('context-source-team')
+    case 'model':
+      return t('context-source-model')
+    case 'tool':
+      return t('context-source-tool')
+    default:
+      return t('context-source-other', { kind })
+  }
+}
 
 /** One 计费时段（高峰/空闲）的 token 累计。 */
 export interface TokenBucket {
@@ -719,7 +754,7 @@ function todoPanelItems(data: unknown): TodoPanelItem[] | undefined {
   if (typeof data !== 'object' || data === null) return undefined
   const todos = (data as { todos?: unknown }).todos
   if (!Array.isArray(todos)) return undefined
-  const valid = todos.every(item => {
+  const valid = todos.every((item) => {
     if (typeof item !== 'object' || item === null) return false
     const candidate = item as { content?: unknown; status?: unknown }
     return typeof candidate.content === 'string' &&
@@ -791,6 +826,26 @@ export interface LoadedContext {
  * rewind, resume, model switching, …). Implementations mutate internal state
  * and bump `version` so subscribed screens re-render.
  */
+/** Whole-session run statistics (web StatsLine parity). */
+export interface SessionStats {
+  /** Completed turns (turn/start count). */
+  readonly turns: number
+  /** Model steps (step/start count). */
+  readonly steps: number
+  /** Summed model wall time (step start → assistant message). */
+  readonly llmMs: number
+  /** Summed tool wall time (tool call → tool result). */
+  readonly toolMs: number
+  /** Summed first-token latency over steps that recorded one. */
+  readonly ttftMs: number
+  /** Steps carrying a recorded TTFT. */
+  readonly ttftSteps: number
+  /** Summed decode wall time (first token → assistant message). */
+  readonly decodeMs: number
+  /** Output tokens over the decode-timed steps. */
+  readonly decodeTokens: number
+}
+
 export interface Channel {
   /** Monotonic version — bump on every mutation so screens can re-render. */
   readonly version: number
@@ -867,6 +922,8 @@ export interface Channel {
   readonly tps: number | undefined
   /** Per-turn tps samples (sparkline history), oldest first. */
   readonly tpsSamples: readonly { tps: number; at: number }[]
+  /** Whole-session run statistics (turns/steps, wall times, TTFT, decode). */
+  readonly sessionStats: SessionStats
   /** Latest in-process working-activity snapshot. */
   readonly workingActivity: ActivityStatus | undefined
   /** Working-activity indicator preset name (`claude`/`moon`/…/`random`). */
@@ -1370,6 +1427,8 @@ export interface ChannelState {
   tps: number | undefined
   /** Per-turn tps samples (sparkline history), oldest first. */
   tpsSamples: { tps: number; at: number }[]
+  /** Whole-session run statistics (see the public Channel type). */
+  sessionStats: SessionStats
   /** Latest working-activity snapshot (see the public Channel type). */
   workingActivity: ActivityStatus | undefined
   /** Working-activity indicator preset (see the public Channel type). */
@@ -1892,7 +1951,7 @@ function prepareReplayEvents(events: readonly SessionEvent[]): SessionEvent[] {
   for (const event of events) {
     if (event.type === 'assistant/message') lastMessageSeq = event.seq
   }
-  return events.filter(event => {
+  return events.filter((event) => {
     if (event.type === 'assistant/message') return true
     if (event.type === 'assistant/chunk') {
       // Keep only the in-flight tail (no message sealed after it).
@@ -2268,7 +2327,7 @@ export function createChannel(
     })
   }
   if (typeof (ctx as { inject?: unknown }).inject === 'function') {
-    ctx.inject(['jobs'], jobsCtx => {
+    ctx.inject(['jobs'], (jobsCtx) => {
       attachJobs(
         (jobsCtx as { jobs?: JobsRuntime }).jobs,
         dispose => jobsCtx.effect(() => dispose),
@@ -2648,10 +2707,10 @@ export function createChannel(
    *  state rebinds here. Listener failures are logged, never propagated —
    *  the switch itself already succeeded. */
   const notifySessionSwitched = (kind: 'new' | 'resume' | 'rewind' | 'fork' | 'agent-view' | 'background', sessionId: string, previousSessionId: string): void => {
-      try {
-        void dispatchTuiNotification(ctx, 'tui/session-switched', { kind, sessionId, previousSessionId, cwd: state.cwd }).catch((error: unknown) => {
-          ctx.logger.warn('dsh-tui: tui/session-switched listener failed: %o', error)
-        })
+    try {
+      void dispatchTuiNotification(ctx, 'tui/session-switched', { kind, sessionId, previousSessionId, cwd: state.cwd }).catch((error: unknown) => {
+        ctx.logger.warn('dsh-tui: tui/session-switched listener failed: %o', error)
+      })
     } catch (error) {
       // A bare embedder's context may lack the event bus entirely; the
       // switch itself already succeeded, so this stays a log line.
@@ -2709,6 +2768,7 @@ export function createChannel(
     state.agentPreset = agentPreset
     state.tps = undefined
     state.tpsSamples = []
+    resetSessionStats()
     state.lastUsage = undefined
     state.workingActivity = undefined
     state.contextSegments = {
@@ -2757,16 +2817,16 @@ export function createChannel(
   /** The llm runtime seam (dsh-llm LlmRuntime): route metadata resolution. */
   const llmRuntime = ctx.get('llm') as
     | {
-        resolveModelInfo(
-          provider: string,
-          model: string,
-        ): Promise<{
-          reasoning?: {
-            efforts: ReadonlyArray<{ id: string; name: string; description?: string }>
-            defaultEffort?: string
-          }
-        }>
-      }
+      resolveModelInfo(
+        provider: string,
+        model: string,
+      ): Promise<{
+        reasoning?: {
+          efforts: ReadonlyArray<{ id: string; name: string; description?: string }>
+          defaultEffort?: string
+        }
+      }>
+    }
     | undefined
 
   /** Mutable per-agent model selection (dsh-agent's routing override seam).
@@ -2810,7 +2870,7 @@ export function createChannel(
     const generation = ++effortLevelsGeneration
     void llmRuntime
       .resolveModelInfo(state.provider, state.model)
-      .then(info => {
+      .then((info) => {
         if (generation !== effortLevelsGeneration) return
         state.effortLevels = (info.reasoning?.efforts ?? []).map(level => level.id)
         state.emit()
@@ -2826,9 +2886,9 @@ export function createChannel(
    *  resolution throws (notified here). */
   const resolveEfforts = async (): Promise<
     | {
-        efforts: ReadonlyArray<{ id: string; name: string; description?: string }>
-        defaultEffort: string | undefined
-      }
+      efforts: ReadonlyArray<{ id: string; name: string; description?: string }>
+      defaultEffort: string | undefined
+    }
     | 'unavailable'
     | 'error'
   > => {
@@ -3283,7 +3343,7 @@ export function createChannel(
     const generation = modelNodeCache.generation
     modelNodeCache.load = state.listModels().then((list) => {
       if (generation !== modelNodeCache.generation) return
-      modelNodeCache.nodes = list.map((model) => ({
+      modelNodeCache.nodes = list.map(model => ({
         name: `${model.provider}/${model.id}`,
         description: model.name,
         ...(state.provider === model.provider && state.model === model.id
@@ -3386,7 +3446,7 @@ export function createChannel(
     state.notify(t('compact-cancelled-switch'), { color: 'warning', timeoutMs: 4000 })
     await Promise.race([
       active.settled,
-      new Promise<void>(resolve => { setTimeout(resolve, 3000) }),
+      new Promise<void>((resolve) => { setTimeout(resolve, 3000) }),
     ])
   }
 
@@ -3437,6 +3497,7 @@ export function createChannel(
     }
     state.tps = undefined
     state.tpsSamples = []
+    resetSessionStats()
     state.lastUsage = undefined
     state.workingActivity = undefined
     state.loadedContext = undefined
@@ -3596,6 +3657,7 @@ export function createChannel(
     }
     state.tps = undefined
     state.tpsSamples = []
+    resetSessionStats()
     state.lastUsage = undefined
     state.workingActivity = undefined
     state.loadedContext = undefined
@@ -3730,7 +3792,7 @@ export function createChannel(
         if (path.length === 1 && path[0] === 'lang') {
           return [
             { name: 'status', description: 'Show the current UI language', descriptionKey: 'sugg-status-desc' },
-            ...LANGS.map((lang) => ({
+            ...LANGS.map(lang => ({
               name: lang,
               description: `Switch the UI language to ${lang}`,
               descriptionKey: lang === 'zh' ? 'sugg-lang-zh-desc' : 'sugg-lang-en-desc',
@@ -3744,7 +3806,7 @@ export function createChannel(
             { name: 'status', description: 'Show the current theme', descriptionKey: 'sugg-status-desc' },
             { name: AUTO_THEME_NAME, description: 'Follow the terminal background', descriptionKey: 'sugg-theme-auto-desc' },
             ...themeEntries
-              .filter((entry) => entry.name !== AUTO_THEME_NAME)
+              .filter(entry => entry.name !== AUTO_THEME_NAME)
               .map((entry) => {
                 const base = entry.base ?? 'dark'
                 if (entry.source === 'builtin') {
@@ -3773,7 +3835,7 @@ export function createChannel(
           return [
             { name: 'status', description: 'Show the current session color', descriptionKey: 'sugg-status-desc' },
             { name: 'reset', description: 'Clear the session color', descriptionKey: 'sugg-color-reset-desc' },
-            ...SESSION_COLOR_NAMES.map((name) => ({
+            ...SESSION_COLOR_NAMES.map(name => ({
               name,
               description: 'Session accent color',
               descriptionKey: 'sugg-color-name-desc',
@@ -3785,7 +3847,7 @@ export function createChannel(
           warmEffortLevels()
           return [
             { name: 'status', description: 'Show the current reasoning effort', descriptionKey: 'sugg-status-desc' },
-            ...(state.effortLevels ?? []).map((id) => ({
+            ...(state.effortLevels ?? []).map(id => ({
               name: id,
               description: 'Reasoning effort level',
               descriptionKey: 'sugg-effort-level-desc',
@@ -3797,7 +3859,7 @@ export function createChannel(
           warmPresetOptions()
           return [
             { name: 'status', description: 'Show the current agent preset', descriptionKey: 'sugg-status-desc' },
-            ...(presetOptionCache.list ?? []).map((preset) => ({
+            ...(presetOptionCache.list ?? []).map(preset => ({
               name: preset.id,
               description: preset.description ?? preset.name ?? preset.id,
               ...(preset.id === state.agentPreset
@@ -3815,7 +3877,7 @@ export function createChannel(
           ]
         }
         if (path.length === 2 && path[0] === 'activity' && path[1] === 'frames') {
-          return PRESET_NAMES.map((name) => ({
+          return PRESET_NAMES.map(name => ({
             name,
             description: 'Animation frame preset',
             descriptionKey: 'sugg-activity-frame-desc',
@@ -3871,6 +3933,16 @@ export function createChannel(
     lastUsage: undefined,
     tps: undefined,
     tpsSamples: [],
+    sessionStats: {
+      turns: 0,
+      steps: 0,
+      llmMs: 0,
+      toolMs: 0,
+      ttftMs: 0,
+      ttftSteps: 0,
+      decodeMs: 0,
+      decodeTokens: 0,
+    },
     contextSegments: {
       system: 0,
       prompt: 0,
@@ -3947,7 +4019,7 @@ export function createChannel(
         throw new Error(`${input.mediaType} images are not accepted by this profile`)
       }
       if (input.data.byteLength > attachments.imageLimits.maxImageBytes) {
-        throw new Error(`image exceeds this profile's per-image size limit`)
+        throw new Error('image exceeds this profile\'s per-image size limit')
       }
       const attachment = await attachments.saveImage(input)
       stagedImageSequence += 1
@@ -4208,7 +4280,7 @@ export function createChannel(
           sessionId: String(childId),
           cwd: state.cwd,
         }, normalizeRewindDoneSummary)
-          .then(summary => {
+          .then((summary) => {
             if (summary !== undefined) state.notify(summary, { timeoutMs: 6000 })
           })
           .catch((error: unknown) => {
@@ -4255,14 +4327,14 @@ export function createChannel(
       try {
         if (typeof persistence.listSnapshots === 'function') {
           const snapshots = await persistence.listSnapshots()
-          listed = snapshots.flatMap(snapshot => {
+          listed = snapshots.flatMap((snapshot) => {
             const raw = (snapshot as { header?: unknown } | null)?.header
             const header = readHeader(raw)
             return header === undefined ? [] : [{ header, raw }]
           })
         } else if (typeof persistence.list === 'function') {
           const headers = await persistence.list()
-          listed = headers.flatMap(raw => {
+          listed = headers.flatMap((raw) => {
             const header = readHeader(raw)
             return header === undefined ? [] : [{ header, raw }]
           })
@@ -4531,8 +4603,8 @@ export function createChannel(
           inheritedCut = locatedPath !== undefined
             ? readPhysicalHeaderSeedLength(locatedPath)
             : !hasLocate
-                ? readPhysicalHeaderSeedLengthForSession(id)
-                : undefined
+              ? readPhysicalHeaderSeedLengthForSession(id)
+              : undefined
         }
         // Keep structural ancestry separate from proven dedup coverage. The
         // model layer detaches a parent edge whose exact cut is unavailable;
@@ -5100,6 +5172,7 @@ export function createChannel(
       }
       state.tps = undefined
       state.tpsSamples = []
+      resetSessionStats()
       state.lastUsage = undefined
       state.workingActivity = undefined
       state.contextWindow = undefined
@@ -5277,6 +5350,7 @@ export function createChannel(
       state.provider = route.provider
       state.tps = undefined
       state.tpsSamples = []
+      resetSessionStats()
       state.lastUsage = undefined
       state.workingActivity = undefined
       state.loadedContext = undefined
@@ -5471,6 +5545,7 @@ export function createChannel(
       dropModelNodeCache()
       state.tps = undefined
       state.tpsSamples = []
+      resetSessionStats()
       state.lastUsage = undefined
       state.workingActivity = undefined
       state.contextWindow = undefined
@@ -6194,7 +6269,7 @@ export function createChannel(
         fileCandidateCache.cwd = state.cwd
         fileCandidateCache.load = undefined
       }
-      fileCandidateCache.load ??= listFilesDeepCandidates(fs, state.cwd).then(candidates => {
+      fileCandidateCache.load ??= listFilesDeepCandidates(fs, state.cwd).then((candidates) => {
         if (candidates.length > 0) return candidates
         // An empty scan is not worth caching forever — retry on next query.
         fileCandidateCache.load = undefined
@@ -6538,6 +6613,7 @@ export function createChannel(
       state.agentId = handle.agent.id
       state.tps = undefined
       state.tpsSamples = []
+      resetSessionStats()
       state.lastUsage = undefined
       state.workingActivity = undefined
       state.loadedContext = undefined
@@ -6669,15 +6745,15 @@ export function createChannel(
       // realm, invisible from the root context — resolve through the agent's
       // scope chain first (minimal composes NO compaction: stays unavailable).
       const compactService = serviceForAgent<{
-          // rc.6 signature: compactNow(agent: ManualCompactAgentContext,
-          // signal, sourceCommandId?) — an Agent satisfies the context
-          // (session/options/runMaintenance). The result shape is only used
-          // for truthiness here.
-          compactNow(
-            agent: unknown,
-            signal: AbortSignal,
-          ): Promise<unknown>
-        }>(ctx, agent, 'compaction')
+        // rc.6 signature: compactNow(agent: ManualCompactAgentContext,
+        // signal, sourceCommandId?) — an Agent satisfies the context
+        // (session/options/runMaintenance). The result shape is only used
+        // for truthiness here.
+        compactNow(
+          agent: unknown,
+          signal: AbortSignal,
+        ): Promise<unknown>
+      }>(ctx, agent, 'compaction')
       if (!compactService) {
         state.notify(t('compact-unavailable'), {
           color: 'warning',
@@ -7472,6 +7548,25 @@ ${output}
       outputChars: number
     }
     | undefined
+  /** Session-stats accumulators (web StatsLine parity). */
+  let statsStepStart: number | undefined
+  let statsFirstToken: number | undefined
+  const statsToolCalls = new Map<string, number>()
+  const resetSessionStats = (): void => {
+    statsStepStart = undefined
+    statsFirstToken = undefined
+    statsToolCalls.clear()
+    state.sessionStats = {
+      turns: 0,
+      steps: 0,
+      llmMs: 0,
+      toolMs: 0,
+      ttftMs: 0,
+      ttftSteps: 0,
+      decodeMs: 0,
+      decodeTokens: 0,
+    }
+  }
   /** Tool cards by callId, so tool/result can settle the running card. */
   const toolCards = new Map<string, ChatRow>()
   /**
@@ -7819,9 +7914,27 @@ ${output}
           applyGoalEvent(event)
           break
         }
-        // Injected context (plugin/skill source) is not a human bubble; v1
-        // renders direct human prompts only.
-        if (event.data.source.kind !== 'user') break
+        // Injected context (workspace instructions, skill bodies, plugin
+        // context, cross-session recall …) is not a human bubble: render it
+        // as a folded `context` row naming its producer, expandable to the
+        // injected body (web ContextInjectionRow parity).
+        if (event.data.source.kind !== 'user') {
+          const injected = textOf(event.data.content)
+          if (injected) {
+            state.rows.push({
+              id: nextRowId,
+              kind: 'context',
+              label: contextSourceLabel(event.data.source),
+              text: injected,
+              seq: event.seq,
+            })
+            nextRowId += 1
+            // Everything injected is model-visible input: count it like a
+            // typed prompt so the context bar stays honest.
+            state.contextSegments.prompt += estimateTokens(injected)
+          }
+          break
+        }
         const text = firstTextOf(event.data.content)
         if (text) {
           state.rows.push({ id: nextRowId, kind: 'user', text, seq: event.seq })
@@ -7834,6 +7947,9 @@ ${output}
         break
       }
       case 'step/start': {
+        state.sessionStats = { ...state.sessionStats, steps: state.sessionStats.steps + 1 }
+        statsStepStart = Number.isFinite(event.time) ? event.time : Date.now()
+        statsFirstToken = undefined
         if (tpsTurn === event.data.turn) {
           tpsStep = {
             turn: event.data.turn,
@@ -7869,6 +7985,7 @@ ${output}
             appendTextDelta(row, chunk.text)
           }
         }
+        if (isTokenDelta(chunk)) statsFirstToken ??= event.time
         const step = tpsStep
         if (
           step !== undefined &&
@@ -7932,8 +8049,8 @@ ${output}
         const row = (msgKey !== undefined ? assistantRowsByStep.get(msgKey) : undefined) ?? streaming ??
           (text
             ? ([...state.rows].reverse().find(candidate =>
-                candidate.kind === 'assistant' && candidate.seq === event.seq,
-              ) ?? ensureStreaming(event.seq))
+              candidate.kind === 'assistant' && candidate.seq === event.seq,
+            ) ?? ensureStreaming(event.seq))
             : undefined)
         if (row !== undefined) {
           if (msgKey !== undefined) assistantRowsByStep.set(msgKey, row)
@@ -8024,6 +8141,32 @@ ${output}
         ) {
           tpsStep = undefined
         }
+        // Session stats: this step's model wall time, TTFT and decode span.
+        if (statsStepStart !== undefined) {
+          const stepEnd = Number.isFinite(event.time) ? event.time : Date.now()
+          const stats = state.sessionStats
+          const llmMs = Math.max(0, stepEnd - statsStepStart)
+          const stepOutput = usageOutputTokens(usage)
+            ?? (statsFirstToken !== undefined && tpsMessageStep !== undefined && tpsMessageStep.outputChars > 0
+              ? Math.ceil(tpsMessageStep.outputChars / 4)
+              : undefined)
+          state.sessionStats = {
+            ...stats,
+            llmMs: stats.llmMs + llmMs,
+            ttftMs: statsFirstToken === undefined
+              ? stats.ttftMs
+              : stats.ttftMs + Math.max(0, statsFirstToken - statsStepStart),
+            ttftSteps: statsFirstToken === undefined ? stats.ttftSteps : stats.ttftSteps + 1,
+            decodeMs: statsFirstToken === undefined || stepOutput === undefined
+              ? stats.decodeMs
+              : stats.decodeMs + Math.max(0, stepEnd - statsFirstToken),
+            decodeTokens: statsFirstToken === undefined || stepOutput === undefined
+              ? stats.decodeTokens
+              : stats.decodeTokens + stepOutput,
+          }
+          statsStepStart = undefined
+          statsFirstToken = undefined
+        }
         // Context-bar segmentation (pi-nano-context style): assistant text
         // and tool calls in the assistant segment, thinking separately.
         for (const block of event.data.message.content) {
@@ -8036,6 +8179,7 @@ ${output}
         break
       }
       case 'tool/call': {
+        statsToolCalls.set(event.data.callId, Number.isFinite(event.time) ? event.time : Date.now())
         // The ask-user-question tool renders as the interactive questionnaire
         // panel (DSH user-interaction seam), not as a tool card: the model is
         // parked waiting for the human, so no running card, no active-tool
@@ -8090,6 +8234,16 @@ ${output}
         break
       }
       case 'tool/result': {
+        const statsCallId = event.data.message.source.callId
+        const statsCallStart = statsToolCalls.get(statsCallId)
+        if (statsCallStart !== undefined) {
+          statsToolCalls.delete(statsCallId)
+          const statsEnd = Number.isFinite(event.time) ? event.time : Date.now()
+          state.sessionStats = {
+            ...state.sessionStats,
+            toolMs: state.sessionStats.toolMs + Math.max(0, statsEnd - statsCallStart),
+          }
+        }
         const card = toolCards.get(event.data.message.source.callId)
         if (card !== undefined && card.tool !== undefined) {
           card.tool.durationMs = Math.max(0, Date.now() - card.tool.startedAt)
@@ -8152,6 +8306,7 @@ ${output}
         cancelInFlight = false
         state.cancelPending = false
         state.working = true
+        state.sessionStats = { ...state.sessionStats, turns: state.sessionStats.turns + 1 }
         // 回放历史事件时必须使用事件时间，否则所有旧回合都会被算成 0 秒。
         state.turnStart = Number.isFinite(event.time) ? event.time : Date.now()
         state.responseChars = 0
@@ -8594,7 +8749,7 @@ ${output}
               pendingPlanExitRestores.delete(session)
               // Rebinding, reentry, or an explicit switch supersedes this restore.
               if (restore === undefined || session !== agent.session || foldPlanActive(snapshotLiveSessionEvents(session))) return
-              applyMode(restore).catch(error => {
+              applyMode(restore).catch((error) => {
                 ctx.logger.warn(
                   `dsh-tui: plan-exit mode restore failed: ${error instanceof Error ? error.message : String(error)}`,
                 )
@@ -8643,9 +8798,9 @@ ${output}
           if (!info?.id) return
           const output = Array.isArray(info.lastAssistantMessage)
             ? info.lastAssistantMessage
-                .map(block => typeof block === 'object' && block !== null && 'text' in block ? String((block as { text?: unknown }).text ?? '') : '')
-                .filter(Boolean)
-                .join('\n')
+              .map(block => typeof block === 'object' && block !== null && 'text' in block ? String((block as { text?: unknown }).text ?? '') : '')
+              .filter(Boolean)
+              .join('\n')
             : ''
           // The final assistant output becomes the card's summary only; the
           // running waterfall came from the child session stream, so echoing
@@ -8860,7 +9015,7 @@ async function listPathCandidates(fs: FileSuggestionFs, cwd: string, query: stri
     if (signal?.aborted) return []
     const target = await fs.resolve(expanded)
     const entries = (await fs.listDir(target)).slice().sort((a, b) => a.name.localeCompare(b.name))
-    return rankFileCandidates(entries.filter(entry => entry.type === 'file' || entry.type === 'directory').map(entry => {
+    return rankFileCandidates(entries.filter(entry => entry.type === 'file' || entry.type === 'directory').map((entry) => {
       const path = `${directoryPart}${entry.name}${entry.type === 'directory' ? '/' : ''}`
       return { id: path, path, displayPath: path, name: entry.name, kind: entry.type as 'file' | 'directory', score: 0 }
     }), nameQuery, topK)
@@ -9028,121 +9183,121 @@ export async function expandMentions(
   let imageBytes = 0
   if (fs !== undefined) {
     for (const mention of mentions) {
-    const display = mention.literal ?? mention.path
-    const imageMediaType = mentionImageMediaType(mention.path)
-    if (budget <= 0 && imageMediaType === undefined) break
-    // Mentions resolve against the session cwd, same as the model-facing fs
-    // tools; absolute paths pass through untouched. A `#L12-14` line suffix
-    // (issue #359) is stripped before resolution; when the stripped path
-    // misses, the typed literal (suffix intact) gets ONE fallback try so
-    // filenames genuinely containing `#L…` still resolve as whole files.
-    const absolute = isAbsolute(mention.path) ? mention.path : join(cwd, mention.path)
-    let resolved = await tryResolveMention(fs, absolute)
-    let literalFallback = false
-    if (resolved === undefined && mention.literal !== undefined) {
-      const literalPath = isAbsolute(mention.literal) ? mention.literal : join(cwd, mention.literal)
-      resolved = await tryResolveMention(fs, literalPath)
-      literalFallback = resolved !== undefined
-    }
-    if (resolved === undefined) {
-      missing.push(display)
-      continue
-    }
-    const { target, info } = resolved
-    // On a literal-fallback hit the attached file IS the typed name — the
-    // model must see that path, not the suffix-stripped one.
-    const shownPath = literalFallback ? display : mention.path
-    // …and judge image-ness by the typed extension in that case too.
-    const imageType = literalFallback && mention.literal !== undefined
-      ? mentionImageMediaType(mention.literal)
-      : imageMediaType
-    if (info?.type === 'file') {
-      if (imageType !== undefined && attachments !== undefined && fs.readBytes !== undefined) {
-        const limits = attachments.imageLimits
-        if (!limits.mediaTypes.includes(imageType) || imageCount >= limits.maxImagesPerMessage) {
-          missing.push(display)
-          continue
-        }
-        try {
-          const data = await fs.readBytes(target, undefined, limits.maxImageBytes)
-          if (imageBytes + data.byteLength > limits.maxMessageImageBytes) {
+      const display = mention.literal ?? mention.path
+      const imageMediaType = mentionImageMediaType(mention.path)
+      if (budget <= 0 && imageMediaType === undefined) break
+      // Mentions resolve against the session cwd, same as the model-facing fs
+      // tools; absolute paths pass through untouched. A `#L12-14` line suffix
+      // (issue #359) is stripped before resolution; when the stripped path
+      // misses, the typed literal (suffix intact) gets ONE fallback try so
+      // filenames genuinely containing `#L…` still resolve as whole files.
+      const absolute = isAbsolute(mention.path) ? mention.path : join(cwd, mention.path)
+      let resolved = await tryResolveMention(fs, absolute)
+      let literalFallback = false
+      if (resolved === undefined && mention.literal !== undefined) {
+        const literalPath = isAbsolute(mention.literal) ? mention.literal : join(cwd, mention.literal)
+        resolved = await tryResolveMention(fs, literalPath)
+        literalFallback = resolved !== undefined
+      }
+      if (resolved === undefined) {
+        missing.push(display)
+        continue
+      }
+      const { target, info } = resolved
+      // On a literal-fallback hit the attached file IS the typed name — the
+      // model must see that path, not the suffix-stripped one.
+      const shownPath = literalFallback ? display : mention.path
+      // …and judge image-ness by the typed extension in that case too.
+      const imageType = literalFallback && mention.literal !== undefined
+        ? mentionImageMediaType(mention.literal)
+        : imageMediaType
+      if (info?.type === 'file') {
+        if (imageType !== undefined && attachments !== undefined && fs.readBytes !== undefined) {
+          const limits = attachments.imageLimits
+          if (!limits.mediaTypes.includes(imageType) || imageCount >= limits.maxImagesPerMessage) {
             missing.push(display)
             continue
           }
-          const attachment = await attachments.saveImage({
-            data,
-            mediaType: imageType,
-            name: basename(target.displayPath),
+          try {
+            const data = await fs.readBytes(target, undefined, limits.maxImageBytes)
+            if (imageBytes + data.byteLength > limits.maxMessageImageBytes) {
+              missing.push(display)
+              continue
+            }
+            const attachment = await attachments.saveImage({
+              data,
+              mediaType: imageType,
+              name: basename(target.displayPath),
+            })
+            blocks.push({ type: 'image', attachment })
+            imageCount += 1
+            imageBytes += data.byteLength
+            attached.push(display)
+          } catch {
+            missing.push(display)
+          }
+          continue
+        }
+        try {
+          const cap = Math.min(MENTION_MAX_FILE_CHARS, budget)
+          const content = await fs.readText(target)
+          let body = content
+          let truncated = false
+          let header = `<attached-file path="${shownPath}">`
+          if (mention.startLine !== undefined && !literalFallback) {
+          // Line-range slice (issue #359): 1-based inclusive. An endLine
+          // past EOF clamps to the file; a startLine past EOF falls back
+          // to the whole file with an in-band note — never a silent
+          // empty attach. Line ranges never apply to literal-fallback
+          // hits (those files really are named `…#L…`, no suffix typed).
+            const lines = content.split('\n')
+            if (mention.startLine > lines.length) {
+              header = `<attached-file path="${shownPath}" lines="${mention.startLine}-${mention.endLine}" note="requested lines beyond EOF (file has ${lines.length} line${lines.length === 1 ? '' : 's'}); whole file attached">`
+            } else {
+              const endLine = Math.min(mention.endLine ?? mention.startLine, lines.length)
+              header = `<attached-file path="${shownPath}" lines="${mention.startLine}${endLine === mention.startLine ? '' : `-${endLine}`}">`
+              body = lines.slice(mention.startLine - 1, endLine).join('\n')
+            }
+          }
+          if (body.length > cap) {
+            body = body.slice(0, cap)
+            truncated = true
+          }
+          budget -= body.length
+          blocks.push({
+            type: 'text',
+            text: `${header}\n${body}${truncated ? '\n[… truncated]' : ''}\n</attached-file>`,
           })
-          blocks.push({ type: 'image', attachment })
-          imageCount += 1
-          imageBytes += data.byteLength
+          attached.push(display)
+        } catch {
+        // Binary/undecodable or unreadable — report it like a miss.
+          missing.push(display)
+        }
+        continue
+      }
+      if (info?.type === 'directory') {
+        try {
+          const entries = await fs.listDir(target)
+          const listing = entries
+            .slice(0, MENTION_MAX_DIR_ENTRIES)
+            .map(entry => (entry.type === 'directory' ? `${entry.name}/` : entry.name))
+          if (entries.length > MENTION_MAX_DIR_ENTRIES) {
+            listing.push(`… (${entries.length - MENTION_MAX_DIR_ENTRIES} more)`)
+          }
+          const body = listing.join('\n')
+          budget -= body.length
+          blocks.push({
+            type: 'text',
+            text: `<attached-directory path="${shownPath}">\n${body}\n</attached-directory>`,
+          })
           attached.push(display)
         } catch {
           missing.push(display)
         }
         continue
       }
-      try {
-        const cap = Math.min(MENTION_MAX_FILE_CHARS, budget)
-        const content = await fs.readText(target)
-        let body = content
-        let truncated = false
-        let header = `<attached-file path="${shownPath}">`
-        if (mention.startLine !== undefined && !literalFallback) {
-          // Line-range slice (issue #359): 1-based inclusive. An endLine
-          // past EOF clamps to the file; a startLine past EOF falls back
-          // to the whole file with an in-band note — never a silent
-          // empty attach. Line ranges never apply to literal-fallback
-          // hits (those files really are named `…#L…`, no suffix typed).
-          const lines = content.split('\n')
-          if (mention.startLine > lines.length) {
-            header = `<attached-file path="${shownPath}" lines="${mention.startLine}-${mention.endLine}" note="requested lines beyond EOF (file has ${lines.length} line${lines.length === 1 ? '' : 's'}); whole file attached">`
-          } else {
-            const endLine = Math.min(mention.endLine ?? mention.startLine, lines.length)
-            header = `<attached-file path="${shownPath}" lines="${mention.startLine}${endLine === mention.startLine ? '' : `-${endLine}`}">`
-            body = lines.slice(mention.startLine - 1, endLine).join('\n')
-          }
-        }
-        if (body.length > cap) {
-          body = body.slice(0, cap)
-          truncated = true
-        }
-        budget -= body.length
-        blocks.push({
-          type: 'text',
-          text: `${header}\n${body}${truncated ? '\n[… truncated]' : ''}\n</attached-file>`,
-        })
-        attached.push(display)
-      } catch {
-        // Binary/undecodable or unreadable — report it like a miss.
-        missing.push(display)
-      }
-      continue
-    }
-    if (info?.type === 'directory') {
-      try {
-        const entries = await fs.listDir(target)
-        const listing = entries
-          .slice(0, MENTION_MAX_DIR_ENTRIES)
-          .map(entry => (entry.type === 'directory' ? `${entry.name}/` : entry.name))
-        if (entries.length > MENTION_MAX_DIR_ENTRIES) {
-          listing.push(`… (${entries.length - MENTION_MAX_DIR_ENTRIES} more)`)
-        }
-        const body = listing.join('\n')
-        budget -= body.length
-        blocks.push({
-          type: 'text',
-          text: `<attached-directory path="${shownPath}">\n${body}\n</attached-directory>`,
-        })
-        attached.push(display)
-      } catch {
-        missing.push(display)
-      }
-      continue
-    }
-    // Absent (stat → undefined) or a special file.
-    missing.push(display)
+      // Absent (stat → undefined) or a special file.
+      missing.push(display)
     }
   }
   if (attachments !== undefined && stagedImages !== undefined) {

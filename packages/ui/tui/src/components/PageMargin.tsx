@@ -82,7 +82,8 @@ export function PageMargin({
   const parentInset = React.useContext(PageInsetContext)
   const inner: TerminalSize = {
     columns: Math.max(1, size.columns - 2 * x),
-    rows: Math.max(1, size.rows - 2 * y),
+    // 只在顶部留 y 行：底部不留白，底栏（状态行）贴齐终端底边。
+    rows: Math.max(1, size.rows - y),
   }
   const inset: PageInset = {
     x: parentInset.x + x,
@@ -96,7 +97,7 @@ export function PageMargin({
           flexGrow={1}
           width="100%"
           paddingX={x}
-          paddingY={y}
+          paddingTop={y}
         >
           {/* 内容盒：ink 的百分比宽度按父盒「全宽」（含 padding）解析——
               直接 padding 的盒子里 width="100%" 会始终宽出 2·inset×（滚动轨

@@ -2,12 +2,12 @@ import React from 'react'
 import { Box, Text } from '../ui.js'
 
 /**
- * Compact header whale: DeepSeek official mark rasterized to half-blocks.
- * 32 sprite columns × 14 sprite rows → 32 terminal columns × 7 rows.
+ * Compact header whale: DeepSeek official mark rasterized to half-blocks at
+ * 24×18 pixels → 24 terminal columns × 9 rows.
  */
 
-export const COMPACT_WHALE_COLUMNS = 32
-export const COMPACT_WHALE_ROWS = 7
+export const COMPACT_WHALE_COLUMNS = 24
+export const COMPACT_WHALE_ROWS = 9
 
 export type CompactPose = 'idle' | 'blink' | 'tailLeft' | 'tailRight' | 'spout' | 'sleep' | 'run' | 'fail'
 
@@ -41,22 +41,26 @@ const fg = (rgb: Rgb): string => `\x1b[38;2;${rgb[0]};${rgb[1]};${rgb[2]}m`
 const bg = (rgb: Rgb): string => `\x1b[48;2;${rgb[0]};${rgb[1]};${rgb[2]}m`
 const RESET = '\x1b[0m'
 
-/** Official mark, 1 = brand fill, 0 = transparent. 32×14 pixels. */
+/** Official mark, 1 = brand fill, 0 = transparent. 24×18 pixels. */
 const MARK: readonly string[] = [
-  '00000000111111111000011000000000',
-  '00001111111111111000011110001111',
-  '00111111111111111100011111111110',
-  '00111111111111111111001111111110',
-  '01111111111111111111110111111000',
-  '11100011111111111111111111100000',
-  '11100000001111111111111111100000',
-  '11110000000011111110111111000000',
-  '01110000000001111111111100000000',
-  '01111000000000111111111000000000',
-  '00111100000110001111110000000000',
-  '00011111000111100111100000000000',
-  '00000111111111111110000000000000',
-  '00000000111111110000000000000000'
+  '000000000000000010000000',
+  '000001111111100011000000',
+  '000111111111100011100111',
+  '001111111111110011111111',
+  '011111111111111011111110',
+  '011111111111111101111110',
+  '111111111111111111111000',
+  '110000111111111111110000',
+  '111000001111110111110000',
+  '111000000111110111110000',
+  '111000000011111111100000',
+  '011100000011111111100000',
+  '011100000001111111100000',
+  '001110001100111111000000',
+  '001111001110011111000000',
+  '000111111111111111100000',
+  '000001111111111011100000',
+  '000000011111100000000000',
 ]
 
 function shift(rows: readonly string[], dx: number): string[] {
@@ -82,7 +86,7 @@ const SPRITES: Record<CompactPose, readonly string[]> = {
   blink: MARK,
   tailLeft: shift(MARK, -1),
   tailRight: shift(MARK, 1),
-  spout: withDot(MARK, 19, 0),
+  spout: withDot(MARK, 12, 0),
   sleep: MARK,
   run: shift(MARK, 1),
   fail: MARK,
@@ -197,7 +201,7 @@ export function poseFromPetAnimation(animation: PetAnimationName | undefined): C
 }
 
 /**
- * One compact whale pose as an Ink box of fixed 32×7 cells.
+ * One compact whale pose as an Ink box of fixed 24×9 cells.
  * @param pose - Sprite pose to draw.
  * @returns The rendered whale.
  */

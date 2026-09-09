@@ -49,12 +49,12 @@ export type ChatOverlay =
   | { kind: 'workspace-picker'; index: number }
   | { kind: 'workspace-menu'; index: number }
   | {
-      kind: 'workspace-flow'
-      flow: WorkspaceFlowChoices
-      index: number
-      busy: boolean
-      input: WorkspaceFlowInput | null
-    }
+    kind: 'workspace-flow'
+    flow: WorkspaceFlowChoices
+    index: number
+    busy: boolean
+    input: WorkspaceFlowInput | null
+  }
   | { kind: 'model'; index: number }
   | { kind: 'skills'; index: number }
   | { kind: 'activity'; index: number }
@@ -67,13 +67,13 @@ export type ChatOverlay =
   | { kind: 'lang'; index: number }
   | { kind: 'history'; query: string; cursor: number; focus: number }
   | {
-      kind: 'rewind'
-      index: number
-      confirm: ChatRow | null
-      modes: readonly TuiRewindMode[] | null
-      modeIndex: number
-      busy: boolean
-    }
+    kind: 'rewind'
+    index: number
+    confirm: ChatRow | null
+    modes: readonly TuiRewindMode[] | null
+    modeIndex: number
+    busy: boolean
+  }
   // `/` transcript search: only the open/closed mode lives here. The query,
   // cursor and match counters stay in Chat.tsx — they survive the bar
   // closing so n/N keep walking the matches (CC semantics).
@@ -87,8 +87,6 @@ export type ChatOverlay =
    * the target is a directory (first row reads "open folder").
    */
   | { kind: 'file-actions'; path: string; index: number; isDir: boolean }
-  | { kind: 'queue'; index: number }
-  | { kind: 'tools'; index: number }
 
 export const NO_OVERLAY: ChatOverlay = { kind: 'none' }
 
@@ -119,7 +117,7 @@ export type ChatOverlayAction =
    *  with the authoritative focus (model list / preset roster), or a mouse
    *  click on a row of a panel that stays open (effort slider, workspace
    *  flow). Ignored unless that panel is still up. */
-  | { type: 'set-index'; kind: 'model' | 'preset' | 'effort' | 'permission' | 'workspace-flow' | 'rewind' | 'file-actions' | 'queue' | 'tools'; index: number }
+  | { type: 'set-index'; kind: 'model' | 'preset' | 'effort' | 'permission' | 'workspace-flow' | 'rewind' | 'file-actions'; index: number }
   /** Edit the history-search draft (query text, caret, focused match). */
   | { type: 'history-edit'; query?: string; cursor?: number; focus?: number }
   /** Workspace flow: an action is running (keys except Esc are swallowed). */
@@ -189,8 +187,6 @@ export function chatOverlayReducer(state: ChatOverlay, action: ChatOverlayAction
         || state.kind === 'plan'
         || state.kind === 'lang'
         || state.kind === 'file-actions'
-        || state.kind === 'queue'
-        || state.kind === 'tools'
       ) {
         return { ...state, index: wrapIndex(state.index, action.delta, action.count) }
       }
@@ -204,11 +200,11 @@ export function chatOverlayReducer(state: ChatOverlay, action: ChatOverlayAction
     case 'history-edit':
       return state.kind === 'history'
         ? {
-            ...state,
-            ...(action.query === undefined ? {} : { query: action.query }),
-            ...(action.cursor === undefined ? {} : { cursor: action.cursor }),
-            ...(action.focus === undefined ? {} : { focus: action.focus }),
-          }
+          ...state,
+          ...(action.query === undefined ? {} : { query: action.query }),
+          ...(action.cursor === undefined ? {} : { cursor: action.cursor }),
+          ...(action.focus === undefined ? {} : { focus: action.focus }),
+        }
         : state
     case 'flow-busy':
       return state.kind === 'workspace-flow' ? { ...state, busy: action.busy } : state

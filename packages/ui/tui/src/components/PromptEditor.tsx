@@ -64,7 +64,7 @@ export function PromptEditorLayer(): React.ReactNode {
       top={-inset.y}
       left={-inset.x}
       width={size.columns + 2 * inset.x}
-      height={size.rows + 2 * inset.y}
+      height={size.rows + inset.y}
       flexDirection="column"
       flexShrink={0}
       overflow="hidden"
