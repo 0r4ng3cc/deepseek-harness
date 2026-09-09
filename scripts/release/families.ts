@@ -108,6 +108,9 @@ export abstract class ReleaseFamily {
   /** Git tag prefix this family publishes from. */
   abstract readonly tagPrefix: string
 
+  /** npm scope every public member in this family must use. */
+  abstract readonly packageScope: string
+
   /**
    * Assert that built artifacts match this release family's required profile.
    * Families without environment-selected artifacts accept every build tree.
@@ -133,7 +136,9 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
+      if (!name.startsWith(`${this.packageScope}/`)) {
+        throw new Error(`${normalized} must name a ${this.packageScope} package`)
+      }
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -328,6 +333,7 @@ class DshFamily extends ReleaseFamily {
     ...PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES.map(directory => `${directory}/package.json`),
   ] as const
   readonly tagPrefix = 'xfdsh-v'
+  readonly packageScope = '@x1a0f3n9'
 
   /** Require current artifacts from a complete official client build. */
   override verifyBuildArtifacts(root: string): void {
@@ -348,7 +354,7 @@ class DshFamily extends ReleaseFamily {
 
   /**
    * The single family prefix: every member shares one version, so one tag names it.
-   * @returns `dsh-v`.
+   * @returns `xfdsh-v`.
    */
   tagPrefixFor(): string {
     return this.tagPrefix
@@ -379,6 +385,7 @@ class VendorFamily extends ReleaseFamily {
   readonly id = 'vendor'
   readonly patterns = ['vendor/*/package.json'] as const
   readonly tagPrefix = 'vendor-'
+  readonly packageScope = '@deepseek-ai'
 
   /**
    * Accept independent versions; only reject a version this repository cannot publish.

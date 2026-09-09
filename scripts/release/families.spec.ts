@@ -66,6 +66,14 @@ describe('release families', () => {
     expect(releaseFamily('dsh').members(root).map(entry => entry.name)).toEqual(['@x1a0f3n9/dsh-public'])
   })
 
+  it('requires dsh members to use the @x1a0f3n9 scope', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-release-scope-'))
+    roots.push(root)
+    write(join(root, 'apps/public/package.json'), '{"name":"@deepseek-ai/dsh-public","version":"0.0.1"}\n')
+
+    expect(() => { releaseFamily('dsh').members(root) }).toThrow(/must name a @x1a0f3n9 package/)
+  })
+
   it('bumps private dsh workspaces without adding release tags', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-release-version-'))
     roots.push(root)
@@ -80,7 +88,7 @@ describe('release families', () => {
 
     expect(planned.map(entry => ({ path: entry.manifestPath, tag: entry.tag }))).toEqual([
       { path: 'package.json', tag: undefined },
-      { path: 'packages/core/published/package.json', tag: 'dsh-v0.0.2' },
+      { path: 'packages/core/published/package.json', tag: 'xfdsh-v0.0.2' },
       { path: 'apps/desktop/package.json', tag: undefined },
       { path: 'packages/experimental/prototype/package.json', tag: undefined },
     ])
@@ -98,7 +106,7 @@ describe('release families', () => {
       const plan = planShared(dsh, root, [published], version)
 
       expect(plan.version).toBe(version)
-      expect(plan.planned[1]?.tag).toBe(`dsh-v${version}`)
+      expect(plan.planned[1]?.tag).toBe(`xfdsh-v${version}`)
     },
   )
 
@@ -108,7 +116,7 @@ describe('release families', () => {
     const cli = member('apps/cli', '@x1a0f3n9/dsh')
     const cordis = { ...member('vendor/cordis', '@deepseek-ai/cordis'), version: '4.0.1' }
 
-    expect(dsh.tagFor(cli)).toBe('dsh-v0.0.1')
+    expect(dsh.tagFor(cli)).toBe('xfdsh-v0.0.1')
     expect(vendor.tagFor(cordis)).toBe('vendor-cordis-v4.0.1')
     // The prefix is constructed, not recovered from a tag: a version with a
     // hyphen would defeat any suffix-stripping.
@@ -259,7 +267,7 @@ describe('release families', () => {
     // would order this, and the traversal drops the install edge instead. That
     // order would publish charlie before the alpha it installs, so it is refused
     // here rather than published.
-    expect(() => { dsh.publishOrder(members) }).toThrow(/no publish order honours @deepseek-ai\/dsh-charlie -> @deepseek-ai\/dsh-alpha/)
+    expect(() => { dsh.publishOrder(members) }).toThrow(/no publish order honours @x1a0f3n9\/dsh-charlie -> @x1a0f3n9\/dsh-alpha/)
   })
 
   it('ignores devDependencies when ordering', () => {

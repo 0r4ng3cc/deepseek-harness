@@ -938,25 +938,52 @@ describe('Issue lifecycle workflow', () => {
 })
 
 describe('npm release workflows', () => {
-  it('keeps publication dispatch-only and pack in the PR workflow', () => {
-    // pack stays in the PR/master release workflows so a PR proves the set packs.
-    for (const file of ['release.yml', 'release-vendor.yml']) {
-      const workflow = loadWorkflow(`.github/workflows/${file}`)
-      if (!isRecord(workflow.jobs)) throw new TypeError(`${file} must define jobs`)
-      expect(Object.keys(workflow.jobs).sort()).toEqual(file === 'release.yml' ? ['dependencies', 'pack'] : ['pack'])
+  it('publishes the dsh family from dev-x1a0f3n9 and keeps vendor publication dispatch-only', () => {
+    const dshRelease = loadWorkflow('.github/workflows/release.yml')
+    if (!isRecord(dshRelease.on) || !isRecord(dshRelease.jobs)) {
+      throw new TypeError('release.yml must define on and jobs')
     }
+    expect(Object.keys(dshRelease.jobs).sort()).toEqual(['dependencies', 'pack', 'publish'])
+    expect(dshRelease.on).toMatchObject({ push: { branches: ['dev-x1a0f3n9'] } })
+    expect(dshRelease.jobs.publish).toMatchObject({
+      if: "github.ref == 'refs/heads/dev-x1a0f3n9'",
+      environment: 'npm-publish',
+    })
+    const pack = workflowJob(dshRelease, 'pack')
+    if (!Array.isArray(pack.steps)) throw new TypeError('DSH pack job must define steps')
+    const verify = pack.steps.filter(isRecord).find(step => step.name === 'Verify release version')
+    expect(verify).toMatchObject({
+      env: {
+        RELEASE_PUBLISH: "${{ github.ref == 'refs/heads/dev-x1a0f3n9' && 'true' || 'false' }}",
+        RELEASE_PUBLISH_ALLOW_REF: "${{ github.ref == 'refs/heads/dev-x1a0f3n9' && 'refs/heads/dev-x1a0f3n9' || '' }}",
+      },
+      run: 'pnpm run release:verify --family dsh',
+    })
 
-    // publication is workflow_dispatch-only (never a PR check) and keeps the
-    // npm-publish environment plus the shared dist-tag group.
-    for (const file of ['release-publish.yml', 'release-vendor-publish.yml']) {
-      const workflow = loadWorkflow(`.github/workflows/${file}`)
-      if (!isRecord(workflow.on) || !isRecord(workflow.jobs)) throw new TypeError(`${file} must define on and jobs`)
-      expect(Object.keys(workflow.on)).toEqual(['workflow_dispatch'])
-      const publish = workflow.jobs.publish
-      if (!isRecord(publish)) throw new TypeError(`${file} must define a publish job`)
-      expect(publish.environment).toBe('npm-publish')
-      expect(publish.concurrency).toMatchObject({ group: 'Release-publish' })
+    const vendorRelease = loadWorkflow('.github/workflows/release-vendor.yml')
+    if (!isRecord(vendorRelease.jobs)) throw new TypeError('release-vendor.yml must define jobs')
+    expect(Object.keys(vendorRelease.jobs).sort()).toEqual(['pack'])
+
+    const tagged = loadWorkflow('.github/workflows/release-publish.yml')
+    if (!isRecord(tagged.on) || !isRecord(tagged.jobs)) {
+      throw new TypeError('release-publish.yml must define on and jobs')
     }
+    expect(tagged.on).toMatchObject({ push: { tags: ['xfdsh-v*'] } })
+    expect(Object.keys(tagged.on)).toEqual(['push', 'workflow_dispatch'])
+    expect(tagged.jobs.publish).toMatchObject({
+      environment: 'npm-publish',
+      concurrency: { group: 'Release-publish' },
+    })
+
+    const vendorPublish = loadWorkflow('.github/workflows/release-vendor-publish.yml')
+    if (!isRecord(vendorPublish.on) || !isRecord(vendorPublish.jobs)) {
+      throw new TypeError('release-vendor-publish.yml must define on and jobs')
+    }
+    expect(Object.keys(vendorPublish.on)).toEqual(['workflow_dispatch'])
+    expect(vendorPublish.jobs.publish).toMatchObject({
+      environment: 'npm-publish',
+      concurrency: { group: 'Release-publish' },
+    })
   })
 
   it('runs dependency policy and npm layout checks in the DSH release workflow', () => {
