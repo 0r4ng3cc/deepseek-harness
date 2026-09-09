@@ -8,6 +8,7 @@ import { Divider } from './design-system/Divider.js'
 import { UserPromptMessage } from './messages/UserPromptMessage.js'
 import { AssistantTextMessage } from './messages/AssistantTextMessage.js'
 import { AssistantThinkingMessage } from './messages/AssistantThinkingMessage.js'
+import { TurnSummaryMessage } from './messages/TurnSummaryMessage.js'
 import { AssistantToolUseMessage } from './messages/AssistantToolUseMessage.js'
 import { SubagentMessage } from './Chat/SubagentMessage.js'
 import { JobCard } from './Chat/JobCard.js'
@@ -16,6 +17,7 @@ import { noteFrameCause, noteListGeometry } from '../ink/geometry-trace.js'
 import { getTerminalFlushTick } from '../ink/flush-tick.js'
 import { InterruptedByUser } from './InterruptedByUser.js'
 import { LogoV2 } from './LogoV2.js'
+import type { PetAnimationName } from './PetSprite.js'
 import { StreamingMarkdown } from './StreamingMarkdown.js'
 import { MessageMetadata } from './messages/MessageMetadata.js'
 import { stripNarration } from '../utils/narration.js'
@@ -31,6 +33,7 @@ import { useRevealVersion } from '../hooks/useRevealVersion.js'
  * on a grey bubble with a `❯` pointer, assistant text with a `●` bullet and
  * markdown, thinking as a live three-line/full toggle then a settled
  * `⚓ Thinking (ctrl+o to expand)` row, and tool calls as status-dot cards.
+ * Completed turns add a dim `✻ Cogitated for … · done …` summary row.
  * `expanded` (Ctrl+O) shows full reasoning + full tool
  * args/results; `expandedRows` (message-selection mode, Enter) expands single
  * rows; `selectedId` highlights the selected row.
@@ -51,7 +54,9 @@ const MAX_RENDERED_ROWS = 120
 // their subtrees. Spacers preserve the scroll geometry (content height,
 // sticky follow, scrollbar) of a fully-mounted list.
 /** Lines of extra content mounted above/below the visible window. */
-const OVERSCAN_LINES = 8
+// 预留接近一屏的滚动缓冲，滚轮突发时先复用已挂载行，避免每几步
+// 就卸载/挂载子树并触发主屏整帧重绘。
+const OVERSCAN_LINES = 128
 /** Fallback row height before the first measurement (terminal lines). */
 const DEFAULT_ROW_HEIGHT = 2
 /** Cold-start estimate of the header block above the rows; corrected by the
@@ -599,18 +604,38 @@ export function MessageList({
 
   const heightOf = (row: ChatRow): number =>
     heightsRef.current.get(row.id) ?? DEFAULT_ROW_HEIGHT
-  // Reused offsets buffer: the prefix-scan itself must run every render
-  // (heightsRef mutates in the measure effect), but the ARRAY need not be
-  // fresh — offsets never escapes this render scope. A new 3200-slot array
-  // per scroll tick was pure GC fodder.
-  const offsetsBufRef = React.useRef<number[]>([])
-  const offsets: number[] = offsetsBufRef.current
-  offsets.length = visibleRows.length
-  let total = 0
-  for (let i = 0; i < visibleRows.length; i++) {
-    offsets[i] = total
-    total += heightOf(visibleRows[i])
+  // Row heights only change when the list, width, or a measured layout
+  // signature changes. Reusing the prefix offsets across ordinary wheel
+  // ticks removes an O(rows) scan from the hottest scroll path; the geometry
+  // version invalidates it whenever a cached height is dropped or measured.
+  const offsetsCacheRef = React.useRef<{
+    rows: readonly ChatRow[]
+    version: number
+    offsets: number[]
+    total: number
+  } | null>(null)
+  const offsetsCache = offsetsCacheRef.current
+  if (
+    offsetsCache === null ||
+    offsetsCache.rows !== visibleRows ||
+    offsetsCache.version !== heightsVersionRef.current
+  ) {
+    const offsets = offsetsCache?.offsets ?? []
+    offsets.length = visibleRows.length
+    let total = 0
+    for (let i = 0; i < visibleRows.length; i++) {
+      offsets[i] = total
+      total += heightOf(visibleRows[i])
+    }
+    offsetsCacheRef.current = {
+      rows: visibleRows,
+      version: heightsVersionRef.current,
+      offsets,
+      total,
+    }
   }
+  const offsets = offsetsCacheRef.current!.offsets
+  const total = offsetsCacheRef.current!.total
 
   const scrollTop = scrollHandle?.getScrollTop() ?? 0
   const pending = scrollHandle?.getPendingDelta() ?? 0
@@ -622,10 +647,26 @@ export function MessageList({
   // delta, plus overscan; when sticky, always reach the tail (streaming row).
   const relTop = Math.min(scrollTop, scrollTop + pending) - OVERSCAN_LINES - base
   const relBottom = Math.max(scrollTop, scrollTop + pending) + viewport + OVERSCAN_LINES - base
-  let start = 0
-  while (start < visibleRows.length && offsets[start] + heightOf(visibleRows[start]) <= relTop) start++
-  let end = start
-  while (end < visibleRows.length && offsets[end] < relBottom) end++
+  // `offsets` is monotonic, so binary-search the first intersecting row
+  // instead of walking every preceding row on deep scrollback. The old scan
+  // made a 3000-row session pay O(rows) on every wheel frame even after the
+  // prefix offsets themselves had been cached.
+  let startLow = 0
+  let startHigh = visibleRows.length
+  while (startLow < startHigh) {
+    const middle = (startLow + startHigh) >> 1
+    if (offsets[middle]! + heightOf(visibleRows[middle]!) <= relTop) startLow = middle + 1
+    else startHigh = middle
+  }
+  let start = startLow
+  let endLow = start
+  let endHigh = visibleRows.length
+  while (endLow < endHigh) {
+    const middle = (endLow + endHigh) >> 1
+    if (offsets[middle]! < relBottom) endLow = middle + 1
+    else endHigh = middle
+  }
+  let end = endLow
   if (sticky || !scrollHandle) end = visibleRows.length
   // Pinned to bottom: the tail row must stay mounted EVERY pass. The
   // streaming row's measured height only lands in heightsRef when it
@@ -1412,6 +1453,17 @@ function TranscriptRow({
         </Box>
       )
     }
+    case 'turn-summary':
+      if (durationMs === undefined || time === undefined) return null
+      return (
+        <Box flexDirection="column" ref={ref}>
+          <TurnSummaryMessage
+            durationMs={durationMs}
+            completedAt={time}
+            addMargin={addMargin}
+          />
+        </Box>
+      )
     case 'tool': {
       if (
         toolCallId === undefined ||
@@ -1547,7 +1599,7 @@ function compactPreview(text: string, limit = 60): string {
 const MemoRow = React.memo(TranscriptRow)
 
 /**
- * The header block pinned above the transcript: the DeepSeek pixel whale
+ * The header block pinned above the transcript: the compact whale-girl pet
  * with the wordmark, tagline, model/effort and cwd (`LogoV2`), plus the
  * welcome line. It scrolls away with the transcript once the conversation
  * fills the viewport (Claude Code shows its ✦ logo in the same slot).
@@ -1558,6 +1610,7 @@ export function LogoHeader({
   cwd,
   whale = true,
   skipIntro = false,
+  petAnimation,
 }: {
   model: string
   effort?: string | undefined
@@ -1566,13 +1619,22 @@ export function LogoHeader({
   /** Jump straight to the settled header (long-session resume: the ~3.4s
    *  opening animation competes with transcript mount batches). */
   skipIntro?: boolean
+  /** 会话状态对应的鲸鱼娘动作。 */
+  petAnimation?: PetAnimationName
 }): React.ReactNode {
   // Minimal mode drops the whole splash (whale art AND wordmark) — only the
   // transcript and a bare status bar remain.
   if (isMinimalMode()) return null
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <LogoV2 model={model} effort={effort} cwd={cwd} whale={whale} skipIntro={skipIntro} />
+      <LogoV2
+        model={model}
+        effort={effort}
+        cwd={cwd}
+        whale={whale}
+        skipIntro={skipIntro}
+        petAnimation={petAnimation}
+      />
     </Box>
   )
 }

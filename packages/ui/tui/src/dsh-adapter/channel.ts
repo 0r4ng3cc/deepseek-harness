@@ -487,7 +487,7 @@ export interface JobRow {
  */
 export interface ChatRow {
   id: number
-  kind: 'user' | 'assistant' | 'tool' | 'notice' | 'reasoning' | 'interrupt' | 'local' | 'local-output' | 'compact' | 'subagent' | 'job'
+  kind: 'user' | 'assistant' | 'tool' | 'notice' | 'reasoning' | 'turn-summary' | 'interrupt' | 'local' | 'local-output' | 'compact' | 'subagent' | 'job'
   /** Extra label for non-human user rows (e.g. `steering`). */
   label?: string
   /** Actual execution location for `!command` rows. */
@@ -503,7 +503,7 @@ export interface ChatRow {
   job?: JobRow
   /** Event wall-clock time (transcript-mode metadata, assistant rows). */
   time?: number
-  /** Present on `reasoning` rows once settled: thinking wall-clock duration. */
+  /** Wall-clock duration for settled reasoning rows and turn summaries. */
   durationMs?: number
   /** Source session event seq — present on every log-derived row (rewind
    *  fork anchor on user rows; window-floor bookkeeping for the rest). */
@@ -905,7 +905,7 @@ export interface Channel {
   readonly smoothStreaming: boolean
   /** Live status-footer visibility and compactness preferences. */
   readonly statusBar: Readonly<StatusBarConfig>
-  /** Whether the header's pixel whale art shows (settings `dsh-tui.whale`). */
+  /** Whether the header's compact whale-girl pet shows (settings `dsh-tui.whale`). */
   readonly whale: boolean
   /** Minimal mode (settings `dsh-tui.minimal`): no header splash, no emoji
    *  glyphs, no decorative colors; code highlight and tool colors stay. */
@@ -2005,7 +2005,7 @@ export function createChannel(
     smoothStreaming?: boolean
     /** Status-footer field visibility and compactness. */
     statusBar?: Partial<StatusBarConfig>
-    /** Show the header's pixel whale art; default on. */
+    /** Show the header's compact whale-girl pet; default on. */
     whale?: boolean
     /** Minimal mode; default off (settings `dsh-tui.minimal`). */
     minimal?: boolean
@@ -8152,7 +8152,8 @@ ${output}
         cancelInFlight = false
         state.cancelPending = false
         state.working = true
-        state.turnStart = Date.now()
+        // 回放历史事件时必须使用事件时间，否则所有旧回合都会被算成 0 秒。
+        state.turnStart = Number.isFinite(event.time) ? event.time : Date.now()
         state.responseChars = 0
         state.spinnerMode = 'requesting'
         // Keep the prior turn visible until this turn produces a measurable
@@ -8190,6 +8191,25 @@ ${output}
         }
         const reason = event.data.reason
         if (reason.kind === 'completed') {
+          // turn/end 是唯一可靠的完成边界；把摘要作为普通 transcript 行
+          // 写入，回放、滚动和导出都能沿用同一套行生命周期。seq 还负责
+          // 防止重连时重复投递同一个 turn/end 造成重复摘要。
+          const completedAt = Number.isFinite(event.time) ? event.time : Date.now()
+          const startedAt = state.turnStart > 0 ? state.turnStart : completedAt
+          const alreadySummarized = state.rows.some(
+            row => row.kind === 'turn-summary' && row.seq === event.seq,
+          )
+          if (!alreadySummarized) {
+            state.rows.push({
+              id: nextRowId,
+              kind: 'turn-summary',
+              text: 'Cogitated',
+              durationMs: Math.max(0, completedAt - startedAt),
+              time: completedAt,
+              seq: event.seq,
+            })
+            nextRowId += 1
+          }
           checkContextWarning()
           break
         }

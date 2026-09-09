@@ -322,7 +322,11 @@ export const SYNC_OUTPUT_SUPPORTED = isSynchronizedOutputSupported()
  * @returns true when DECSTBM scroll optimization is safe on this terminal.
  */
 export function isDecstbmSafe(): boolean {
-  return SYNC_OUTPUT_SUPPORTED && !isJetBrainsIdeTerminal()
+  if (isJetBrainsIdeTerminal() || process.env.TMUX) return false
+  // 未被环境变量识别的真实 TTY 仍然是标准 VT 滚动语义；启用 DECSTBM
+  // 可以把滚动从逐格重写降为边缘行更新。非 TTY 的 headless/管道测试
+  // 继续走确定性的普通 diff，避免假终端收到硬件滚动序列。
+  return SYNC_OUTPUT_SUPPORTED || process.stdout.isTTY === true
 }
 
 /**

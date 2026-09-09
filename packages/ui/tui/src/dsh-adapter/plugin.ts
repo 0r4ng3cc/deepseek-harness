@@ -1226,10 +1226,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         },
         {
           path: ['whale'],
-          label: 'Whale art',
+          label: 'Whale-girl pet',
           descriptions: { zh: '鲸鱼娘' },
-          hint: 'Show the pixel whale in the header splash.',
-          hintDescriptions: { zh: '开屏头部显示像素鲸鱼娘。' },
+          hint: 'Show the compact whale-girl pet in the header splash.',
+          hintDescriptions: { zh: '开屏头部显示紧凑的鲸鱼娘宠物。' },
           kind: 'boolean',
         },
         {

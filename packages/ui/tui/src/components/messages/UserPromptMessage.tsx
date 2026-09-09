@@ -16,9 +16,9 @@ type Props = {
 }
 
 /**
- * User prompt bubble: `❯ text` in bold briefLabelYou gold with no background
- * fill (Kimi Code style: the user turn gets a distinct bold tint so it reads
- * apart from assistant text; only selection mode paints a highlight).
+ * User prompt bubble: `❯ text` in white on a quiet dark surface, so the
+ * user's turn reads as a distinct message without tinting the whole
+ * transcript.
  */
 export function UserPromptMessage({
   text,
@@ -47,13 +47,13 @@ export function UserPromptMessage({
     <Box
       flexDirection="column"
       marginTop={addMargin ? 1 : 0}
-      backgroundColor={isSelected ? 'messageActionsBackground' : undefined}
+      backgroundColor={isSelected ? 'messageActionsBackground' : 'userMessageBackground'}
       paddingRight={1}
       onClick={onClick}
       {...(tooltipActive ? promptTooltip : {})}
     >
       {lines.map((line, index) => (
-        <Text key={index} color="briefLabelYou" bold wrap="truncate-end">
+        <Text key={index} color="text" bold wrap="truncate-end">
           {index === 0 ? `${POINTER} ` : continuationIndent}
           {line}
         </Text>

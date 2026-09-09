@@ -190,13 +190,32 @@ function ScrollBox({
     scrollBy(dy: number) {
       const el = domRef.current;
       if (!el) return;
+      if (!Number.isFinite(dy)) return;
+      const delta = Math.floor(dy);
+      if (delta === 0) return;
+      // 单页内容没有可滚动范围；不要先打破 sticky 再触发一帧无效重绘。
+      // 初次布局的尺寸可能还是 0，因此只在两个尺寸都已确定时短路。
+      const viewportH = el.scrollViewportHeight ?? 0;
+      const scrollHeight = el.scrollHeight ?? 0;
+      if (viewportH > 0 && scrollHeight > 0 && scrollHeight <= viewportH) {
+        const needsRepair =
+          (el.scrollTop ?? 0) !== 0 ||
+          el.pendingScrollDelta !== undefined ||
+          el.stickyScroll === false;
+        el.pendingScrollDelta = undefined;
+        el.scrollAnchor = undefined;
+        el.scrollTop = 0;
+        el.stickyScroll = true;
+        if (needsRepair) scrollMutated(el);
+        return;
+      }
       el.stickyScroll = false;
       // Wheel input cancels any in-flight anchor seek — user override.
       el.scrollAnchor = undefined;
       // Accumulate in pendingScrollDelta; renderer drains it at a capped
       // rate so fast flicks show intermediate frames. Pure accumulator:
       // scroll-up followed by scroll-down naturally cancels.
-      el.pendingScrollDelta = (el.pendingScrollDelta ?? 0) + Math.floor(dy);
+      el.pendingScrollDelta = (el.pendingScrollDelta ?? 0) + delta;
       scrollMutated(el);
     },
     scrollToBottom() {

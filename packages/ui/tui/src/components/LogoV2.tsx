@@ -9,11 +9,9 @@ import { Box, Text, useAnimationFrame, useTerminalSize } from '../ui.js'
 import { getTheme } from '../theme.js'
 import { useTheme } from './design-system/ThemeProvider.js'
 import { parseRGB } from './Spinner/spinnerUtils.js'
-import { renderBigText } from './bigfont.js'
-import { stringWidth } from '../ink/stringWidth.js'
-import { BRAND, FLASH, ICE, PALE, sweep } from './shimmer.js'
-import { STANDARD_FRAME_INDEX, WhaleArt } from './Whale.js'
+import { BRAND, FLASH, ICE, sweep } from './shimmer.js'
 import { OPENING_SEQUENCES, pickOpeningSequence, type OpeningStep, type WhaleIntroId } from './whaleFrames.js'
+import { PetSprite, type PetAnimationName } from './PetSprite.js'
 
 /**
  * Header badge version, read from the installed package.json so the display
@@ -21,35 +19,34 @@ import { OPENING_SEQUENCES, pickOpeningSequence, type OpeningStep, type WhaleInt
  * package metadata is unreadable (unusual layouts).
  */
 const VERSION = (() => {
-  try {
-    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'package.json')
-    return (JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string }).version ?? '0.1.0'
-  } catch {
-    return '0.1.0'
+  const moduleDir = dirname(fileURLToPath(import.meta.url))
+  // tsc 输出保留 components 目录，bundle 输出把组件压到 types 根目录，
+  // 两种形态的 package.json 相对层级不同，按稳定顺序尝试即可。
+  for (const packagePath of [
+    join(moduleDir, '..', '..', '..', 'package.json'),
+    join(moduleDir, '..', '..', 'package.json'),
+  ]) {
+    try {
+      const version = (JSON.parse(readFileSync(packagePath, 'utf8')) as { version?: unknown }).version
+      if (typeof version === 'string' && version !== '') return version
+    } catch {
+      // 继续尝试另一种构建目录；安装包缺失时使用保底版本。
+    }
   }
+  return '0.1.0'
 })()
 
-/** Below this width the whale hides and the header goes text-only. */
-const WHALE_MIN_COLUMNS = 64
+/** 终端过窄时只保留文字，避免宠物挤压模型和路径信息。 */
+const WHALE_MIN_COLUMNS = 48
+/** 15 行宠物帧加上标题和输入区后，常见 24 行终端仍保留宠物。 */
+const WHALE_MIN_ROWS = 20
 
-/**
- * Fixed whale box width: the tail-wag frames reach 4 columns further right
- * than the standard pose, and a pinned width keeps the text column from
- * shifting sideways during the opening animation.
- */
-const FULL_WHALE_WIDTH = 40
-
-/**
- * Center of the whale art's bounding box: sprite columns 3..34 (center
- * 18.5) of the 40-wide box. The welcome tagline is indented so its own
- * center lands on this column — for the 14-column Chinese tagline that is
- * 18.5 − 7 = 11.5 → 12 leading spaces. (Centering on the full 40-column
- * box would need 13, which reads one column right of the whale body.)
- * The pad is recomputed from the rendered tagline's display width so
- * longer locales — e.g. the 21-column English tagline → 8 — stay
- * centered under the art too.
- */
-const WHALE_CENTER = 18.5
+/** 不同开屏节奏使用不同动作，避免每次启动都像同一张静态贴图。 */
+const PET_INTRO_ANIMATION: Record<WhaleIntroId, PetAnimationName> = {
+  classic: 'waving',
+  heart: 'jumping',
+  sleep: 'waiting',
+}
 
 /** `max` → `Max` (effort levels arrive lower-case from the adapter). */
 function capitalize(text: string): string {
@@ -57,21 +54,9 @@ function capitalize(text: string): string {
 }
 
 /**
- * The header splash: one layout, two phases. The **opening** (~1.7–3.5s,
- * once) plays one of three whale intros — the classic blink + spout +
- * tail-wag combo, the heart pass, or the sleep-Z float — rolled on every
- * mount (see `pickOpeningSequence`): randomly at startup, and again
- * randomly on each `/deepseek` easter-egg replay — and runs the shimmer
- * sweeps; the **settled** header is the same tree frozen at t=0 — whale
- * on the standard pose, sweep highlights parked off-screen, clock
- * unsubscribed, zero timers.
- *
- * Layout: the 13-row pixel whale beside a text column of matching height —
- * the `✦ dsh-TUI` wordmark with version, the `DEEPSEEK`/`HARNESS` tagline in
- * the 5-row block font (brand-blue → ice gradient), the model/effort and
- * cwd in plain text (no brand-color highlight), the startup tip, and below
- * the whale the welcome tagline, centered under the art, in ice
- * blue. Narrow terminals drop the whale and keep the text column.
+ * 开屏沿用原有的节奏，但所有视觉元素都压缩到终端友好的信息栏：
+ * 左侧是固定尺寸的鲸鱼娘，右侧是品牌、模型和目录；底部只留一行短提示。
+ * 宠物状态由会话实时驱动，动画不会改变布局高度。
  */
 export function LogoV2({
   model,
@@ -82,6 +67,7 @@ export function LogoV2({
   tip,
   whale = true,
   drift,
+  petAnimation,
 }: {
   model: string
   effort?: string | undefined
@@ -92,23 +78,24 @@ export function LogoV2({
   intro?: WhaleIntroId
   /** Test seam: pin the startup tip line (probes need a deterministic tip). */
   tip?: Tip
-  /** Show the pixel whale art (settings `dsh-tui.whale`); off → text-only header. */
+  /** Show the compact whale-girl pet (settings `dsh-tui.whale`); off → text-only header. */
   whale?: boolean
   /** Test seam: pin/suppress the upstream-drift notice (`null` forces it off;
    * `undefined` — the production default — auto-detects the install). */
   drift?: UpstreamDriftSummary | null
+  /** 会话状态对应的宠物动作；未提供时使用待机动作。 */
+  petAnimation?: PetAnimationName
 }): React.ReactNode {
   // One intro per logo mount: the production path rolls (startup splash
   // and each /deepseek replay roll independently), the `intro` seam pins
   // a specific animation for probes.
-  const [sequence] = React.useState<readonly OpeningStep[]>(() => OPENING_SEQUENCES[intro ?? pickOpeningSequence().id])
+  const [introId] = React.useState<WhaleIntroId>(() => intro ?? pickOpeningSequence().id)
+  const [sequence] = React.useState<readonly OpeningStep[]>(() => OPENING_SEQUENCES[introId])
   const [step, setStep] = React.useState(skipIntro ? sequence.length : 0)
   const settled = step >= sequence.length
 
-  // Opening clock: drives the shimmer sweep and big-text highlight only
-  // while the intro plays; `null` afterwards unsubscribes so the settled
-  // header never repaints. 60ms frames keep the sweep lively.
-  const [ref, time] = useAnimationFrame(settled ? null : 60)
+  // 只在开屏期间刷新品牌 shimmer；稳定后取消订阅，避免空闲会话持续重绘。
+  const [ref, time] = useAnimationFrame(settled ? null : 90)
 
   // Frame chain: dwell per sequence entry, then settle for good.
   React.useEffect(() => {
@@ -123,16 +110,13 @@ export function LogoV2({
 
   const [themeName] = useTheme()
   const theme = getTheme(themeName)
-  const { columns } = useTerminalSize()
+  const { columns, rows } = useTerminalSize()
 
   const wordmarkRGB = parseRGB(theme.claude) ?? BRAND
   const wordmarkShimmerRGB = parseRGB(theme.claudeShimmer) ?? ICE
   const taglineRGB = parseRGB(theme.claudeBlue_FOR_SYSTEM_SPINNER) ?? ICE
 
-  const showWhale = whale && columns >= WHALE_MIN_COLUMNS
-  const frameIndex = settled ? STANDARD_FRAME_INDEX : sequence[step].frame
-  // Frozen clock for the settled header: t=0 parks every sweep highlight
-  // off-screen, leaving the static gradient behind.
+  const showWhale = whale && columns >= WHALE_MIN_COLUMNS && rows >= WHALE_MIN_ROWS
   const t = settled ? 0 : time
 
   const tagline = tr('logo-tagline')
@@ -146,64 +130,51 @@ export function LogoV2({
   const [driftLine] = React.useState<UpstreamDriftSummary | null | undefined>(() =>
     drift === undefined ? upstreamDriftSummary() : drift,
   )
-  // Indent that centers the tagline under the whale art's bounding box.
-  const welcomePad = showWhale
-    ? Math.max(0, Math.round(WHALE_CENTER - stringWidth(tagline) / 2))
-    : 2
-
-  const bigDeepSeek = renderBigText('DEEPSEEK', t, wordmarkRGB, taglineRGB, FLASH, 60)
-  const bigHarness = renderBigText('HARNESS', t, taglineRGB, PALE, FLASH, 60)
+  const activePetAnimation = settled ? petAnimation ?? 'idle' : PET_INTRO_ANIMATION[introId]
+  const tipText = getLang() === 'zh' ? randomTip.zh : randomTip.en
 
   return (
     <Box ref={ref} flexDirection="column" marginTop={1}>
-      <Box flexDirection="row" gap={2} width="100%" alignItems="center">
-        {showWhale && <WhaleArt frameIndex={frameIndex} width={FULL_WHALE_WIDTH} />}
-        <Box flexDirection="column" flexShrink={1}>
+      <Box flexDirection="row" width="100%" alignItems="flex-start">
+        {showWhale && (
+          <PetSprite
+            animation={activePetAnimation}
+          />
+        )}
+        <Box flexDirection="column" flexShrink={1} marginLeft={showWhale ? 2 : 0}>
           <Text wrap="truncate-end">
-            {sweep('✦ dsh-TUI', t, wordmarkRGB, wordmarkShimmerRGB, 60)}
-            <Text dimColor>{'  v' + VERSION}</Text>
+            <Text bold color="claude">{sweep('✦ dsh', t, wordmarkRGB, wordmarkShimmerRGB, 60)}</Text>
+            <Text dimColor>{'-TUI · v' + VERSION}</Text>
           </Text>
-          {bigDeepSeek.map((row, index) => (
-            <Text key={`ds-${index}`} wrap="truncate-end">
-              {row}
-            </Text>
-          ))}
-          {bigHarness.map((row, index) => (
-            <Text key={`h-${index}`} wrap="truncate-end">
-              {row}
-            </Text>
-          ))}
           <Text wrap="truncate-end">
-            {model}
+            <Text color="claudeBlue_FOR_SYSTEM_SPINNER">{model}</Text>
             {effort !== undefined && <Text dimColor>{' · ' + capitalize(effort) + ' effort'}</Text>}
           </Text>
           <Text dimColor wrap="truncate-end">
-            {cwd}
+            {'⌂ ' + cwd}
           </Text>
-          <Text wrap="truncate-end">
-            <Text dimColor>{tr('logo-tip-prefix')}</Text>
-            {getLang() === 'zh' ? randomTip.zh : randomTip.en}
-            <Text dimColor>{' · /tips ' + tr('logo-tip-more')}</Text>
-          </Text>
-          {driftLine != null && (
-            <Text color="warning" wrap="wrap">
-              ⚠{' '}
-              {tOr(
-                `logo-drift-${driftLine.kind}`,
-                `The dsh engine (${driftLine.versions.join(' / ')}) does not match the validated ${UPSTREAM_VALIDATED_VERSION}; reinstall via npm i -g @deepseek-ai/dsh@${UPSTREAM_VALIDATED_VERSION}.`,
-                {
-                  installed: driftLine.versions.join(' / '),
-                  validated: UPSTREAM_VALIDATED_VERSION,
-                  primary: UPSTREAM_VALIDATED_VERSION,
-                },
-              )}
-            </Text>
-          )}
         </Box>
       </Box>
-      <Box marginTop={1} paddingLeft={welcomePad}>
-        <Text>{sweep(tagline, t, taglineRGB, FLASH, 60)}</Text>
+      <Box marginTop={1}>
+        <Text wrap="truncate-end">
+          <Text color="claudeBlue_FOR_SYSTEM_SPINNER">└─ {sweep(tagline, t, taglineRGB, FLASH, 60)}</Text>
+          <Text dimColor>{' · ' + tr('logo-tip-prefix') + tipText + ' · /tips ' + tr('logo-tip-more')}</Text>
+        </Text>
       </Box>
+      {driftLine != null && (
+        <Text color="warning" wrap="wrap">
+          ⚠{' '}
+          {tOr(
+            `logo-drift-${driftLine.kind}`,
+            `The dsh engine (${driftLine.versions.join(' / ')}) does not match the validated ${UPSTREAM_VALIDATED_VERSION}; reinstall via npm i -g @deepseek-ai/dsh@${UPSTREAM_VALIDATED_VERSION}.`,
+            {
+              installed: driftLine.versions.join(' / '),
+              validated: UPSTREAM_VALIDATED_VERSION,
+              primary: UPSTREAM_VALIDATED_VERSION,
+            },
+          )}
+        </Text>
+      )}
     </Box>
   )
 }

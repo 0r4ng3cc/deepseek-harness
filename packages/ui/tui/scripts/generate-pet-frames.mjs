@@ -7,8 +7,14 @@ const here = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(here, '..')
 const assetsDir = join(packageRoot, 'assets', 'pet')
 const outputFile = join(packageRoot, 'src', 'components', 'petFrames.ts')
+// 只保留头部、鲸鳍耳和肩部，裁掉下半身与两侧鲸尾拖影。
+// 32x30 经过半块字符渲染后约为 32x15 个终端单元，接近 2.1 头身的
+// Q 版重心：脸部清楚，身体仍保持顶栏可接受的高度。内容只缩到 31 列，
+// 最右侧固定留一列透明护栏，避免侧身帧的边缘像素变成拖影。
+const CROP = { x: 45, y: 0, width: 105, height: 100 }
 const WIDTH = 32
-const HEIGHT = 35
+const CONTENT_WIDTH = WIDTH - 1
+const HEIGHT = 30
 const BYTES_PER_FRAME = WIDTH * HEIGHT * 4
 
 function run(command, args, options = {}) {
@@ -50,7 +56,7 @@ function readAnimation(file) {
   const raw = run('ffmpeg', [
     '-v', 'error',
     '-i', file,
-    '-vf', `scale=${WIDTH}:${HEIGHT}:flags=neighbor`,
+    '-vf', `crop=${CROP.width}:${CROP.height}:${CROP.x}:${CROP.y},scale=${CONTENT_WIDTH}:${HEIGHT}:flags=neighbor,pad=${WIDTH}:${HEIGHT}:0:0:color=black@0`,
     '-fps_mode', 'passthrough',
     '-f', 'rawvideo',
     '-pix_fmt', 'rgba',

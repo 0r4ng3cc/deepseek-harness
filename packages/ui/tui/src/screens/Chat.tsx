@@ -109,7 +109,7 @@ import { readTrajectorySeen, writeTrajectorySeen } from '../trajectoryPrefs.js'
 import type { SessionEvent } from '../dsh-adapter/types.js'
 import { LoadingState } from '../components/design-system/LoadingState.js'
 import { Pane } from '../components/design-system/Pane.js'
-import { TerminalPet } from '../components/TerminalPet.js'
+import { useTerminalPetAnimation } from '../components/TerminalPet.js'
 import { loadHistory, type HistoryEntry } from '../history.js'
 import { formatLoadedContextReport } from '../utils/loaded-context.js'
 import {
@@ -663,7 +663,7 @@ export function Chat({
   const [subagentDetailId, setSubagentDetailId] = React.useState<string | null>(null)
   /**
    * Hidden `/deepseek` easter egg: each invocation bumps this key so the
-   * logo header remounts and replays the whale spout + text shimmer.
+   * logo header remounts and replays the compact pet intro.
    */
   const [logoNonce, setLogoNonce] = React.useState(0)
   React.useEffect(() => () => btwAbortRef.current?.abort(), [])
@@ -898,6 +898,7 @@ export function Chat({
   uploadTokensRef.current = lastUploadTokens
   loadingStartTimeRef.current = channel.turnStart
   const thinkingStatus = useThinkingStatus(channel.spinnerMode === 'thinking')
+  const petAnimation = useTerminalPetAnimation(channel)
 
   // Terminal tab title (ported from CC's AnimatedTerminalTitle): the session
   // title when set, else "dsh-TUI"; a `⠂/⠐` spinner prefix while a turn is
@@ -1366,7 +1367,7 @@ export function Chat({
           if (!ok) return
           // A new session is a fresh terminal page, not merely an emptied
           // transcript. Reset view-local state, return the ScrollBox to the
-          // top, then clear native scrollback and repaint the whale homepage.
+          // top, then clear native scrollback and repaint the compact homepage.
           setExpanded(false)
           setExpandedRows(new Set())
           setStreamViewToggledRows(new Set())
@@ -2095,8 +2096,8 @@ export function Chat({
         return true
       }
       case 'deepseek': {
-        // Hidden easter egg: replay the logo header's whale spout + text
-        // shimmer. The command is intentionally not in the suggestion/help
+        // Hidden easter egg: replay the logo header's compact pet intro. The
+        // command is intentionally not in the suggestion/help
         // catalogs; PromptInput recognizes it through HIDDEN_COMMAND_NAMES.
         setHelpOpen(false)
         suppressLogoIntroRef.current = false
@@ -3418,6 +3419,7 @@ export function Chat({
           effort={channel.reasoningEffort}
           cwd={channel.displayCwd}
           whale={channel.whale}
+          petAnimation={petAnimation}
           // Resuming a long session skips the ~3.4s opening animation: it
           // keeps firing low-frequency React commits that compete with the
           // transcript mount batches (and the first wheel events) for the
@@ -4012,7 +4014,6 @@ export function Chat({
           才能盖住包括状态栏在内的全部后绘兄弟。内容由 PromptInput
           经 module store 发布（见 PromptEditor.tsx）。 */}
       <PromptEditorLayer />
-      <TerminalPet channel={channel} />
     </Box>
   )
 }

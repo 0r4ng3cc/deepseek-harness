@@ -242,7 +242,7 @@ const darkTheme: Theme = {
   chromeYellow: rgb('#D8B270'),
   clawd_body: rgb('#D98A63'), // Warm mascot orange
   clawd_background: rgb('#000000'),
-  userMessageBackground: '', // user turn: no fill, gold bold text only (Kimi style)
+  userMessageBackground: rgb('#242B3A'), // 主人消息：深色蓝灰表面，和回复内容区分
   userMessageBackgroundHover: rgb('#3B5BDB'), // hover/expand: blue block with gold text
   messageActionsBackground: rgb('#2E333D'),
   selectionBg: rgb('#3B4A66'), // Mist-blue tint on dark
@@ -347,7 +347,7 @@ const lightTheme: Theme = {
   chromeYellow: rgb('#C99A3F'),
   clawd_body: rgb('#D98A63'), // Warm mascot orange
   clawd_background: rgb('#F6F3ED'),
-  userMessageBackground: '', // user turn: no fill in light mode, gold text only
+  userMessageBackground: rgb('#E7ECF5'), // 主人消息：浅色主题下保持柔和对比
   userMessageBackgroundHover: rgb('#DCE4FB'), // subtle blue tint on hover/expand
   messageActionsBackground: rgb('#E4D9E5'),
   selectionBg: rgb('#D5DEF2'), // Mist-blue tint on warm white
@@ -455,7 +455,7 @@ const darkAnsiTheme: Theme = {
   chromeYellow: 'ansi:yellowBright',
   clawd_body: 'ansi:redBright',
   clawd_background: 'ansi:black',
-  userMessageBackground: '',
+  userMessageBackground: 'ansi:blackBright',
   userMessageBackgroundHover: 'ansi:blue',
   messageActionsBackground: 'ansi:blackBright',
   selectionBg: 'ansi:blue',

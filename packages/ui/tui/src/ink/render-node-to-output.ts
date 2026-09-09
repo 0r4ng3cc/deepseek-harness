@@ -33,6 +33,19 @@ function isXtermJsHost(): boolean {
 // shift layout → narrow damage bounds → O(changed cells) diff instead of
 // O(rows×cols).
 let layoutShifted = false
+// Fast-path 滚动会把边缘子树按新的屏幕坐标重画；这些坐标变化本身已由
+// ScrollBox 的 shift/clear 处理，不应再把整帧标成 layout shift。用深度
+// 计数覆盖递归子树，真实的尺寸变化和节点移除仍照常保留全量保护。
+let suppressScrollLayoutShiftDepth = 0
+
+function renderWithoutScrollLayoutShift(render: () => void): void {
+  suppressScrollLayoutShiftDepth += 1
+  try {
+    render()
+  } finally {
+    suppressScrollLayoutShiftDepth -= 1
+  }
+}
 
 /** Reset the per-frame layout-shift flag. */
 export function resetLayoutShifted(): void {
@@ -687,7 +700,7 @@ function renderNodeToOutput(
         cached.y !== y ||
         cached.width !== width ||
         cached.height !== height)
-    if (positionChanged) {
+    if (positionChanged && suppressScrollLayoutShiftDepth === 0) {
       layoutShifted = true
     }
     if (cached && (node.dirty || positionChanged)) {
@@ -1282,8 +1295,12 @@ function renderNodeToOutput(
           // through during scroll-up + streaming") and chose the full path.
           const safeForFastPath =
             !hint ||
-            heightDelta === 0 ||
-            (hint.delta > 0 && heightDelta === hint.delta)
+            // 虚拟窗口卸载了子节点时，旧屏幕中的稳定区域可能包含已移除内容；
+            // 不能再用 blit+shift，必须走完整视口重绘来清掉底部残留。
+            (!hasRemovedChild && (
+              heightDelta === 0 ||
+              (hint.delta > 0 && heightDelta === hint.delta)
+            ))
           // scrollHint is set above when hint is captured. If safeForFastPath
           // is false the full path renders a next.screen that doesn't match
           // the DECSTBM shift — emitting DECSTBM leaves stale rows (seen as
@@ -1315,19 +1332,21 @@ function renderNodeToOutput(
             const dirtyChildren = content.dirty
               ? new Set(content.childNodes.filter(c => (c as DOMElement).dirty))
               : null
-            renderScrolledChildren(
-              content,
-              output,
-              contentX,
-              contentY,
-              hasRemovedChild,
-              undefined,
-              // Cull to edge in child-local coords (inverse of contentY offset).
-              edgeTop - contentY,
-              edgeBottom + 1 - contentY,
-              boxBackgroundColor,
-              true,
-            )
+            renderWithoutScrollLayoutShift(() => {
+              renderScrolledChildren(
+                content,
+                output,
+                contentX,
+                contentY,
+                hasRemovedChild,
+                undefined,
+                // Cull to edge in child-local coords (inverse of contentY offset).
+                edgeTop - contentY,
+                edgeBottom + 1 - contentY,
+                boxBackgroundColor,
+                true,
+              )
+            })
             output.unclip()
 
             // Second pass: re-render children in stable rows whose screen
@@ -1464,18 +1483,20 @@ function renderNodeToOutput(
                 y1: shiftedTop,
                 y2: shiftedBottom,
               })
-              renderScrolledChildren(
-                content,
-                output,
-                contentX,
-                contentY,
-                hasRemovedChild,
-                undefined,
-                shiftedTop - contentY,
-                shiftedBottom - contentY,
-                boxBackgroundColor,
-                true,
-              )
+              renderWithoutScrollLayoutShift(() => {
+                renderScrolledChildren(
+                  content,
+                  output,
+                  contentX,
+                  contentY,
+                  hasRemovedChild,
+                  undefined,
+                  shiftedTop - contentY,
+                  shiftedBottom - contentY,
+                  boxBackgroundColor,
+                  true,
+                )
+              })
               output.unclip()
             }
           } else {
