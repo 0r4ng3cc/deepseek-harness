@@ -4,12 +4,12 @@
  * and one assistant message (Dislike). The overlay view renders from the
  * store; the message controls raise the toast after a Like through
  * {@link FeedbackDialogController.acknowledge}.
- * @module @deepseek-ai/dsh-client-ui-message-feedback/client/dialog
+ * @module @x1a0f3n9/dsh-client-ui-message-feedback/client/dialog
  */
 
-import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { MessageId } from '@deepseek-ai/dsh-api-remotes/client'
-import type { FeedbackCategory, FeedbackRecord } from '@deepseek-ai/dsh-command-feedback/types'
+import { createSnapshotStore, type SnapshotStore } from '@x1a0f3n9/dsh-client-store'
+import type { MessageId } from '@x1a0f3n9/dsh-api-remotes/client'
+import type { FeedbackCategory, FeedbackRecord } from '@x1a0f3n9/dsh-command-feedback/types'
 import type { MessageFeedbackActionResult } from './controller.ts'
 
 /** What one open dialog submits to. */

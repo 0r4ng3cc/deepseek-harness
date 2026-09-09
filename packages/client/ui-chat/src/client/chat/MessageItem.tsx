@@ -1,8 +1,9 @@
 import { Fragment, memo, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { fileExtension, FileTypeIcon, fileSizeText, JsonBlock, projectUserText, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsRenderSlots } from '@x1a0f3n9/dsh-client-ui-slots'
+import type { PendingSubmission } from '@x1a0f3n9/dsh-api-session-controller/client'
+import type { MessageImageSource } from '@x1a0f3n9/dsh-client-ui-conversation/client'
+import { fileExtension, FileTypeIcon, fileSizeText, JsonBlock, projectUserText, StateDot } from '@x1a0f3n9/dsh-client-ui-primitives'
 import type { ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts'
 import type { ModelRetryNode, TurnErrorNode, UserMessageNode } from '../contract/snapshot.ts'
 import { CompactionItem } from './CompactionItem.tsx'
@@ -311,10 +312,20 @@ export function PendingSubmissionBubble({ submission, renderMessageImages, t }: 
 }
 
 /** User and admitted-steering keyed Chat renderer. */
+type UserOrSteeringViewProps = {
+  node: ChatNodeViewProps<'user'>['node'] | ChatNodeViewProps<'steering'>['node']
+  renderMessageImages: ChatNodeViewProps<'user'>['renderMessageImages']
+  t: ChatNodeViewProps<'user'>['t']
+} & PropsRenderSlots<'conversation.chat.user-actions'>
+
 export const UserMessageNodeView = memo(function UserMessageNodeView({
-  node, renderMessageImages, t,
-}: ChatNodeViewProps<'user' | 'steering'>) {
+  node, renderMessageImages, renderSlot, t,
+}: UserOrSteeringViewProps) {
   const data = node.data
+  const userActions = renderSlot('conversation.chat.user-actions', {
+    seq: data.seq,
+    content: data.content,
+  })
   return (
     <UserStyleBubble
       content={data.content}
@@ -328,6 +339,7 @@ export const UserMessageNodeView = memo(function UserMessageNodeView({
           time={data.time}
           clock="start"
           className={css.actions}
+          extraActions={userActions}
           t={t}
         />
       )}

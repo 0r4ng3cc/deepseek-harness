@@ -3,7 +3,7 @@ description: "面向 Web GUI 的工作区文件服务：通过组合文件系统
 kind: "package-reference"
 ---
 
-# @deepseek-ai/dsh-api-workspace-files
+# @x1a0f3n9/dsh-api-workspace-files
 
 [English](README.md) | 中文
 

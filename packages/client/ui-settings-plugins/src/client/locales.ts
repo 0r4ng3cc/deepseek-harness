@@ -11,6 +11,8 @@ export type PluginsSettingsLocaleKey =
   | 'webSearchTitle' | 'webSearchDescription'
   | 'webSearchApiKey' | 'webSearchApiKeyHint' | 'webSearchApiKeySet' | 'webSearchApiKeyUnset'
   | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
+  | 'webProviderTitle' | 'webProviderDescription' | 'webProviderLabel' | 'webProviderHint'
+  | 'webProviderDefault' | 'webProviderPerplexity' | 'webProviderExa' | 'webProviderDeepSeek'
   | 'subagentModelSelectionTitle' | 'subagentModelSelectionDescription'
   | 'subagentModelSelectionToggle' | 'subagentModelSelectionChoose' | 'subagentModelSelectionAllowed'
   | 'subagentModelSelectionLoading' | 'subagentModelSelectionLoadFailed' | 'subagentModelSelectionRetry'
@@ -57,6 +59,14 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: 'Leave blank to use the provider default.',
   webSearchMaxUses: 'Max searches per request',
   webSearchMaxUsesHint: 'How many times one request may search before it must answer.',
+  webProviderTitle: 'Search provider',
+  webProviderDescription: 'Choose the backend used for web search in this deployment.',
+  webProviderLabel: 'Provider',
+  webProviderHint: 'Default tries Perplexity first and Exa second; choose DeepSeek only when you want it.',
+  webProviderDefault: 'Default (Perplexity → Exa)',
+  webProviderPerplexity: 'Perplexity',
+  webProviderExa: 'Exa',
+  webProviderDeepSeek: 'DeepSeek official',
   subagentModelSelectionTitle: 'Subagent',
   subagentModelSelectionDescription: 'Control which models agents may choose for subagents.',
   subagentModelSelectionToggle: 'Allow agents to choose models for subagents',
@@ -113,6 +123,14 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: '留空则使用提供方默认地址。',
   webSearchMaxUses: '单次请求最多搜索次数',
   webSearchMaxUsesHint: '一次请求在必须作答前最多可以搜索多少次。',
+  webProviderTitle: '搜索提供方',
+  webProviderDescription: '选择本部署执行网页搜索时使用的后端。',
+  webProviderLabel: '提供方',
+  webProviderHint: '默认依次尝试 Perplexity 和 Exa；只有明确需要时再选择 DeepSeek。',
+  webProviderDefault: '默认（Perplexity → Exa）',
+  webProviderPerplexity: 'Perplexity',
+  webProviderExa: 'Exa',
+  webProviderDeepSeek: 'DeepSeek 官方',
   subagentModelSelectionTitle: 'Subagent',
   subagentModelSelectionDescription: '控制 Agent 为 Subagent 选择模型的权限。',
   subagentModelSelectionToggle: '允许 Agent 为 Subagent 选择模型',

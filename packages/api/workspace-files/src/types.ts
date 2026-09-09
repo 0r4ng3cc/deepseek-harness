@@ -11,12 +11,12 @@
  * - `list` speaks workspace paths — the same syntax its `path` argument accepts —
  *   because its consumer is a tree rooted at the workspace root.
  *
- * @module @deepseek-ai/dsh-api-workspace-files/types
+ * @module @x1a0f3n9/dsh-api-workspace-files/types
  */
 
 // Import the protocol module so the declaration at the end of this file
 // augments its error map rather than defining an unrelated ambient module.
-import type {} from '@deepseek-ai/dsh-typert-protocol'
+import type {} from '@x1a0f3n9/dsh-typert-protocol'
 
 /** Identity and freshness of one workspace file, without its content. */
 export interface WorkspaceFileStat {
@@ -142,7 +142,7 @@ export type WorkspaceFileWatchFrame =
   | { readonly kind: 'ready' }
   | { readonly kind: 'change'; readonly change: WorkspaceFileChange }
 
-declare module '@deepseek-ai/dsh-typert-protocol' {
+declare module '@x1a0f3n9/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     /** No entry exists at that path inside the workspace. */
     'workspace-file/not-found': { readonly path: string }

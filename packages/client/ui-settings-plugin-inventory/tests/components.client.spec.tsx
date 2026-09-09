@@ -20,10 +20,12 @@ const t = ((key: PluginInventoryLocaleKey, params?: Record<string, string>): str
 function props(
   list: PluginInventorySettingsTabInjected['list'],
   presetName: PluginInventorySettingsTabInjected['presetName'] = preset => preset.name ?? preset.id,
+  setEnabled: PluginInventorySettingsTabInjected['setEnabled'] = async request => ({ enabled: request.enabled }),
 ): PluginInventorySettingsTabProps {
   return {
     t,
     list,
+    setEnabled,
     presetName,
   } as PluginInventorySettingsTabProps
 }
@@ -35,8 +37,8 @@ const SNAPSHOT = {
     { entryId: 'timer', moduleName: 'cordis:timer', enabled: true, fiberPhase: 'active' },
     { entryId: '8a1b2c3d', moduleName: '@deepseek-ai/cordis-plugin-hmr', enabled: true, fiberPhase: 'active' },
     { entryId: 'unobserved', moduleName: '@fixture/unobserved-name', enabled: true, fiberPhase: null },
-    { entryId: 'bash-host', moduleName: '@deepseek-ai/dsh-tool-bash', enabled: false, fiberPhase: null },
-    { entryId: 'fs-host', moduleName: '@deepseek-ai/dsh-tool-fs', enabled: false, fiberPhase: null },
+    { entryId: 'bash-host', moduleName: '@x1a0f3n9/dsh-tool-bash', enabled: false, fiberPhase: null },
+    { entryId: 'fs-host', moduleName: '@x1a0f3n9/dsh-tool-fs', enabled: false, fiberPhase: null },
     { entryId: 'dormant', moduleName: '@fixture/dormant', enabled: false, fiberPhase: null },
   ],
   agentPresets: [
@@ -46,8 +48,8 @@ const SNAPSHOT = {
       name: '标准模式',
       isDefault: true,
       rows: [
-        { entryId: 'bash', moduleName: '@deepseek-ai/dsh-tool-bash', enabled: true, fiberPhase: 'active' },
-        { entryId: 'fs', moduleName: '@deepseek-ai/dsh-tool-fs', enabled: true, fiberPhase: null },
+        { entryId: 'bash', moduleName: '@x1a0f3n9/dsh-tool-bash', enabled: true, fiberPhase: 'active' },
+        { entryId: 'fs', moduleName: '@x1a0f3n9/dsh-tool-fs', enabled: true, fiberPhase: null },
         {
           entryId: 'pwsh',
           moduleName: '@fixture/pwsh',
@@ -65,9 +67,9 @@ const SNAPSHOT = {
       trust: 'system',
       isDefault: false,
       rows: [
-        { entryId: 'bash', moduleName: '@deepseek-ai/dsh-tool-bash', enabled: true, fiberPhase: null },
-        { entryId: 'bash-fork', moduleName: '@deepseek-ai/dsh-tool-bash', enabled: true, fiberPhase: null },
-        { entryId: 'fs', moduleName: '@deepseek-ai/dsh-tool-fs', enabled: 'conditional', fiberPhase: null },
+        { entryId: 'bash', moduleName: '@x1a0f3n9/dsh-tool-bash', enabled: true, fiberPhase: null },
+        { entryId: 'bash-fork', moduleName: '@x1a0f3n9/dsh-tool-bash', enabled: true, fiberPhase: null },
+        { entryId: 'fs', moduleName: '@x1a0f3n9/dsh-tool-fs', enabled: 'conditional', fiberPhase: null },
       ],
     },
     { id: 'shattered', trust: 'user', name: '坏预设', isDefault: false, broken: 'the composition file is missing', rows: [] },
@@ -84,6 +86,29 @@ const globalToggle = (): HTMLElement =>
   screen.getByRole('button', { name: (name: string) => name.startsWith(en.globalTitle) })
 
 describe('PluginInventorySettingsTab', () => {
+  it('shows prebundled optional plugins and persists a toggle', async () => {
+    const setEnabled = vi.fn().mockResolvedValue({ enabled: false })
+    render(<PluginInventorySettingsTab {...props(async () => ({
+      entries: [],
+      catalog: [{
+        id: 'schedule',
+        entryId: 'schedule-entry',
+        packageName: '@x1a0f3n9/dsh-client-ui-schedule',
+        title: 'Schedule',
+        description: 'Schedule management UI and runtime',
+        required: false,
+        defaultEnabled: true,
+        installed: true,
+        enabled: true,
+      }],
+    } as unknown as Snapshot), undefined, setEnabled)} />)
+    await screen.findByRole('searchbox', { name: en.search })
+    const toggle = screen.getByRole('switch', { name: en.disablePlugin.replace('{name}', 'Schedule') })
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(toggle)
+    await waitFor(() => expect(setEnabled).toHaveBeenCalledWith({ entryId: 'schedule-entry', enabled: false }))
+  })
+
   it('shows the default preset first and keeps the global plane collapsed', async () => {
     const view = await renderReady()
 
@@ -115,16 +140,16 @@ describe('PluginInventorySettingsTab', () => {
     expect(screen.getByText(`1 ${en.failedCountLabel}`)).toBeTruthy()
 
     // A preset row expands into its provenance facts.
-    fireEvent.click(screen.getByRole('button', { name: 'pwsh, pwsh, Conditional' }))
+    fireEvent.click(screen.getByRole('button', { name: 'pwsh, Conditional' }))
     expect(screen.getByText(en.fromPreset)).toBeTruthy()
     expect(screen.getByText('标准模式')).toBeTruthy()
     expect(screen.getByText(en.condition)).toBeTruthy()
     expect(screen.getByText('process.platform === \'win32\'')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'pwsh, pwsh, Conditional' }))
+    fireEvent.click(screen.getByRole('button', { name: 'pwsh, Conditional' }))
     expect(screen.queryByText(en.condition)).toBeNull()
 
     // A failed preset row names its runtime state instead of a condition.
-    fireEvent.click(screen.getByRole('button', { name: 'crashy, crashy, Failed' }))
+    fireEvent.click(screen.getByRole('button', { name: 'crashy, Failed' }))
     expect(screen.getByText(en.runtime)).toBeTruthy()
     expect(screen.getByText('Failed to start')).toBeTruthy()
 
@@ -132,39 +157,6 @@ describe('PluginInventorySettingsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'anonymous, Enabled' }))
     expect(view.container.querySelector('[data-loader-entry]')).toBeNull()
     expect(screen.getByText(en.moduleLabel).nextElementSibling?.textContent).toBe('@fixture/anonymous')
-  })
-
-  it('distinguishes collapsed same-module rows by stable entry id', async () => {
-    const longId = 'include:agent-presets:tool-subagent-secondary-with-a-complete-stable-identity'
-    const subtitle = 'agent-presets:tool-subagent-secondary-with-a-complete-stable-identity'
-    await renderReady({
-      entries: [],
-      agentPresets: [{
-        id: 'same-module',
-        trust: 'user',
-        isDefault: true,
-        rows: [
-          { entryId: 'tool-subagent-primary', moduleName: '@deepseek-ai/dsh-tool-subagent', enabled: true, fiberPhase: null },
-          { entryId: longId, moduleName: '@deepseek-ai/dsh-tool-subagent', enabled: false, fiberPhase: null },
-        ],
-      }],
-    })
-
-    expect(screen.getByRole('button', { name: 'tool-subagent, tool-subagent-primary, Enabled' })
-      .getAttribute('aria-expanded')).toBe('false')
-    const secondary = screen.getByRole('button', { name: `tool-subagent, ${longId}, Disabled` })
-    expect(secondary.getAttribute('aria-expanded')).toBe('false')
-    expect(secondary.children).toHaveLength(2)
-    expect(secondary.children[0]?.textContent).toContain('tool-subagent')
-    expect(secondary.children[0]?.textContent).toContain('Disabled')
-    expect(secondary.children[1]?.textContent).toBe(subtitle)
-    expect(screen.getByTitle(longId).textContent).toBe(subtitle)
-
-    fireEvent.change(screen.getByRole('searchbox', { name: en.search }), { target: { value: 'include:agent-presets:tool-subagent-secondary' } })
-    expect(screen.queryByRole('button', { name: 'tool-subagent, tool-subagent-primary, Enabled' })).toBeNull()
-    const filteredSecondary = screen.getByRole('button', { name: `tool-subagent, ${longId}, Disabled` })
-    fireEvent.click(filteredSecondary)
-    expect(filteredSecondary.getAttribute('aria-expanded')).toBe('true')
   })
 
   it('expands the global plane with failures first and preset-provided rows inline', async () => {
@@ -181,21 +173,21 @@ describe('PluginInventorySettingsTab', () => {
     // Rows the presets took over sit inline, marked instead of plainly disabled.
     expect(screen.getAllByText(en.presetEnabledTag)).toHaveLength(2)
 
-    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, bash-host, Enabled via presets' }))
+    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, Enabled via presets' }))
     expect(screen.getByText(en.presetProvidedDetail)).toBeTruthy()
     expect(screen.getByText(en.enabledIn)).toBeTruthy()
     expect(screen.getByText('标准模式 · ptc')).toBeTruthy()
 
     // The failed global card reports its runtime state.
-    fireEvent.click(screen.getByRole('button', { name: 'telemetry, telemetry, Failed' }))
+    fireEvent.click(screen.getByRole('button', { name: 'telemetry, Failed' }))
     expect(screen.getByText('Failed to start')).toBeTruthy()
 
     // An enabled entry with no live fiber says so in its details, dot-free.
-    fireEvent.click(screen.getByRole('button', { name: 'unobserved-name, unobserved, Enabled' }))
+    fireEvent.click(screen.getByRole('button', { name: 'unobserved-name, Enabled' }))
     expect(screen.getByText('Not running')).toBeTruthy()
 
     // A disabled row outside every preset stays plainly disabled.
-    fireEvent.click(screen.getByRole('button', { name: 'dormant, dormant, Disabled' }))
+    fireEvent.click(screen.getByRole('button', { name: 'dormant, Disabled' }))
     expect(screen.queryByText(en.presetProvidedDetail)).toBeNull()
 
     fireEvent.click(globalToggle())
@@ -212,7 +204,7 @@ describe('PluginInventorySettingsTab', () => {
 
     pickPreset('ptc')
     expect(view.container.querySelector('[data-preset-plugin-count]')?.getAttribute('data-preset-plugin-count')).toBe('3')
-    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, bash, Enabled' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'tool-bash, Enabled' })[0]!)
     // An unnamed preset labels provenance by its id.
     expect(screen.getByText(en.fromPreset).nextElementSibling?.textContent).toBe('ptc')
 
@@ -260,11 +252,11 @@ describe('PluginInventorySettingsTab', () => {
     ])
     fireEvent.keyDown(document, { key: 'Escape' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'pwsh, pwsh, Conditional' }))
+    fireEvent.click(screen.getByRole('button', { name: 'pwsh, Conditional' }))
     expect(screen.getByText(en.fromPreset).nextElementSibling?.textContent).toBe('Localized standard')
 
     fireEvent.click(globalToggle())
-    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, bash-host, Enabled via presets' }))
+    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, Enabled via presets' }))
     expect(screen.getByText('Localized standard · Localized ptc')).toBeTruthy()
   })
 
@@ -274,7 +266,7 @@ describe('PluginInventorySettingsTab', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'ptc' }))
 
     fireEvent.click(globalToggle())
-    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, bash-host, Enabled via presets' }))
+    fireEvent.click(screen.getByRole('button', { name: 'tool-bash, Enabled via presets' }))
     fireEvent.click(screen.getByRole('button', { name: en.viewInPreset }))
     expect(screen.getByRole('button', { name: en.switcherLabel }).textContent)
       .toBe('标准模式 (default)')
@@ -323,10 +315,10 @@ describe('PluginInventorySettingsTab', () => {
     expect(globalToggle().getAttribute('aria-expanded')).toBe('true')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
 
-    fireEvent.click(screen.getByRole('button', { name: 'hmr, hmr, Enabled' }))
+    fireEvent.click(screen.getByRole('button', { name: 'hmr, Enabled' }))
     expect(screen.getByText(en.runtime)).toBeTruthy()
     expect(view.container.querySelector('[data-loader-entry]')?.textContent).toBe('hmr')
-    fireEvent.click(screen.getByRole('button', { name: 'off, off, Disabled' }))
+    fireEvent.click(screen.getByRole('button', { name: 'off, Disabled' }))
     expect(screen.getAllByText(en.moduleLabel).length).toBeGreaterThan(0)
     expect(screen.queryByText(en.runtime)).toBeNull()
   })

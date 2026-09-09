@@ -3,14 +3,14 @@
 # separate sequences with their own workflows and version lines.
 #
 # Pack and dependency-layout verification run without credentials on every pull
-# request and master push. Publication is a manual workflow_dispatch of
-# release-publish.yml from a dsh-v* tag.
+# request and dev-x1a0f3n9 push. This branch publishes the dsh family automatically from
+# a successful dev push; release-publish.yml remains the reviewed tag fallback.
 name: Release (dsh)
 
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [dev-x1a0f3n9]
   workflow_dispatch:
 
 permissions:
@@ -143,6 +143,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Verify release version
+        env:
+          RELEASE_PUBLISH: ${{ github.ref == 'refs/heads/dev-x1a0f3n9' && 'true' || 'false' }}
+          RELEASE_PUBLISH_ALLOW_REF: ${{ github.ref == 'refs/heads/dev-x1a0f3n9' && 'refs/heads/dev-x1a0f3n9' || '' }}
         run: pnpm run release:verify --family dsh
 
       - name: Build
@@ -178,3 +181,44 @@ jobs:
           path: dist/npm/*
           if-no-files-found: error
           retention-days: 7
+
+
+  publish:
+    name: Publish to npm (dev-x1a0f3n9)
+    if: github.ref == 'refs/heads/dev-x1a0f3n9'
+    needs: [dependencies, pack]
+    runs-on: ubuntu-24.04
+    # The environment keeps the npm token behind the repository's publication
+    # policy. If it has required reviewers, development publication waits for them.
+    environment: npm-publish
+    concurrency:
+      group: Release-publish
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Install (immutable, no package scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-npm-tarballs
+          path: dist/npm
+
+      - name: Publish tarballs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm run release:publish --family dsh --from dist/npm

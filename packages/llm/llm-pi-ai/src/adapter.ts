@@ -44,7 +44,7 @@ import {
   LlmAdapter,
   LlmError,
   ReasoningEffortId,
-} from '@deepseek-ai/dsh-llm'
+} from '@x1a0f3n9/dsh-llm'
 import type {
   GenerateOptions,
   ImageAttachmentAccess,
@@ -55,12 +55,12 @@ import type {
   ReasoningEffortId as ReasoningEffortIdType,
   ResolvedRetryPolicy,
   StreamChunk,
-} from '@deepseek-ai/dsh-llm'
-import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
+} from '@x1a0f3n9/dsh-llm'
+import type { AttachmentStore, ImageAttachmentRef } from '@x1a0f3n9/dsh-attachment'
+import { idleWatchdog, timeoutOf } from '@x1a0f3n9/dsh-timeout'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { toPiContext } from './context.ts'
-import { toStreamChunks } from './stream.ts'
+import { toStreamChunks, type PiAiStreamDiagnostics } from './stream.ts'
 
 /** One resolution's frozen view: the profiles and the collection built from them. */
 interface PiAiSnapshot {
@@ -199,6 +199,16 @@ function reasoningInfo(
       ...defaultLevel === undefined ? {} : { defaultEffort: ReasoningEffortId(defaultLevel) },
     },
   }
+}
+
+/** Read the first common provider/gateway request-id header, case-insensitively. */
+function responseRequestId(headers: Readonly<Record<string, string>>): string | undefined {
+  for (const name of ['x-request-id', 'request-id', 'x-amzn-requestid', 'cf-ray', 'x-cache', 'x-vercel-id']) {
+    for (const [key, value] of Object.entries(headers)) {
+      if (key.toLowerCase() === name && value.length > 0) return value
+    }
+  }
+  return undefined
 }
 
 /** Merge deployment headers while removing case-insensitive attribution collisions. */
@@ -347,6 +357,13 @@ export class PiAiAdapter extends LlmAdapter {
     )
     const apiKey = await this.config.resolveApiKey(options.provider, profile)
 
+    const diagnostics: PiAiStreamDiagnostics = {
+      provider: options.provider,
+      model: model.id,
+      api: String(model.api),
+      baseURL: model.baseUrl,
+    }
+
     const consumer = new AbortController()
     const upstream = options.signal === undefined
       ? consumer.signal
@@ -386,8 +403,13 @@ export class PiAiAdapter extends LlmAdapter {
         // Profile headers are deployment-owned; attribution names are
         // Harness-owned and therefore win collisions.
         headers: requestHeaders(profile.headers),
+        onResponse: (response, _model) => {
+          diagnostics.status = response.status
+          const requestId = responseRequestId(response.headers)
+          if (requestId !== undefined) diagnostics.requestId = requestId
+        },
       })
-      const iterator = toStreamChunks(events, model.contextWindow, options.signal, model.id)[Symbol.asyncIterator]()
+      const iterator = toStreamChunks(events, model.contextWindow, diagnostics, options.signal)[Symbol.asyncIterator]()
       let exhausted = false
       try {
         while (true) {

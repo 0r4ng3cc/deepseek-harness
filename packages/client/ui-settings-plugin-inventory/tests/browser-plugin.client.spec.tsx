@@ -2,10 +2,10 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
+import { LocaleRuntime } from '@x1a0f3n9/dsh-client-locale/client'
+import { SlotRegistry } from '@x1a0f3n9/dsh-client-ui-renderer/client'
+import { resolveSlotLabel } from '@x1a0f3n9/dsh-client-ui-slots'
+import { usePinnedBrowserLanguages } from '@x1a0f3n9/dsh-client-test-runtime'
 import { apply, inject, NS } from '../src/client/index.ts'
 import { PluginInventorySettingsTab } from '../src/client/PluginInventorySettingsTab.tsx'
 import type { PluginInventorySettingsTabInjected } from '../src/client/PluginInventorySettingsTab.tsx'
@@ -32,14 +32,17 @@ async function bench() {
   new RemoteService(ctx)
   const list = vi.fn<() => Promise<ListResult>>()
     .mockResolvedValue({ ok: true, value: EMPTY })
-  ctx.provide('remote.pluginInventory', { list })
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list }
+  const setEnabled = vi.fn().mockResolvedValue({ ok: true, value: { enabled: true } })
+  ctx.provide('remote.pluginInventory', { list, setEnabled })
+  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list, setEnabled }
 }
 
 function declare(slots: SlotRegistry): () => void {
   return slots.register({
     name: 'root',
-    children: { 'settings.plugins.tab': { kind: 'list', scope: 'root' } },
+    children: {
+      'settings.plugins.tab': { kind: 'list', scope: 'root' },
+    },
   } as never, () => null)
 }
 
@@ -69,6 +72,8 @@ describe('ui-settings-plugin-inventory browser plugin', () => {
     expect(b.list).toHaveBeenCalledOnce()
     b.list.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'unavailable' } })
     await expect(injected.list()).rejects.toThrow('pluginInventory.list failed: REMOTE_ERROR: unavailable')
+    await expect(injected.setEnabled({ entryId: 'ui-schedule' as never, enabled: true })).resolves.toEqual({ enabled: true })
+    expect(b.setEnabled).toHaveBeenCalledWith({ entryId: 'ui-schedule', enabled: true })
 
     // Shipped preset names resolve over the agent-preset dictionaries the
     // real plugin registers; user-authored metadata stays untranslated.
