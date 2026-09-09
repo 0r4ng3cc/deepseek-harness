@@ -5,6 +5,7 @@ import {
   PUBLISH_SPACING_MS,
   RATE_LIMIT_BACKOFF_CAP_MS,
   RATE_LIMIT_BACKOFF_MS,
+  existingPublishedVersionAction,
   isRateLimited,
   isTransientFailure,
   retryBackoffMs,
@@ -38,5 +39,17 @@ describe('release publish retries', () => {
     expect(retryBackoffMs(rateLimited, 2)).toBe(RATE_LIMIT_BACKOFF_MS * 2)
     expect(retryBackoffMs(rateLimited, 3)).toBe(RATE_LIMIT_BACKOFF_CAP_MS)
     expect(retryBackoffMs(rateLimited, 8)).toBe(RATE_LIMIT_BACKOFF_CAP_MS)
+  })
+})
+
+describe('release publish existing versions', () => {
+  it('skips an identical tarball', () => {
+    expect(existingPublishedVersionAction('sha512-a', 'sha512-a', '')).toBe('skip')
+    expect(existingPublishedVersionAction('sha512-a', 'sha512-a', 'refs/heads/dev-x1a0f3n9')).toBe('skip')
+  })
+
+  it('fails a tagged mismatch and skips a branch-publish mismatch', () => {
+    expect(existingPublishedVersionAction('sha512-a', 'sha512-b', '')).toBe('fail')
+    expect(existingPublishedVersionAction('sha512-a', 'sha512-b', 'refs/heads/dev-x1a0f3n9')).toBe('skip')
   })
 })

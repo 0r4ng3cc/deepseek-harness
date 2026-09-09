@@ -68,9 +68,9 @@ tag 只是 commit 指针，不是发布成功的证明。bump 会向 registry �
 |---|---|
 | registry 上没有该版本 | 发布 |
 | 已有该版本，且 tarball 的 sha512 等于记录的 `dist.integrity` | 跳过：这是同一批产物的重跑 |
-| 已有该版本，但 integrity 不同 | 失败退出，报「内容已变但版本未 bump」 |
+| 已有该版本，但 integrity 不同 | 打 tag 的发布失败退出；设置了 `RELEASE_PUBLISH_ALLOW_REF` 的分支发布改为警告并跳过，因为 npm 不会替换已有版本，失败会把同族未发布的包全部卡住 |
 
-第三态拦住「改了代码却没 bump 版本」。前两态给出幂等——同一个 artifact 重跑 publish 不会重复发布，也不需要人工挑拣包。同一条规则还解决了「一次 vendor 发布携带多个 tag，而 workflow 只能从一个 ref 触发」的矛盾：workflow 从不从触发它的 tag 去推断该发哪些包。
+第三态在打 tag 的发布里拦住「改了代码却没 bump 版本」。分支 allow-ref 发布会跳过这种 mismatch，好让一次只发了一部分的家族把剩下的发完：npm 不会替换已经存进去的版本。前两态给出幂等——同一个 artifact 重跑 publish 不会重复发布，也不需要人工挑拣包。同一条规则还解决了「一次 vendor 发布携带多个 tag，而 workflow 只能从一个 ref 触发」的矛盾：workflow 从不从触发它的 tag 去推断该发哪些包。
 
 三条序列都按这套判定，native 也在内：它通过自己的脚本发布，而不是 shell 循环——一串裸 `npm publish` 无法重试，registry 对「重发已存在的版本」的回答是永久失败，因此中途失败一次就没有前路了。
 
