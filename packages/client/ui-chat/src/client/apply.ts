@@ -1,22 +1,22 @@
 /** Register the Chat Conversation target, renderers, stats, and details surface. */
 import type { Context } from '@deepseek-ai/cordis'
-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import type {} from '@deepseek-ai/dsh-api-remotes/client'
-import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type { ImageAttachmentRef } from '@x1a0f3n9/dsh-attachment'
+import type {} from '@x1a0f3n9/dsh-api-remotes/client'
+import type { SessionBinding } from '@x1a0f3n9/dsh-api-session-controller/client'
+import type { ObservableSnapshot } from '@x1a0f3n9/dsh-client-store'
+import type { SessionId } from '@x1a0f3n9/dsh-session/types'
+import type {} from '@x1a0f3n9/dsh-client-ui-sidebar-right/client'
 // The `file` entry of `SidebarRightResourceParamsMap`, which types `{ params: { line } }` below.
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
-import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
+import type {} from '@x1a0f3n9/dsh-client-ui-sidebar-documentpreview/client'
+import { fileAddressFor } from '@x1a0f3n9/dsh-util-workspace-path'
 // Type-only service and declaration merges used by the apply world.
-import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type {} from '@deepseek-ai/dsh-client-ui-session/client'
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
+import type {} from '@x1a0f3n9/dsh-client-locale/client'
+import type {} from '@x1a0f3n9/dsh-client-ui-conversation/client'
+import type {} from '@x1a0f3n9/dsh-client-ui-layout/client'
+import type {} from '@x1a0f3n9/dsh-client-ui-renderer/client'
+import type {} from '@x1a0f3n9/dsh-client-ui-session/client'
+import type {} from '@x1a0f3n9/dsh-client-ui-settings/client'
+import type {} from '@x1a0f3n9/dsh-client-ui-workspace/client'
 import type {
   ChatNodeTurnDataInjected, ChatScrollPosition, ChatViewInjected,
   TurnTailOwnerProps,

@@ -1,7 +1,7 @@
 /**
  * Shared declarations for `package.json.dsh`.
  * Each reader owns JSON validation and resolved defaults.
- * @module @deepseek-ai/dsh-package-manifest/types
+ * @module @x1a0f3n9/dsh-package-manifest/types
  */
 
 /** The `dsh` property of an npm manifest; a package may declare several roles. */
@@ -23,16 +23,38 @@ export interface DshManifest {
   moduleFallback?: DshModuleFallbackManifest
 }
 
+/** Metadata for one prebundled plugin feature that a profile may toggle. */
+export interface DshPluginCatalogEntry {
+  /** Stable catalog identity, unique across the selected bundle layers. */
+  id: string
+  /** Loader entry id changed when this feature is enabled or disabled. */
+  entryId: string
+  /** Package that provides the feature, for display and diagnostics. */
+  packageName: string
+  /** Optional package-owned display title. */
+  title?: string
+  /** Optional package-owned description. */
+  description?: string
+  /** Required features cannot be disabled from profile settings. */
+  required?: boolean
+  /** Default runtime state when the profile has no saved override. */
+  defaultEnabled?: boolean
+}
+
 /** The configuration layer exported by a bundle package. */
 export interface DshBundleManifest {
   /** Patch file path relative to the declaring package root. */
   patch: string
+  /** Optional prebundled plugin features exposed for profile settings. */
+  plugins?: readonly DshPluginCatalogEntry[]
 }
 
 /** The bundle composition declared by a profile directory. */
 export interface DshProfileManifest {
   /** Ordered bundle layer list, using installed package names. */
   bundles?: string[]
+  /** Persisted enablement overrides for prebundled plugin catalog entries. */
+  pluginOverrides?: Record<string, boolean>
   /** User patch lifecycle; omitted means `live` for custom profiles. */
   patchReload?: ProfilePatchReload
 }

@@ -8,6 +8,75 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 
 文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
+分支说明：这个 fork 发布的是 `@x1a0f3n9/dsh` 和 `xfdsh` 启动器，可以和上游 `dsh` 并存。下面表格概览这个 fork 相对上游的主要改动。
+
+## Fork 概览
+
+下面的表格只汇总这个 fork 的用户可见和发布相关改动；合并上游的提交只负责集成，不单独展开。
+
+| 领域 | 改动 | 结果 |
+| --- | --- | --- |
+| 包命名空间 | 开发线使用 `@x1a0f3n9/dsh-*`。`master` 跟踪上游 `@deepseek-ai/dsh-*`。之后的稳定 fork 线发布 `@xfcodeai/dsh-*`。vendor 和 native 包继续使用 `@deepseek-ai/*`。 | 两条 fork 线和官方 `dsh` 不会抢同一个 npm scope。 |
+| 启动器 | 发布出来的命令是 `xfdsh`。官方 `dsh` 仍是上游 CLI。 | 两套产品可以并装。 |
+| 数据目录 | `xfdsh` 的插件和 profile 放在 `~/.xfdsh`。官方 `dsh` 的插件和 profile 仍在 `~/.dsh`。会话、分组、附件、settings 和 API key 共用 `~/.dsh`。 | 不用迁移向导就能读到同一份历史。`xfdsh` 不会写 `~/.dsh/profiles`。 |
+| Web 端口 | `xfdsh web` 默认监听 `127.0.0.1:7777`。官方 `dsh web` 仍是 `3080`。 | 两套 UI 可以同时开。 |
+| Session Timeline | 预装且可关闭：回退、删除、重新生成。删除会截断选中的一轮以及后面的全部事件。 | 不满意的回答会从界面和后续模型请求里一起消失。 |
+| 插件市场 | 预装 `dshmarket`，可关闭。官方 `@deepseek-ai/dsh-*` 插件会 remap 进这一套运行时。 | 社区插件用 `xfdsh plugin --profile web add` 安装。 |
+| 思考强度 | 可选社区插件 `github:HanaAyane/dsh-reasoning-effort`。不预装：GitHub 插件不能塞进本地未发布的 workspace 依赖图。 | 执行 `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1` 后，输入框可以选择思考强度。 |
+| 会话工具 | 工作区列表可以复制 session id。 | 方便分享和排障。 |
+| 内存与续跑 | 会话持久化限制内存读取；context overflow 会压缩并重试。 | 长会话更不容易卡住。 |
+| 纯文本模型 | 历史图片和新图片会变成稳定文本占位符。 | 切到不支持图片的模型不会让会话停摆。 |
+| Web 搜索 | 默认顺序是 Perplexity，然后 Exa。DeepSeek 搜索仍可选手动选择。 | 搜索不会总是去打 DeepSeek 账单。 |
+| 多回答 / session git graph | 还没做。等 timeline 回退 UI 完成后再扩展。 | 只记在文档里，本轮不做。 |
+
+### 安装这个 fork
+
+这个 fork 支持两种安装方式。都会在 `http://127.0.0.1:7777` 启动 `xfdsh web`。官方 `dsh` 是另一套产品，不需要做历史迁移。
+
+**官方 `dsh`（不变）：**
+
+```sh
+npm install --global @deepseek-ai/dsh
+dsh web
+```
+
+插件、profile、会话、settings 和 key 都在 `~/.dsh`，监听 `http://127.0.0.1:3080`。
+
+**fork npm（开发 scope `@x1a0f3n9`）：**
+
+```sh
+npm install --global @x1a0f3n9/dsh
+xfdsh web
+```
+
+**fork 源码：**
+
+```sh
+git clone https://github.com/LunFengChen/deepseek-harness.git
+cd deepseek-harness
+pnpm install
+pnpm run build
+pnpm dsh --profile web
+```
+
+`pnpm dsh` 用 tsx 启动当前仓库。`pnpm run build` 之后可以用 `pnpm exec xfdsh web` 跑编好的 `xfdsh`。
+
+不装全局包的一次性运行：
+
+```sh
+npx --package @x1a0f3n9/dsh xfdsh web
+```
+
+`xfdsh` 的插件和 profile 放在 `~/.xfdsh`，不会写 `~/.dsh/profiles`。会话、分组、附件、settings 和 API key 仍在 `~/.dsh`，所以两套 CLI 看到同一份历史。预装的 timeline 和插件市场可以在 Settings → Plugins 关闭。思考强度用 `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1` 安装。
+
+推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
+
+### 分支约定
+
+- `master` 跟踪上游 dsh。fork 功能不要直接提交到 `master`。
+- 每个小功能开 `features/` 或 `fix/` 分支，完成后 `--no-ff` 合并到 `dev-x1a0f3n9`。
+- 推送 `dev-x1a0f3n9` 发布 `@x1a0f3n9/*`；功能够多后再把 `dev-x1a0f3n9` 合进 `master`，发布 `@xfcodeai/*`。
+
 ## 开发者预览
 
 DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
@@ -23,10 +92,10 @@ DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来
 安装 `Node.js`，然后运行：
 
 ```sh
-npx @deepseek-ai/dsh web
+npx --package @x1a0f3n9/dsh xfdsh web
 ```
 
-该命令默认会在 `http://127.0.0.1:3080` 启动 Web UI，本机启动时还会用默认浏览器打开页面。通过 SSH 启动时只打印宿主机 URL，因为本地转发地址由 SSH 客户端或编辑器持有。传入 `--no-open` 可仅运行服务器而不打开浏览器。详见 [Web UI 指南](docs/user/guide/index.zh.md)。
+该命令默认会在 `http://127.0.0.1:7777` 启动 Web UI，本机启动时还会用默认浏览器打开页面。通过 SSH 启动时只打印宿主机 URL，因为本地转发地址由 SSH 客户端或编辑器持有。传入 `--no-open` 可仅运行服务器而不打开浏览器。详见 [Web UI 指南](docs/user/guide/index.zh.md)。
 
 <a id="run-from-source"></a>
 
@@ -35,18 +104,18 @@ npx @deepseek-ai/dsh web
 如需从仓库源码运行：
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
+git clone https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
-pnpm dsh web
+pnpm exec xfdsh web
 ```
 
-`pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
+`pnpm run build` 会准备仓库产物。`pnpm exec xfdsh web` 会直接使用这些已构建产物，不会重新构建。
 
 ## 社区与支持
 
-- 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
+- 通过 [GitHub Discussions](https://github.com/LunFengChen/deepseek-harness/discussions) 提交反馈或 bug 报告。
 - 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
 - 欢迎加入 DeepSeek Harness 企微群：扫码添加企微小助手并填写入群问卷，完成后小助手会邀请你入群。
 

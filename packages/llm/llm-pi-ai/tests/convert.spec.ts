@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
-import type { AttachmentStore, ImageAttachmentRef, ImageRequestPolicy, RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
-import { createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, createMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { AttachmentId, ImageVariantId } from '@x1a0f3n9/dsh-attachment'
+import type { AttachmentStore, ImageAttachmentRef, ImageRequestPolicy, RequestImageAttachment } from '@x1a0f3n9/dsh-attachment'
+import { createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, createMessage } from '@x1a0f3n9/dsh-llm'
+import type { ContentBlock, StreamChunk } from '@x1a0f3n9/dsh-llm'
 import type { AssistantMessage, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai'
 import { transformMessages } from '@earendil-works/pi-ai/api/transform-messages'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
@@ -684,7 +684,7 @@ describe('toStreamChunks', () => {
     })
     const chunks = await collect(toStreamChunks(feed(
       { type: 'done', reason: 'stop', message: native },
-    ), undefined, undefined, requestedModel))
+    ), undefined, { model: requestedModel }))
     const finish = chunks.find(chunk => chunk.type === 'finish')
     const replayState: unknown = JSON.parse(JSON.stringify(finish?.replayState))
     expect(replayState).toMatchObject({ response: { model: requestedModel } })

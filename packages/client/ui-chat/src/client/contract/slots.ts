@@ -1,17 +1,17 @@
 /** Chat-owned Slot declarations and composed component props. */
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
+import type { MessageId } from '@x1a0f3n9/dsh-llm/brand'
+import type { SessionId, SessionSeq } from '@x1a0f3n9/dsh-session/types'
 import type {
   CommandNode, CompactionSummaryNode, ConversationLocationDataStore, ConversationTurnDataMap,
   MessageImageLoader, MessageImagesOwnerProps, RenderMessageImages, TurnLocation,
-} from '@deepseek-ai/dsh-client-ui-conversation/client'
+} from '@x1a0f3n9/dsh-client-ui-conversation/client'
 import type {
   InjectFace, KeyedSnapshotSelectorHook, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
   SlotHookFactory, SnapshotSelectorHook,
-} from '@deepseek-ai/dsh-client-ui-slots'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+} from '@x1a0f3n9/dsh-client-ui-slots'
+import type { SnapshotStore } from '@x1a0f3n9/dsh-client-store'
+import type { MarkdownFileMentions } from '@x1a0f3n9/dsh-client-ui-primitives'
+import type {} from '@x1a0f3n9/dsh-client-ui-layout/client'
 import type { createChatStore } from '../stores.ts'
 import type { ToolCallId } from './store.ts'
 import type { ChatConversationViewNode, ChatNode, ChatNodeKind } from './chat-nodes.ts'
@@ -46,6 +46,13 @@ export interface TurnTailOwnerProps {
 /** Owner currency of finalized-assistant actions. */
 export interface AssistantActionOwnerProps {
   messageId: MessageId
+  seq: number
+}
+
+/** Owner currency for actions attached to one durable user message. */
+export interface UserActionOwnerProps {
+  seq: number
+  content: readonly unknown[]
 }
 
 /** Optional prose file-mention provider consumed by Chat. */
@@ -162,7 +169,7 @@ export type ChatViewSlotProps =
 /** Full props of the durable-message image renderer. */
 export type MessageImagesProps = PropsRuntime<'conversation.message.images'> & PropsLocale<'conversation'>
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@x1a0f3n9/dsh-client-ui-slots' {
   interface SessionStandardProps {
     /** Selector hook over the current Conversation binding's Chat target. */
     useChat: UseChat
@@ -206,9 +213,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.chat.turnTail': { kind: 'chain'; scope: 'session'; owner: TurnTailOwnerProps }
     /**
+     * Ordered actions for one durable user or admitted-steering message. Each
+     * entry receives the message sequence and original content; a fresh `id`
+     * adds an action and reusing one replaces that entry.
+     */
+    'conversation.chat.user-actions': { kind: 'list'; scope: 'session'; owner: UserActionOwnerProps }
+    /**
      * Ordered actions for one finalized assistant message. Each entry receives
-     * the durable message id; a fresh `id` adds an action and reusing one replaces
-     * that entry. With no entries, the standard action row remains unchanged.
+     * the durable message id and sequence; a fresh `id` adds an action and
+     * reusing one replaces that entry. With no entries, the standard action
+     * row remains unchanged.
      */
     'conversation.chat.assistant-actions': { kind: 'list'; scope: 'session'; owner: AssistantActionOwnerProps }
   }

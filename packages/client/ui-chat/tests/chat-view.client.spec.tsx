@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps } from '@x1a0f3n9/dsh-client-ui-slots'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useEffect } from 'react'
@@ -10,21 +10,21 @@ import type {
   LegacyConversationSlice, ModelRetryNode, RunningToolCall, SteeringMessageNode,
   ToolCallBlock, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UseChatNodeTurnData,
   TranscriptViewMode, UserMessageNode,
-} from '@deepseek-ai/dsh-client-ui-chat/client'
+} from '@x1a0f3n9/dsh-client-ui-chat/client'
 import type {
   SessionListState, SessionSnapshot,
-} from '@deepseek-ai/dsh-api-session-controller/client'
+} from '@x1a0f3n9/dsh-api-session-controller/client'
 import type {
   ConversationLocationDataStore, ConversationTurnDataMap,
-} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
-import type { KeyedSnapshotSelectorHook, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+} from '@x1a0f3n9/dsh-client-ui-conversation/client'
+import type { WorkspaceSnapshot } from '@x1a0f3n9/dsh-api-workspace-controller/client'
+import type { SessionId } from '@x1a0f3n9/dsh-session/types'
+import type { SessionPendingInteractionSnapshot } from '@x1a0f3n9/dsh-client-ui-session/client'
+import type { KeyedSnapshotSelectorHook, SnapshotSelectorHook } from '@x1a0f3n9/dsh-client-ui-slots'
+import { bindSnapshotSelector, makeTranslate } from '@x1a0f3n9/dsh-client-test-runtime'
+import { createSnapshotStore, type ObservableSnapshot } from '@x1a0f3n9/dsh-client-store'
+import { EMPTY_CONVERSATION_SNAPSHOT } from '@x1a0f3n9/dsh-client-ui-conversation/client'
+import { zh as commonZh } from '@x1a0f3n9/dsh-client-locale/src/locales/zh.ts'
 import { createChatStore } from '../src/client/stores.ts'
 import { ChatView } from '../src/client/chat/ChatView.tsx'
 import { ChatNodeSeat } from '../src/client/chat/ChatNodeSeat.tsx'
@@ -275,6 +275,8 @@ function makeHarness(
   }> = []
   const renderCommandSlot = ((_key: string, _owner: object, opts?: { fallback?: React.ReactNode }) =>
     opts?.fallback ?? null) as unknown as React.ComponentProps<typeof CommandNodeView>['renderSlot']
+  const renderUserActionsSlot = ((_key: string, _owner: object, opts?: { fallback?: React.ReactNode }) =>
+    opts?.fallback ?? null) as unknown as React.ComponentProps<typeof UserMessageNodeView>['renderSlot']
   const renderTurnTail = ((_key: string, _owner: object) => null) as unknown as
     React.ComponentProps<typeof TurnTailNodeView>['renderSlotChain']
   const renderTurnTailSlot = (() => null) as unknown as
@@ -295,8 +297,9 @@ function makeHarness(
     )
     switch (nodeOwner.node.kind) {
       case 'user':
+        return <UserMessageNodeView {...nodeProps<'user'>()} renderSlot={renderUserActionsSlot} SessionProvider={props.SessionProvider} />
       case 'steering':
-        return <UserMessageNodeView {...nodeProps<'user' | 'steering'>()} />
+        return <UserMessageNodeView {...nodeProps<'steering'>()} renderSlot={renderUserActionsSlot} SessionProvider={props.SessionProvider} />
       case 'context':
         return <ContextMessageNodeView {...nodeProps<'context'>()} />
       case 'assistant-step':

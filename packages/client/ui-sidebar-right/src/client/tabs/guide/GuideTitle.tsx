@@ -4,7 +4,7 @@
  * bare label.
  */
 import type { ReactNode } from 'react'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRuntime } from '@x1a0f3n9/dsh-client-ui-slots'
 import css from './GuideBody.module.css'
 
 /**

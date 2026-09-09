@@ -3,7 +3,7 @@ description: "Workspace file service for the web GUI: bounded file reads through
 kind: "package-reference"
 ---
 
-# @deepseek-ai/dsh-api-workspace-files
+# @x1a0f3n9/dsh-api-workspace-files
 
 English | [中文](README.zh.md)
 

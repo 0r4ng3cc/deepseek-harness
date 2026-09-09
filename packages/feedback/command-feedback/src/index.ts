@@ -5,14 +5,14 @@
  * authoritative log-only event and does not start model work. The append is
  * eager but unflushed, so acknowledgement reports that the entry is logged,
  * not that it reached disk.
- * @module @deepseek-ai/dsh-command-feedback
+ * @module @x1a0f3n9/dsh-command-feedback
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import type { CommandInvocation, CommandResult } from '@deepseek-ai/dsh-commands'
-import type { Session } from '@deepseek-ai/dsh-session'
-import { getOrCreateAnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
-import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
+import type { CommandInvocation, CommandResult } from '@x1a0f3n9/dsh-commands'
+import type { Session } from '@x1a0f3n9/dsh-session'
+import { getOrCreateAnonymousUserId } from '@x1a0f3n9/dsh-anonymous-user-id'
+import { TypertRemoteService, Remote } from '@x1a0f3n9/dsh-typert-protocol'
 import type {
   FeedbackCategory,
   FeedbackRecord,
