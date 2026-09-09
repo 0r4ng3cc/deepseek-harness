@@ -68,9 +68,9 @@ Publication runs only from GitHub Actions; there is no local publication path. P
 |---|---|
 | the registry does not have that version | publish |
 | the registry has it, and the tarball's sha512 equals the recorded `dist.integrity` | skip: this is a re-run over one artifact |
-| the registry has it, and the integrity differs | fail, reporting content changed without a version bump |
+| the registry has it, and the integrity differs | fail on a tagged release; skip with a warning when `RELEASE_PUBLISH_ALLOW_REF` is set, because npm will not replace the version and failing would strand unpublished members |
 
-The third state catches code that changed without a version bump. The first two provide idempotence — re-running publish over one artifact republishes nothing and needs no manual selection of packages. The same rule resolves the tension between one vendor release carrying several tags and a workflow that can only run from one ref: the workflow never infers which packages to publish from the tag it ran from.
+The third state catches code that changed without a version bump on a tagged release. A branch allow-ref publish skips that mismatch so a partial family can finish: npm will not replace the version already stored. The first two states provide idempotence — re-running publish over one artifact republishes nothing and needs no manual selection of packages. The same rule resolves the tension between one vendor release carrying several tags and a workflow that can only run from one ref: the workflow never infers which packages to publish from the tag it ran from.
 
 All three sequences decide this way, including the native one: it publishes through its own script rather than a shell loop, because a loop of bare `npm publish` calls cannot be retried — the registry answers a repeat of an existing version permanently, so one failure partway through left no way forward.
 

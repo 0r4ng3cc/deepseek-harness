@@ -949,6 +949,16 @@ describe('npm release workflows', () => {
       if: "github.ref == 'refs/heads/dev-x1a0f3n9'",
       environment: 'npm-publish',
     })
+    const publish = workflowJob(dshRelease, 'publish')
+    if (!Array.isArray(publish.steps)) throw new TypeError('DSH publish job must define steps')
+    const publishTarballs = publish.steps.filter(isRecord).find(step => step.name === 'Publish tarballs')
+    expect(publishTarballs).toMatchObject({
+      env: {
+        NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}',
+        RELEASE_PUBLISH_ALLOW_REF: "${{ github.ref == 'refs/heads/dev-x1a0f3n9' && 'refs/heads/dev-x1a0f3n9' || '' }}",
+      },
+      run: 'pnpm run release:publish --family dsh --from dist/npm',
+    })
     const pack = workflowJob(dshRelease, 'pack')
     if (!Array.isArray(pack.steps)) throw new TypeError('DSH pack job must define steps')
     const verify = pack.steps.filter(isRecord).find(step => step.name === 'Verify release version')

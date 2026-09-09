@@ -4,8 +4,9 @@
  * Publication is decided per package against the registry, never from a list of
  * "what this release includes": a version the registry lacks is published, a
  * version whose published tarball has the same integrity is skipped, and a
- * version whose published tarball differs fails the run — that last case means
- * the content changed without a version bump
+ * version whose published tarball differs fails a tagged release. A branch
+ * allow-ref publish skips that mismatch: npm will not replace the version, and
+ * failing would strand the rest of the family
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
  * Skipping on identical integrity is what makes re-running the publish step over
@@ -82,6 +83,26 @@ export function retryBackoffMs(output: string, tries: number): number {
     return Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** (tries - 1), RATE_LIMIT_BACKOFF_CAP_MS)
   }
   return PUBLISH_SPACING_MS * 2 ** (tries - 1)
+}
+
+/**
+ * How to treat a version the registry already has.
+ *
+ * Tagged releases fail on a byte mismatch so a changed payload cannot reuse a
+ * version. A branch allow-ref publish skips: npm will not replace the version,
+ * and failing would strand unpublished members of the same family.
+ * @param localIntegrity - sha512 of the packed tarball.
+ * @param registryIntegrity - `dist.integrity` npm recorded for this version.
+ * @param allowRef - `RELEASE_PUBLISH_ALLOW_REF`, or empty for tag-only publishes.
+ * @returns `skip` to leave the registry bytes in place, or `fail` to stop the run.
+ */
+export function existingPublishedVersionAction(
+  localIntegrity: string,
+  registryIntegrity: string,
+  allowRef: string,
+): 'skip' | 'fail' {
+  if (localIntegrity === registryIntegrity) return 'skip'
+  return allowRef === '' ? 'fail' : 'skip'
 }
 
 /**
@@ -183,14 +204,22 @@ async function main(): Promise<void> {
     const state = registryState(name, version)
     if (state.kind === 'present') {
       const local = integrityOf(tarball)
-      if (state.integrity !== local) {
+      const allowRef = process.env.RELEASE_PUBLISH_ALLOW_REF?.trim() ?? ''
+      if (existingPublishedVersionAction(local, state.integrity, allowRef) === 'fail') {
         throw new Error(
           `${name}@${version} is already published with different content`
           + `\n  registry: ${state.integrity}\n  packed:   ${local}`
           + '\nBump the version, or investigate why the build is not reproducible.',
         )
       }
-      console.log(`release publish: ${progress} ${name}@${version} already published, skipping`)
+      if (local !== state.integrity) {
+        console.log(
+          `release publish: ${progress} ${name}@${version} already published with different content, skipping`
+          + `\n  registry: ${state.integrity}\n  packed:   ${local}`,
+        )
+      } else {
+        console.log(`release publish: ${progress} ${name}@${version} already published, skipping`)
+      }
       skipped += 1
       continue
     }
