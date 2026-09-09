@@ -23,23 +23,30 @@ import { packedIdentity, readPublishOrder } from './tarball.ts'
 
 /**
  * Registry codes that answer a write which did not settle, rather than a
- * rejection of what was sent. `E409 Failed to save packument` is the one this
- * sequence actually hits: publishing several packages in a row can outrun the
- * registry's own processing. A rejected payload (`E403` over an existing
- * version, a malformed manifest) never clears on a retry and must surface.
+ * rejection of what was sent. `E409 Failed to save packument` is a packument
+ * race from back-to-back writes. `E429` is npm refusing further writes after a
+ * burst, especially new package names. A rejected payload (`E403` over an
+ * existing version, a malformed manifest) never clears on a retry and must
+ * surface.
  */
 const TRANSIENT_PUBLISH_CODES = ['E409', 'E429', 'E500', 'E502', 'E503', 'E504', 'ETIMEDOUT', 'ECONNRESET', 'EAI_AGAIN'] as const
 
 /** How many times one tarball's publish is attempted before the run fails. */
-const PUBLISH_ATTEMPTS = 4
+export const PUBLISH_ATTEMPTS = 10
 
 /**
- * Shortest gap between two publishes, and the first retry backoff.
+ * Shortest gap between two publishes, and the first `E409` retry backoff.
  *
  * The registry needs a moment to commit a packument before the next write; back
  * to back publishes are what produce `E409`.
  */
-const PUBLISH_SPACING_MS = 2_000
+export const PUBLISH_SPACING_MS = 5_000
+
+/** First `E429` retry backoff. npm's new-package write budget is coarser than packument races. */
+export const RATE_LIMIT_BACKOFF_MS = 300_000
+
+/** Longest `E429` retry backoff. Later attempts stay at this cap. */
+export const RATE_LIMIT_BACKOFF_CAP_MS = 900_000
 
 /** What the registry knows about one version. */
 type RegistryState =
@@ -51,8 +58,30 @@ type RegistryState =
  * @param output - combined npm output.
  * @returns True when the registry reported a write it did not commit.
  */
-function isTransientFailure(output: string): boolean {
+export function isTransientFailure(output: string): boolean {
   return TRANSIENT_PUBLISH_CODES.some(code => output.includes(`code ${code}`))
+}
+
+/**
+ * Whether a failed publish is an npm write-budget rejection rather than a packument race.
+ * @param output - combined npm output.
+ * @returns True when npm reported `E429`.
+ */
+export function isRateLimited(output: string): boolean {
+  return output.includes('code E429')
+}
+
+/**
+ * How long to wait before the next publish attempt after a transient failure.
+ * @param output - combined npm output of the failed attempt.
+ * @param tries - 1-based attempt that just failed.
+ * @returns Backoff in milliseconds.
+ */
+export function retryBackoffMs(output: string, tries: number): number {
+  if (isRateLimited(output)) {
+    return Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** (tries - 1), RATE_LIMIT_BACKOFF_CAP_MS)
+  }
+  return PUBLISH_SPACING_MS * 2 ** (tries - 1)
 }
 
 /**
@@ -118,7 +147,7 @@ async function publishTarball(
     if (tries === PUBLISH_ATTEMPTS || !isTransientFailure(output)) {
       throw new Error(`npm publish ${name}@${version} failed:\n${output}`)
     }
-    const backoff = PUBLISH_SPACING_MS * 2 ** (tries - 1)
+    const backoff = retryBackoffMs(output, tries)
     console.log(
       `release publish: ${name}@${version} hit a transient registry failure`
       + ` (attempt ${String(tries)} of ${String(PUBLISH_ATTEMPTS)}), retrying in ${String(backoff)}ms`,
