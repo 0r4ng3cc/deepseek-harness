@@ -905,7 +905,7 @@ export interface Channel {
   readonly smoothStreaming: boolean
   /** Live status-footer visibility and compactness preferences. */
   readonly statusBar: Readonly<StatusBarConfig>
-  /** Whether the header's compact whale-girl pet shows (settings `dsh-tui.whale`). */
+  /** Whether the header's compact whale mark shows (settings `dsh-tui.whale`). */
   readonly whale: boolean
   /** Minimal mode (settings `dsh-tui.minimal`): no header splash, no emoji
    *  glyphs, no decorative colors; code highlight and tool colors stay. */
@@ -2005,7 +2005,7 @@ export function createChannel(
     smoothStreaming?: boolean
     /** Status-footer field visibility and compactness. */
     statusBar?: Partial<StatusBarConfig>
-    /** Show the header's compact whale-girl pet; default on. */
+    /** Show the header's compact whale mark; default on. */
     whale?: boolean
     /** Minimal mode; default off (settings `dsh-tui.minimal`). */
     minimal?: boolean

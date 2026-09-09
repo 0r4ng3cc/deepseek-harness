@@ -14,9 +14,10 @@ The `dsh` command is the sole supported Node application launcher: profiles are 
 | `xfdsh --profile sdk` | Serve SDK clients over JSON-RPC stdio until shutdown or disconnect. |
 | `xfdsh --profile sdk-minimal` | Serve SDK clients with the standalone minimal agent tree. |
 | `xfdsh web` | Alias of `--profile web`. |
+| `xfdsh tui` | Alias of `--profile tui`. |
 | `xfdsh plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
 
-The invoking directory is the default workspace root. The `web`, `headless`, `sdk`, `sdk-minimal`, and `acp` profiles auto-initialize on first use from shipped templates; any other profile must be created through `xfdsh plugin`.
+The invoking directory is the default workspace root. The `web`, `tui`, `headless`, `sdk`, `sdk-minimal`, and `acp` profiles auto-initialize on first use from shipped templates; any other profile must be created through `xfdsh plugin`.
 
 ## App arguments
 
@@ -24,7 +25,7 @@ The launcher parses only its own flags and hands everything after them to the bo
 
 ```sh
 xfdsh --profile web --port 8080       # --port belongs to the web app
-xfdsh --profile tui --resume <id>     # example, assuming the tui profile is installed; --resume belongs to the terminal app
+xfdsh tui --resume <id>               # --resume belongs to the terminal app
 xfdsh --profile headless "run the tests"
 xfdsh --profile web --help            # the web app's flags, not the launcher's
 xfdsh --help                          # the launcher's own help

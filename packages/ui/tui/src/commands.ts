@@ -90,13 +90,17 @@ export const LOCAL_COMMANDS: LocalCommand[] = [
   { name: 'context', description: 'Show loaded context details' },
   { name: 'status', description: 'Show session status' },
   { name: 'cost', description: 'Show session token usage' },
-  { name: 'config', description: 'Show the dsh-tui configuration source' },
+  { name: 'config', description: 'Show the dsh configuration source' },
   { name: 'reload', description: 'Reload preference files from disk and apply live' },
   { name: 'settings', description: 'View and edit plugin settings' },
   { name: 'doctor', description: 'Run environment checks' },
   { name: 'init', description: 'Create AGENTS.md in the working directory' },
   { name: 'agents', description: 'Show subagents of this session' },
   { name: 'jobs', description: 'Show background jobs of this session' },
+  { name: 'queue', description: 'Show the in-turn steer/followup queue' },
+  { name: 'tools', description: 'Show this turn\'s tool-call details' },
+  { name: 'workflow', description: 'Show workflow runs (if the profile mounts them)' },
+  { name: 'schedule', description: 'Show scheduled tasks (if the profile mounts them)' },
   // Model / display
   { name: 'activity', description: 'Switch the working-activity indicator preset' },
   { name: 'preset', description: 'Switch the agent preset (including Liangshen mode)' },
@@ -106,6 +110,7 @@ export const LOCAL_COMMANDS: LocalCommand[] = [
   { name: 'model', description: 'Show the active model' },
   { name: 'effort', description: 'Adjust the reasoning effort (slider)' },
   { name: 'thinking', description: 'Toggle extended thinking display' },
+  { name: 'system', description: 'Edit the custom system prompt' },
   { name: 'tokens', description: 'Show session token usage' },
   // Account / policy
   { name: 'balance', description: 'Show DeepSeek account balance' },
@@ -117,7 +122,7 @@ export const LOCAL_COMMANDS: LocalCommand[] = [
   { name: 'mcp', description: 'Show MCP status' },
   { name: 'skills', description: 'List available skills' },
   { name: 'plugins', description: 'Show plugin contract, grant, and ledger diagnostics' },
-  { name: 'update', description: 'Update dsh-tui and restart' },
+  { name: 'update', description: 'Update dsh and restart' },
   // Skills are discovered through the DSH registry and added at runtime.
   // A local entry of the same name would win the collision filter.
   // Misc / not applicable on this leaf
@@ -128,10 +133,10 @@ export const LOCAL_COMMANDS: LocalCommand[] = [
   // Help / exit
   { name: 'help', description: 'Show shortcuts and commands' },
   { name: 'tips', description: 'Show usage tips and shortcuts' },
-  { name: 'restart', description: 'Restart dsh-tui and resume this session' },
-  { name: 'exit', description: 'Exit dsh-tui' },
-  { name: 'quit', description: 'Exit dsh-tui', tag: 'alias of /exit' },
-  { name: 'q', description: 'Exit dsh-tui', tag: 'alias of /exit' },
+  { name: 'restart', description: 'Restart dsh and resume this session' },
+  { name: 'exit', description: 'Exit dsh' },
+  { name: 'quit', description: 'Exit dsh', tag: 'alias of /exit' },
+  { name: 'q', description: 'Exit dsh', tag: 'alias of /exit' },
 ]
 
 /**

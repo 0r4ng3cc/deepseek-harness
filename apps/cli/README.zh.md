@@ -14,9 +14,10 @@
 | `xfdsh --profile sdk` | 通过 JSON-RPC stdio 为 SDK client 提供服务，直至关闭或断开连接。 |
 | `xfdsh --profile sdk-minimal` | 以独立极简 agent 配置树为 SDK client 提供服务。 |
 | `xfdsh web` | `--profile web` 的别名。 |
+| `xfdsh tui` | `--profile tui` 的别名。 |
 | `xfdsh plugin --profile <name> <pnpm args>` | 通过在 profile 目录中转发给 pnpm 来管理该 profile 的插件。 |
 
-运行命令时所在的目录将作为默认 workspace 根目录。`web`、`headless`、`sdk`、`sdk-minimal` 和 `acp` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `xfdsh plugin` 创建。
+运行命令时所在的目录将作为默认 workspace 根目录。`web`、`tui`、`headless`、`sdk`、`sdk-minimal` 和 `acp` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `xfdsh plugin` 创建。
 
 ## 应用参数
 
@@ -24,7 +25,7 @@
 
 ```sh
 xfdsh --profile web --port 8080       # --port belongs to the web app
-xfdsh --profile tui --resume <id>     # example, assuming the tui profile is installed; --resume belongs to the terminal app
+xfdsh tui --resume <id>               # --resume belongs to the terminal app
 xfdsh --profile headless "run the tests"
 xfdsh --profile web --help            # the web app's flags, not the launcher's
 xfdsh --help                          # the launcher's own help

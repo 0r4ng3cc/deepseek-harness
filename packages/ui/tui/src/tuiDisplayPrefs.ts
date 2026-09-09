@@ -68,7 +68,7 @@ export const DEFAULT_STATUS_BAR: Readonly<StatusBarConfig> = Object.freeze({
   sessionId: false,
   goal: true,
   mode: false,
-  contextBar: false,
+  contextBar: true,
   activity: false,
   trajectory: false,
   shortcutHint: false,

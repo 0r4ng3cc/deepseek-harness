@@ -22,6 +22,7 @@ import { explicitModelRoute, recordedModelRoute, resolveModelRoute, validateMode
 import type { ModelRoute } from '../modelRoute.js'
 import { migratePresetPref, readPresetPref } from '../presetPrefs.js'
 import { composePreset, filterMinimalPresetTools, resolvePersistedPreset, resolvePersistedRoute, runningPresetOf } from './presets.js'
+import { readSystemPromptPref } from '../systemPromptPrefs.js'
 import { ensurePackagedPresets } from './packaged-presets.js'
 import { ensureLegacySessionEventTypes, snapshotLiveSessionEvents } from './compat/index.js'
 import { clearResumeTarget, resumeTargetFromArgv, writeResumeTarget } from '../sessionHistory.js'
@@ -316,7 +317,13 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
     const assembled = await next()
     const presetId = context.agent === undefined ? undefined : runningPresetOf(context.agent.session)
-    return filterMinimalPresetTools(assembled, presetId)
+    const filtered = filterMinimalPresetTools(assembled, presetId)
+    const custom = readSystemPromptPref()
+    if (custom === '') return filtered
+    return {
+      ...filtered,
+      sections: [...filtered.sections, { name: 'user:custom', text: custom }],
+    }
   })
   const questionStore = new QuestionStore()
   // One store, one teardown effect on both API lines. The compatibility
@@ -1226,10 +1233,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         },
         {
           path: ['whale'],
-          label: 'Whale-girl pet',
-          descriptions: { zh: '鲸鱼娘' },
-          hint: 'Show the compact whale-girl pet in the header splash.',
-          hintDescriptions: { zh: '开屏头部显示紧凑的鲸鱼娘宠物。' },
+          label: 'Compact whale',
+          descriptions: { zh: '小鲸标记' },
+          hint: 'Show the compact whale mark in the header splash.',
+          hintDescriptions: { zh: '开屏头部显示 12×6 的小鲸标记。' },
           kind: 'boolean',
         },
         {

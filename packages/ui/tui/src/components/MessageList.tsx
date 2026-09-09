@@ -17,7 +17,7 @@ import { noteFrameCause, noteListGeometry } from '../ink/geometry-trace.js'
 import { getTerminalFlushTick } from '../ink/flush-tick.js'
 import { InterruptedByUser } from './InterruptedByUser.js'
 import { LogoV2 } from './LogoV2.js'
-import type { PetAnimationName } from './PetSprite.js'
+import type { PetAnimationName } from './CompactWhale.js'
 import { StreamingMarkdown } from './StreamingMarkdown.js'
 import { MessageMetadata } from './messages/MessageMetadata.js'
 import { stripNarration } from '../utils/narration.js'
@@ -61,7 +61,7 @@ const OVERSCAN_LINES = 128
 const DEFAULT_ROW_HEIGHT = 2
 /** Cold-start estimate of the header block above the rows; corrected by the
  *  first layout measurement. */
-const DEFAULT_HEADER_LINES = 14
+const DEFAULT_HEADER_LINES = 8
 /** Stable fallbacks for the stream-view toggle props: verify/repro harnesses
  *  and embedders render MessageList with prop sets that predate them, and the
  *  render must not throw (same rule as Chat's stubbed channel APIs). Module
@@ -1599,7 +1599,7 @@ function compactPreview(text: string, limit = 60): string {
 const MemoRow = React.memo(TranscriptRow)
 
 /**
- * The header block pinned above the transcript: the compact whale-girl pet
+ * The header block pinned above the transcript: the compact whale mark
  * with the wordmark, tagline, model/effort and cwd (`LogoV2`), plus the
  * welcome line. It scrolls away with the transcript once the conversation
  * fills the viewport (Claude Code shows its ✦ logo in the same slot).

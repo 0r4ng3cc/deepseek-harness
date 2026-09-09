@@ -53,6 +53,8 @@ import { TooltipLayer } from '../components/Tooltip.js'
 import { PromptInput, type PromptController } from '../components/PromptInput.js'
 import type { InjectController } from '../dsh-adapter/inject-channel.js'
 import { PromptEditorLayer } from '../components/PromptEditor.js'
+import { SystemPromptEditor } from '../components/SystemPromptEditor.js'
+import { readSystemPromptPref, writeSystemPromptPref } from '../systemPromptPrefs.js'
 import { GoalTodoPanel } from '../components/GoalTodoPanel.js'
 import { AutoRecapRow } from '../components/AutoRecapRow.js'
 import { BalanceReportRow } from '../components/BalanceReportRow.js'
@@ -90,6 +92,8 @@ import { isValidSessionColor, SESSION_COLOR_NAMES } from '../cc/sessionColors.js
 import { TipsPanel } from '../components/TipsPanel.js'
 import { SubagentDashboard } from '../components/SubagentDashboard.js'
 import { JobsPanel } from '../components/JobsPanel.js'
+import { QueuePanel } from '../components/QueuePanel.js'
+import { ToolsPanel, countToolRows } from '../components/ToolsPanel.js'
 import { SubagentDetailScene } from '../components/SubagentDetailScene.js'
 import { FileActionsPanel, FILE_ACTION_COUNT } from '../components/FileActionsPanel.js'
 import { openExternal, openFile, revealInFileManager } from '../utils/openExternal.js'
@@ -651,7 +655,7 @@ export function Chat({
   const agentViewOpenSessionRef = React.useRef<string | undefined>(undefined)
   /**
    * Leaving a whole screen (agent view, browser) remounts the transcript
-   * tree, which would replay the ~3.4s whale opening animation on every
+   * tree, which would replay the ~1.2s whale opening animation on every
    * close — competing with resumed or streaming rows for frame budget.
    * Suppress the intro on those remounts; `/deepseek` re-enables it.
    */
@@ -697,9 +701,10 @@ export function Chat({
     setSceneOpen(true)
   }, [])
   /** The startup summary gives way to transcript rows after the first local command or message. */
-  const loadedContextVisible = channel.rows.length === 0 && channel.loadedContext !== undefined
+  const loadedContextVisible = false
   /** Startup context panel: collapsed by default, toggled with Ctrl+P. */
   const [loadedContextOpen, setLoadedContextOpen] = React.useState(false)
+  const [systemPromptOpen, setSystemPromptOpen] = React.useState(false)
   /**
    * The context panel changes the height of the main-screen transcript by a
    * large amount. In inline mode that invalidates the renderer's previous
@@ -901,9 +906,9 @@ export function Chat({
   const petAnimation = useTerminalPetAnimation(channel)
 
   // Terminal tab title (ported from CC's AnimatedTerminalTitle): the session
-  // title when set, else "dsh-TUI"; a `⠂/⠐` spinner prefix while a turn is
+  // title when set, else "dsh"; a `⠂/⠐` spinner prefix while a turn is
   // working (960ms cadence, only while the terminal is focused), a static
-  // `✦` otherwise. dsh-TUI brands the idle prefix with the DeepSeek whale.
+  // `✦` otherwise. dsh brands the idle prefix with the DeepSeek whale.
   const [titleFrame, setTitleFrame] = React.useState(0)
   const terminalFocused = useTerminalFocus()
   // Mouse text selection auto-copy (CC's copy-on-select): active only in
@@ -926,7 +931,7 @@ export function Chat({
     ? (TITLE_ANIMATION_FRAMES[titleFrame] ?? '✦')
     : '✦'
   useTerminalTitle(
-    `${titlePrefix} 🐋 ${channel.sessionTitle}`,
+    `${titlePrefix} 🐳 ${channel.sessionTitle || 'dsh'}`,
   )
 
   const handleWorkspaceResult = (result: TuiWorkspaceCommandResult): void => {
@@ -1555,6 +1560,11 @@ export function Chat({
           overlay: { kind: 'thinking', focus: thinkingVisible ? 0 : 1 },
         })
         return true
+      case 'system': {
+        setHelpOpen(false)
+        setSystemPromptOpen(true)
+        return true
+      }
       case 'tokens': {
         const usage = t('tokens-usage', { in: formatTokens(channel.tokens.input), out: formatTokens(channel.tokens.output) })
         if (channel.contextWindow === undefined) {
@@ -1766,6 +1776,22 @@ export function Chat({
       case 'jobs':
         setHelpOpen(false)
         setJobsPanelOpen(true)
+        return true
+      case 'queue':
+        setHelpOpen(false)
+        dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
+        return true
+      case 'tools':
+        setHelpOpen(false)
+        dispatchOverlay({ type: 'open', overlay: { kind: 'tools', index: 0 } })
+        return true
+      case 'workflow':
+        setHelpOpen(false)
+        channel.notify(t('workflow-unavailable'), { color: 'warning', timeoutMs: 8000 })
+        return true
+      case 'schedule':
+        setHelpOpen(false)
+        channel.notify(t('schedule-unavailable'), { color: 'warning', timeoutMs: 8000 })
         return true
       case 'agents':
         setHelpOpen(false)
@@ -2787,6 +2813,40 @@ export function Chat({
       }
       return
     }
+    if (overlay.kind === 'queue') {
+      const count = channel.pending.length
+      if (key.upArrow || key.downArrow) {
+        dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: Math.max(count, 1) })
+      } else if (key.rightArrow) {
+        dispatchOverlay({ type: 'open', overlay: { kind: 'tools', index: 0 } })
+      } else if (key.leftArrow) {
+        dispatchOverlay({ type: 'close' })
+      } else if (key.delete || key.backspace) {
+        const item = channel.pending[overlay.index]
+        if (item) channel.removePending(item.id)
+      } else if (plainReturn) {
+        const item = channel.pending[overlay.index]
+        dispatchOverlay({ type: 'close' })
+        if (item && channel.removePending(item.id)) setHistoryFill(item.text)
+      } else if (key.escape) {
+        dispatchOverlay({ type: 'close' })
+      }
+      return
+    }
+    if (overlay.kind === 'tools') {
+      const count = countToolRows(channel.rows)
+      if (key.upArrow || key.downArrow) {
+        dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: Math.max(count, 1) })
+      } else if (key.rightArrow) {
+        dispatchOverlay({ type: 'close' })
+        setJobsPanelOpen(true)
+      } else if (key.leftArrow) {
+        dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
+      } else if (key.escape) {
+        dispatchOverlay({ type: 'close' })
+      }
+      return
+    }
     if (overlay.kind === 'plan') {
       if (key.upArrow || key.downArrow) {
         dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: 2 })
@@ -3314,6 +3374,14 @@ export function Chat({
       <JobsPanel
         jobs={channel.backgroundJobs ?? []}
         onClose={() => setJobsPanelOpen(false)}
+        onCycleBack={() => {
+          setJobsPanelOpen(false)
+          dispatchOverlay({ type: 'open', overlay: { kind: 'tools', index: 0 } })
+        }}
+        onCycleForward={() => {
+          setJobsPanelOpen(false)
+          dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
+        }}
         onKill={(id) => {
           // Stub channels (verify harnesses) have no jobControl — surface
           // the same failure toast as a refused kill instead of throwing.
@@ -3420,7 +3488,7 @@ export function Chat({
           cwd={channel.displayCwd}
           whale={channel.whale}
           petAnimation={petAnimation}
-          // Resuming a long session skips the ~3.4s opening animation: it
+          // Resuming a long session skips the ~1.2s opening animation: it
           // keeps firing low-frequency React commits that compete with the
           // transcript mount batches (and the first wheel events) for the
           // frame budget right when the user wants to read history. Fresh
@@ -3647,20 +3715,12 @@ export function Chat({
             fillText={historyFill}
             onFillConsumed={() =>{  setHistoryFill(null) }}
             onRewindRequest={openRewind}
-            onBackgroundRequest={backgroundToAgentView}
-            backgroundAgentsNeedingInput={
-              // Only the real channel supplies the seam; pre-agent-view test
-              // stubs must not grow the footer row (layout-dependent
-              // regressions pin the visible row count). The footer only
-              // renders while some session actually waits (N > 0): a
-              // permanent idle row would steal a transcript row on every
-              // real channel — one row is enough to scroll the startup
-              // header fully off a short terminal, pausing its viewport
-              // clock and shifting every row-count layout invariant.
-              channel.agentViewRows !== undefined && backgroundAgentsNeedingInput > 0
-                ? backgroundAgentsNeedingInput
-                : undefined
-            }
+            onBackgroundRequest={() => {
+              // Empty-prompt ←/→ cycles run panes (queue → tools → jobs).
+              // Agent switching stays on /agentview and /bg.
+              dispatchOverlay({ type: 'open', overlay: { kind: 'queue', index: 0 } })
+            }}
+            backgroundAgentsNeedingInput={0}
             controllerRef={promptControllerRef}
           />
         )}
@@ -3883,6 +3943,24 @@ export function Chat({
               />
             </Box>
           )}
+          {overlay.kind === 'queue' && (
+            <Box flexDirection="column" marginTop={1}>
+              <QueuePanel
+                pending={channel.pending}
+                focusIndex={overlay.index}
+                onPick={(index) => {
+                  const item = channel.pending[index]
+                  dispatchOverlay({ type: 'close' })
+                  if (item && channel.removePending(item.id)) setHistoryFill(item.text)
+                }}
+              />
+            </Box>
+          )}
+          {overlay.kind === 'tools' && (
+            <Box flexDirection="column" marginTop={1}>
+              <ToolsPanel rows={channel.rows} focusIndex={overlay.index} />
+            </Box>
+          )}
           {overlay.kind === 'plan' && (
             <Box flexDirection="column" marginTop={1}>
               <PlanPicker
@@ -4014,6 +4092,18 @@ export function Chat({
           才能盖住包括状态栏在内的全部后绘兄弟。内容由 PromptInput
           经 module store 发布（见 PromptEditor.tsx）。 */}
       <PromptEditorLayer />
+      {systemPromptOpen && (
+        <SystemPromptEditor
+          initial={readSystemPromptPref()}
+          onSave={(text) => {
+            const ok = writeSystemPromptPref(text)
+            setSystemPromptOpen(false)
+            if (!ok) channel.notify(t('system-save-failed'), { color: 'error' })
+            else channel.notify(text.trim() === '' ? t('system-cleared') : t('system-saved'))
+          }}
+          onCancel={() => setSystemPromptOpen(false)}
+        />
+      )}
     </Box>
   )
 }

@@ -1,0 +1,11 @@
+# History
+- 2026-09-09 draft: User asked to add Claude-Code-style TUI into deepseek-harness, redesign theme/whale, and add Claude/Codex/Gemini/Grok/DeepSeek protocols. Evidence: TUI already lives at packages/ui/tui; dsh-TUI is the upstream plugin copy; pi-ai already ships the named protocols; dsh-auth OAuth is openai-codex/anthropic/xai; Gemini is API-key.
+- 2026-09-09 identity locked: keep DSH whale+blue; palette = DeepSeek `#4D6BFE` / `#93BEFF` / `#C6D8F8`; whale redrawn compact; not Clawd; not 雾蓝; not 40-col pixel whale.
+- 2026-09-09 Q-001 done: theme.ts dark/light brand tokens `#4D6BFE`; mist hex gone; custom overlay still works; shimmer BRAND unchanged.
+- 2026-09-09 Q-002 done: CompactWhale 12×6 with DeepSeek palette; LogoV2 no longer mounts PetSprite; intro ≤1.2s.
+- 2026-09-09 Q-003 done: chrome already CC-shaped; DEFAULT_HEADER_LINES 14→8; intro comments 3.4s→1.2s.
+- 2026-09-09 Q-004 recast: protocols not official vendors. Custom gateways; add google-generative-ai + openai-codex-responses.
+- 2026-09-09 Q-004 done: PROTOCOLS + /provider picker include google-generative-ai and openai-codex-responses; catalog tests updated.
+- 2026-09-09 Q-005 done: xfdsh tui alias; README bilingual; args.spec 6 passed.
+- 2026-09-09 Q-006 done: focused regression passed (theme/whale/protocols/alias/default route). Task complete.
+- 2026-09-09 follow-up: CompactWhale redrawn as 11×4 glyph (Clawd register); LogoV2 condensed wordmark; visuals synced to ../dsh-TUI. Coverage: TUI owns the agent REPL path; Web-only schedule/webhook/workflow-run/deliverables/message-feedback stay out of TUI.

@@ -2,7 +2,7 @@
  * EffortInputBorder — 输入框层上的三幕点焰叠加（对齐 Codex 的完整
  * 语义：光扫过、档位字样浮现、整体渐隐）。
  *
- * 输入框只有顶/底两条横边框（round、无左右）——本组件自绘这两行，
+ * 输入框只有顶/底两条横线（无圆角、无左右）——本组件自绘这两行，
  * **同步**承载动画；档位字样由输入行尾的 EffortTierBadge 短暂显示
  * （见 PromptInput），动画全程行数恒定。切到最高思考强度档时：
  *
@@ -137,7 +137,7 @@ export function EffortInputBorder({
     if (overlay !== null && elapsedMs >= IGNITION_TIMELINE.fadeEndMs) setOverlay(null)
   }, [overlay, elapsedMs])
 
-  const midWidth = Math.max(0, columns - 2)
+  const midWidth = Math.max(0, columns)
   const sweepColors =
     overlay !== null && elapsedMs < IGNITION_TIMELINE.sweepMs && midWidth > 0
       ? ignitionLineColors({ elapsedMs, width: midWidth, onLight })
@@ -159,9 +159,9 @@ export function EffortInputBorder({
       width="100%"
       flexShrink={0}
     >
-      <BorderRow left="╭" right="╮" runs={runs} idleColor={idleColor} label={topRightLabel} />
+      <BorderRow left="" right="" runs={runs} idleColor={idleColor} label={topRightLabel} />
       <Box flexShrink={0}>{children}</Box>
-      <BorderRow left="╰" right="╯" runs={runs} idleColor={idleColor} />
+      <BorderRow left="" right="" runs={runs} idleColor={idleColor} />
     </Box>
   )
 }

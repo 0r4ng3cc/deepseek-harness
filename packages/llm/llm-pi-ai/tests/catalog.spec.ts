@@ -311,16 +311,30 @@ describe('hand-declared providers', () => {
     })).toThrow(/needs a baseURL/)
   })
 
-  it.each(['bedrock-converse-stream', 'google-vertex', 'azure-openai-responses', 'openai-codex-responses'])(
+  it.each(['bedrock-converse-stream', 'google-vertex', 'azure-openai-responses'])(
     'refuses %s, whose authentication a profile cannot express',
     (api) => {
-      // These need SigV4 credentials and a region, a project plus ADC, provider
-      // environment and an api-version, or OAuth — none of which a key, an
+      // These need SigV4 credentials and a region, a project plus ADC, or
+      // provider environment and an api-version — none of which a key, an
       // endpoint, and headers can carry, so a route naming one would be built
       // unable to authenticate.
       expect(supportedProtocols()).not.toContain(api)
       expect(() => buildProvider({ provider: 'acme-gateway', displayName: 'Acme', api, models: [], namesCredential: true }))
         .toThrow(/cannot serve; supported protocols are/)
+    },
+  )
+
+  it.each(['google-generative-ai', 'openai-codex-responses'])(
+    'serves %s on a hand-declared gateway that authenticates with a key',
+    (api) => {
+      expect(supportedProtocols()).toContain(api)
+      expect(() => buildProvider({
+        provider: 'acme-gateway',
+        displayName: 'Acme',
+        api,
+        models: [],
+        namesCredential: true,
+      })).not.toThrow()
     },
   )
 

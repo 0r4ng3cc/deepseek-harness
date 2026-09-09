@@ -35,7 +35,23 @@ export const PROVIDER_PROTOCOLS = [
   'openai-completions',
   'openai-responses',
   'anthropic-messages',
+  'google-generative-ai',
+  'openai-codex-responses',
 ] as const
+
+type ProviderProtocol = (typeof PROVIDER_PROTOCOLS)[number]
+
+const PROTOCOL_DESC: Record<ProviderProtocol, 'provider-protocol-completions-desc' | 'provider-protocol-responses-desc' | 'provider-protocol-anthropic-desc' | 'provider-protocol-google-desc' | 'provider-protocol-codex-desc'> = {
+  'openai-completions': 'provider-protocol-completions-desc',
+  'openai-responses': 'provider-protocol-responses-desc',
+  'anthropic-messages': 'provider-protocol-anthropic-desc',
+  'google-generative-ai': 'provider-protocol-google-desc',
+  'openai-codex-responses': 'provider-protocol-codex-desc',
+}
+
+function protocolChoices(): { label: string; description: string }[] {
+  return PROVIDER_PROTOCOLS.map(id => ({ label: id, description: t(PROTOCOL_DESC[id]) }))
+}
 
 /**
  * Derive the credential ref for a route, matching the official web UI
@@ -397,11 +413,7 @@ async function runAddFlow(
     const endpointAnswer = await ask({
       questions: [
         textQuestion('baseurl', t('provider-q-baseurl')),
-        optionQuestion('protocol', t('provider-q-protocol'), [
-          { label: 'openai-completions', description: t('provider-protocol-completions-desc') },
-          { label: 'openai-responses', description: t('provider-protocol-responses-desc') },
-          { label: 'anthropic-messages', description: t('provider-protocol-anthropic-desc') },
-        ], { hideCustomInput: true }),
+        optionQuestion('protocol', t('provider-q-protocol'), protocolChoices(), { hideCustomInput: true }),
       ],
     })
     baseURL = answerText(endpointAnswer, 'baseurl')
@@ -733,7 +745,7 @@ async function editBaseUrl(
   return patchProfileField(deps, provider, ['baseURL'], value, { baseURL: value })
 }
 
-/** Edit the wire protocol (custom routes only): pick from the three wire
+/** Edit the wire protocol (custom routes only): pick from the supported
  *  protocols (the current one is default-focused), then patch just that
  *  field. Picking the current protocol is a no-op. */
 async function editWireProtocol(
@@ -743,11 +755,7 @@ async function editWireProtocol(
   const { ask, notify } = deps
   const current = provider.api ?? 'openai-completions'
   const protocolAnswer = await ask({
-    questions: [optionQuestion('protocol', t('provider-q-protocol'), [
-      { label: 'openai-completions', description: t('provider-protocol-completions-desc') },
-      { label: 'openai-responses', description: t('provider-protocol-responses-desc') },
-      { label: 'anthropic-messages', description: t('provider-protocol-anthropic-desc') },
-    ], { hideCustomInput: true, defaultSelected: [current] })],
+    questions: [optionQuestion('protocol', t('provider-q-protocol'), protocolChoices(), { hideCustomInput: true, defaultSelected: [current] })],
   })
   const picked = answerSelected(protocolAnswer, 'protocol')[0]
   if (picked === undefined || picked === current) {

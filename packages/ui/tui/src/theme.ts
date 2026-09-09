@@ -1,11 +1,11 @@
 /**
- * dsh-tui color themes — Gentle Mist Blue (雾蓝) family.
+ * dsh-tui color themes — DeepSeek brand blue family.
  *
- * Two truecolor palettes share one identity: mist blues carry brand, focus,
- * and interaction; body text stays neutral. `light` is the strict Gentle
- * Mist Blue card (warm off-white background #F6F3ED, ink text #343945) for
- * light terminals; `dark` is its dark-terminal adaptation (warm off-white
- * text, accent-soft blues). `dark-ansi` is the 16-color fallback for
+ * Two truecolor palettes share one identity: `#4D6BFE` carries brand, focus,
+ * and interaction; ice `#93BEFF` / pale `#D7E4FF` / flash `#C6D8F8` are the
+ * shimmer ladder; body text stays neutral. `light` is the light-terminal
+ * card (surface #F5F7FF, ink #1B2438); `dark` is the dark-terminal
+ * adaptation (text #E8ECF8). `dark-ansi` is the 16-color fallback for
  * terminals without truecolor. The active palette is chosen at startup by
  * querying the terminal background (OSC 11) — see ThemeProvider.
  *
@@ -175,36 +175,35 @@ const rgb = (hex: string): string => {
 }
 
 /**
- * Gentle Mist Blue dark adaptation. The blues come straight from the card
- * (#27478C–#ABC2EC); neutrals are warm (derived from #F6F3ED/#343945) so
- * the palette reads calm rather than cyber-hard on a dark terminal.
+ * DeepSeek brand dark adaptation. Brand/focus use `#4D6BFE`; ice/flash
+ * carry shimmer; neutrals stay cool so the palette reads as DSH, not mist.
  */
 const darkTheme: Theme = {
   autoAccept: rgb('#B3A0D4'), // Soft violet
   bashBorder: rgb('#D194AE'), // Mist rose
-  claude: rgb('#7DA1DE'), // Accent Soft — mist brand blue
+  claude: rgb('#4D6BFE'), // DeepSeek brand
   toolNameMutate: rgb('#E5C07B'), // soft gold — Edit/Write (warm accent)
   toolNameExec: rgb('#56B6C2'), // mist cyan — Bash/exec tools
-  claudeShimmer: rgb('#ABC2EC'), // Border Blue for shimmer effect
-  claudeBlue_FOR_SYSTEM_SPINNER: rgb('#7DA1DE'),
-  claudeBlueShimmer_FOR_SYSTEM_SPINNER: rgb('#ABC2EC'),
-  permission: rgb('#ABC2EC'), // Border Blue — pane/dialog accent
-  permissionShimmer: rgb('#C9D7F2'),
+  claudeShimmer: rgb('#93BEFF'), // ice shimmer
+  claudeBlue_FOR_SYSTEM_SPINNER: rgb('#4D6BFE'),
+  claudeBlueShimmer_FOR_SYSTEM_SPINNER: rgb('#93BEFF'),
+  permission: rgb('#93BEFF'), // ice — pane/dialog accent
+  permissionShimmer: rgb('#C6D8F8'),
   planMode: rgb('#7FAE99'), // Muted sage green
-  ide: rgb('#5E88CC'), // Accent Blue
+  ide: rgb('#4D6BFE'), // DeepSeek brand
   promptBorder: rgb('#55606F'), // Muted blue-gray
-  promptBorderShimmer: rgb('#7DA1DE'),
-  text: rgb('#E8E6E0'), // Warm off-white (from #F6F3ED)
-  inverseText: rgb('#22262E'), // Deep warm charcoal (from #343945)
-  inactive: rgb('#8D95A6'), // Mist gray-blue — feeds dimColor
-  inactiveShimmer: rgb('#AAB2C2'),
-  subtle: rgb('#5E6673'), // Dimmer blue-gray
-  suggestion: rgb('#ABC2EC'), // Border Blue — focus/selection
-  remember: rgb('#ABC2EC'),
-  background: rgb('#5E88CC'), // Accent Blue — badge fill
-  success: rgb('#82B89D'), // Mist green (from #4E9675)
-  error: rgb('#DA8A93'), // Soft rose
-  warning: rgb('#D8B270'), // Soft amber
+  promptBorderShimmer: rgb('#4D6BFE'),
+  text: rgb('#E8ECF8'), // Cool off-white
+  inverseText: rgb('#141A2A'), // Deep navy ink
+  inactive: rgb('#9AA3C2'), // Cool gray-blue — feeds dimColor
+  inactiveShimmer: rgb('#B8C0D9'),
+  subtle: rgb('#6B7390'), // Dimmer blue-gray
+  suggestion: rgb('#93BEFF'), // ice — focus/selection
+  remember: rgb('#93BEFF'),
+  background: rgb('#4D6BFE'), // brand — badge fill
+  success: rgb('#4ADE80'),
+  error: rgb('#F87171'),
+  warning: rgb('#FBBF24'),
   merged: rgb('#B3A0D4'), // Soft violet (matches autoAccept)
   warningShimmer: rgb('#E4C78E'),
   diffAdded: rgb('#27392C'),
@@ -213,12 +212,12 @@ const darkTheme: Theme = {
   diffRemovedDimmed: rgb('#362B2C'),
   diffAddedWord: rgb('#57956B'),
   diffRemovedWord: rgb('#B26671'),
-  toolCardBackground: rgb('#242B3A'), // lighter blue-grey card surface
-  toolCardBackgroundDim: rgb('#1C2330'), // deeper blue substrate
+  toolCardBackground: rgb('#1C2438'), // navy card surface
+  toolCardBackgroundDim: rgb('#141A2A'), // deeper navy substrate
   toolDotExec: rgb('#7FAE99'), // sage green — bash/pwsh
   toolDotRead: rgb('#82B8C7'), // cyan blue — read/grep/glob
   toolDotWrite: rgb('#B3A0D4'), // soft violet — edit/write
-  toolDotWeb: rgb('#7DA1DE'), // mist blue — web search/fetch
+  toolDotWeb: rgb('#4D6BFE'), // brand — web search/fetch
   toolDotTask: rgb('#D194AE'), // mist rose — subagent/jobs
   syntaxKeyword: rgb('#78A0D6'), // muted anchor blue
   syntaxString: rgb('#79AD91'), // mist green, distinct without neon saturation
@@ -238,22 +237,22 @@ const darkTheme: Theme = {
   orange_FOR_SUBAGENTS_ONLY: rgb('#DB8C50'),
   pink_FOR_SUBAGENTS_ONLY: rgb('#D384A8'),
   cyan_FOR_SUBAGENTS_ONLY: rgb('#6FAFB4'),
-  professionalBlue: rgb('#7DA1DE'),
+  professionalBlue: rgb('#4D6BFE'),
   chromeYellow: rgb('#D8B270'),
-  clawd_body: rgb('#D98A63'), // Warm mascot orange
+  clawd_body: rgb('#4D6BFE'), // compact whale body
   clawd_background: rgb('#000000'),
-  userMessageBackground: rgb('#242B3A'), // 主人消息：深色蓝灰表面，和回复内容区分
-  userMessageBackgroundHover: rgb('#3B5BDB'), // hover/expand: blue block with gold text
+  userMessageBackground: rgb('#1C2438'), // 主人消息：深蓝表面，和回复内容区分
+  userMessageBackgroundHover: rgb('#4D6BFE'),
   messageActionsBackground: rgb('#2E333D'),
-  selectionBg: rgb('#3B4A66'), // Mist-blue tint on dark
+  selectionBg: rgb('#2A3A6A'), // brand tint on dark
   bashMessageBackgroundColor: rgb('#2C3038'),
   memoryBackgroundColor: rgb('#30353D'),
-  rate_limit_fill: rgb('#7DA1DE'),
+  rate_limit_fill: rgb('#4D6BFE'),
   rate_limit_empty: rgb('#3C414B'),
   fastMode: rgb('#E09A58'),
   fastModeShimmer: rgb('#EAB478'),
   briefLabelYou: rgb('#FFDF80'),
-  briefLabelClaude: rgb('#7DA1DE'),
+  briefLabelClaude: rgb('#4D6BFE'),
   rainbow_red: rgb('#D98F8A'),
   rainbow_orange: rgb('#D9A97E'),
   rainbow_yellow: rgb('#D6BE78'),
@@ -269,47 +268,45 @@ const darkTheme: Theme = {
   rainbow_indigo_shimmer: rgb('#BFB4DE'),
   rainbow_violet_shimmer: rgb('#D1B4D1'),
   subagentBullet: rgb('#D194AE'),
-  subagentDescription: rgb('#E8E6E0'),
-  subagentModel: rgb('#8D95A6'),
-  subagentElapsed: rgb('#8D95A6'),
-  subagentToolName: rgb('#7DA1DE'),
-  subagentStatusRunning: rgb('#7DA1DE'),
-  subagentStatusCompleted: rgb('#82B89D'),
-  subagentStatusFailed: rgb('#DA8A93'),
+  subagentDescription: rgb('#E8ECF8'),
+  subagentModel: rgb('#9AA3C2'),
+  subagentElapsed: rgb('#9AA3C2'),
+  subagentToolName: rgb('#4D6BFE'),
+  subagentStatusRunning: rgb('#4D6BFE'),
+  subagentStatusCompleted: rgb('#4ADE80'),
+  subagentStatusFailed: rgb('#F87171'),
 }
 
 /**
- * Gentle Mist Blue light theme — the strict original card. Blue carries
- * brand, focus, interaction, and highlight only; body text stays ink gray
- * on the warm off-white family (background #F6F3ED, surface #EEE5D2,
- * surface-alt #E4D9E5).
+ * DeepSeek brand light theme. Blue carries brand, focus, and highlight;
+ * body text stays ink `#1B2438` on the cool card family `#F5F7FF`.
  */
 const lightTheme: Theme = {
-  autoAccept: rgb('#9B86B8'), // Muted violet (from surface-alt pink-mist)
-  bashBorder: rgb('#C07A93'), // Muted rose (from surface-alt pink-mist)
-  claude: rgb('#3F6CC4'), // Primary Blue — brand
+  autoAccept: rgb('#9B86B8'), // Muted violet
+  bashBorder: rgb('#C07A93'), // Muted rose
+  claude: rgb('#4D6BFE'), // DeepSeek brand
   toolNameMutate: rgb('#8A6A00'), // deep gold - Edit/Write (warm accent)
   toolNameExec: rgb('#0F7A8A'), // deep cyan - Bash/exec tools
-  claudeShimmer: rgb('#5E88CC'), // Accent Blue for shimmer effect
-  claudeBlue_FOR_SYSTEM_SPINNER: rgb('#3F6CC4'),
-  claudeBlueShimmer_FOR_SYSTEM_SPINNER: rgb('#5E88CC'),
-  permission: rgb('#3F6CC4'), // Primary Blue — pane/dialog accent
-  permissionShimmer: rgb('#5E88CC'),
+  claudeShimmer: rgb('#93BEFF'), // ice shimmer
+  claudeBlue_FOR_SYSTEM_SPINNER: rgb('#4D6BFE'),
+  claudeBlueShimmer_FOR_SYSTEM_SPINNER: rgb('#93BEFF'),
+  permission: rgb('#4D6BFE'), // brand — pane/dialog accent
+  permissionShimmer: rgb('#93BEFF'),
   planMode: rgb('#4E9675'), // Sage green
-  ide: rgb('#5E88CC'), // Accent Blue
-  promptBorder: rgb('#ABC2EC'), // Border Blue
-  promptBorderShimmer: rgb('#7DA1DE'), // Accent Soft
-  text: rgb('#343945'), // Ink
-  inverseText: rgb('#F6F3ED'), // Warm off-white (on colored fills)
+  ide: rgb('#4D6BFE'), // DeepSeek brand
+  promptBorder: rgb('#93BEFF'), // ice
+  promptBorderShimmer: rgb('#4D6BFE'),
+  text: rgb('#1B2438'), // Ink
+  inverseText: rgb('#F5F7FF'), // Cool card (on colored fills)
   inactive: rgb('#8991A0'), // Text-muted — feeds dimColor
   inactiveShimmer: rgb('#626978'), // Text-secondary
   subtle: rgb('#A6ADBA'), // Lower contrast than inactive
-  suggestion: rgb('#3F6CC4'), // Primary Blue — focus/selection
-  remember: rgb('#27478C'), // Deep Outline — picker titles
-  background: rgb('#3F6CC4'), // Primary Blue — badge fill
-  success: rgb('#4E9675'),
-  error: rgb('#C65D6B'), // Muted rose-red
-  warning: rgb('#C08A3E'), // Muted amber
+  suggestion: rgb('#4D6BFE'), // brand — focus/selection
+  remember: rgb('#3A56D4'), // deeper brand — picker titles
+  background: rgb('#4D6BFE'), // brand — badge fill
+  success: rgb('#4ADE80'),
+  error: rgb('#F87171'),
+  warning: rgb('#FBBF24'),
   merged: rgb('#9B86B8'), // Muted violet (matches autoAccept)
   warningShimmer: rgb('#D0A050'),
   diffAdded: rgb('#DCEBDD'),
@@ -318,12 +315,12 @@ const lightTheme: Theme = {
   diffRemovedDimmed: rgb('#F5E6E4'),
   diffAddedWord: rgb('#A9D3B4'),
   diffRemovedWord: rgb('#E5B3AE'),
-  toolCardBackground: rgb('#E9EFF9'), // cool light blue card
-  toolCardBackgroundDim: rgb('#DEE7F4'), // deeper blue-tinted substrate
+  toolCardBackground: rgb('#F5F7FF'), // cool card
+  toolCardBackgroundDim: rgb('#E8EEFF'), // deeper substrate
   toolDotExec: rgb('#4E7A4E'),
   toolDotRead: rgb('#3F7E8F'),
   toolDotWrite: rgb('#7A5CA8'),
-  toolDotWeb: rgb('#4A63A8'),
+  toolDotWeb: rgb('#4D6BFE'),
   toolDotTask: rgb('#B04A5A'),
   syntaxKeyword: rgb('#3F68B5'), // clear primary blue without neon saturation
   syntaxString: rgb('#3F805F'), // readable muted green
@@ -331,34 +328,34 @@ const lightTheme: Theme = {
   syntaxNumber: rgb('#A7652B'), // warm amber accent
   syntaxFunction: rgb('#2E7E8A'), // muted cyan
   syntaxType: rgb('#7E55A4'), // softened violet
-  syntaxVariable: rgb('#343945'),
+  syntaxVariable: rgb('#1B2438'),
   syntaxOperator: rgb('#5B6672'),
   syntaxPunctuation: rgb('#9AA0A8'),
   syntaxConstant: rgb('#A84472'), // muted rose accent
   red_FOR_SUBAGENTS_ONLY: rgb('#BE5A52'),
-  blue_FOR_SUBAGENTS_ONLY: rgb('#3F6CC4'),
+  blue_FOR_SUBAGENTS_ONLY: rgb('#4D6BFE'),
   green_FOR_SUBAGENTS_ONLY: rgb('#4E9675'),
   yellow_FOR_SUBAGENTS_ONLY: rgb('#B98A34'),
   purple_FOR_SUBAGENTS_ONLY: rgb('#9678B4'),
   orange_FOR_SUBAGENTS_ONLY: rgb('#C97F4A'),
   pink_FOR_SUBAGENTS_ONLY: rgb('#C06E97'),
   cyan_FOR_SUBAGENTS_ONLY: rgb('#5698A0'),
-  professionalBlue: rgb('#5E88CC'),
+  professionalBlue: rgb('#4D6BFE'),
   chromeYellow: rgb('#C99A3F'),
-  clawd_body: rgb('#D98A63'), // Warm mascot orange
-  clawd_background: rgb('#F6F3ED'),
-  userMessageBackground: rgb('#E7ECF5'), // 主人消息：浅色主题下保持柔和对比
-  userMessageBackgroundHover: rgb('#DCE4FB'), // subtle blue tint on hover/expand
-  messageActionsBackground: rgb('#E4D9E5'),
-  selectionBg: rgb('#D5DEF2'), // Mist-blue tint on warm white
-  bashMessageBackgroundColor: rgb('#EAE1D3'),
-  memoryBackgroundColor: rgb('#E4D9E5'),
-  rate_limit_fill: rgb('#7DA1DE'),
-  rate_limit_empty: rgb('#DDD5C7'),
+  clawd_body: rgb('#4D6BFE'), // compact whale body
+  clawd_background: rgb('#F5F7FF'),
+  userMessageBackground: rgb('#F5F7FF'), // 主人消息：浅色主题下保持柔和对比
+  userMessageBackgroundHover: rgb('#D7E4FF'),
+  messageActionsBackground: rgb('#E8EEFF'),
+  selectionBg: rgb('#D7E4FF'), // ice tint on cool white
+  bashMessageBackgroundColor: rgb('#EEF2FF'),
+  memoryBackgroundColor: rgb('#E8EEFF'),
+  rate_limit_fill: rgb('#4D6BFE'),
+  rate_limit_empty: rgb('#D5DEF2'),
   fastMode: rgb('#D98E4A'),
   fastModeShimmer: rgb('#E2A465'),
   briefLabelYou: rgb('#A67600'),
-  briefLabelClaude: rgb('#3F6CC4'),
+  briefLabelClaude: rgb('#4D6BFE'),
   rainbow_red: rgb('#D98888'),
   rainbow_orange: rgb('#D9A276'),
   rainbow_yellow: rgb('#CEB264'),
@@ -374,14 +371,15 @@ const lightTheme: Theme = {
   rainbow_indigo_shimmer: rgb('#B7AFD8'),
   rainbow_violet_shimmer: rgb('#CFB0CC'),
   subagentBullet: rgb('#C07A93'),
-  subagentDescription: rgb('#343945'),
+  subagentDescription: rgb('#1B2438'),
   subagentModel: rgb('#8991A0'),
   subagentElapsed: rgb('#8991A0'),
-  subagentToolName: rgb('#3F6CC4'),
-  subagentStatusRunning: rgb('#3F6CC4'),
+  subagentToolName: rgb('#4D6BFE'),
+  subagentStatusRunning: rgb('#4D6BFE'),
   subagentStatusCompleted: rgb('#4E9675'),
-  subagentStatusFailed: rgb('#C65D6B'),
+  subagentStatusFailed: rgb('#F87171'),
 }
+
 
 /**
  * Dark ANSI theme using only the 16 standard ANSI colors, for terminals

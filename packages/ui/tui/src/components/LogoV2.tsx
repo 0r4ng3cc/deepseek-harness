@@ -10,8 +10,15 @@ import { getTheme } from '../theme.js'
 import { useTheme } from './design-system/ThemeProvider.js'
 import { parseRGB } from './Spinner/spinnerUtils.js'
 import { BRAND, FLASH, ICE, sweep } from './shimmer.js'
-import { OPENING_SEQUENCES, pickOpeningSequence, type OpeningStep, type WhaleIntroId } from './whaleFrames.js'
-import { PetSprite, type PetAnimationName } from './PetSprite.js'
+import {
+  CompactWhale,
+  OPENING_SEQUENCES,
+  pickOpeningSequence,
+  poseFromPetAnimation,
+  type OpeningStep,
+  type PetAnimationName,
+  type WhaleIntroId,
+} from './CompactWhale.js'
 
 /**
  * Header badge version, read from the installed package.json so the display
@@ -36,17 +43,10 @@ const VERSION = (() => {
   return '0.1.0'
 })()
 
-/** 终端过窄时只保留文字，避免宠物挤压模型和路径信息。 */
-const WHALE_MIN_COLUMNS = 48
-/** 15 行宠物帧加上标题和输入区后，常见 24 行终端仍保留宠物。 */
-const WHALE_MIN_ROWS = 20
-
-/** 不同开屏节奏使用不同动作，避免每次启动都像同一张静态贴图。 */
-const PET_INTRO_ANIMATION: Record<WhaleIntroId, PetAnimationName> = {
-  classic: 'waving',
-  heart: 'jumping',
-  sleep: 'waiting',
-}
+/** 终端过窄时只保留文字，避免小鲸挤压模型和路径信息。 */
+const WHALE_MIN_COLUMNS = 64
+/** 4 行小鲸加上标题后，常见 24 行终端仍保留标记。 */
+const WHALE_MIN_ROWS = 18
 
 /** `max` → `Max` (effort levels arrive lower-case from the adapter). */
 function capitalize(text: string): string {
@@ -54,9 +54,9 @@ function capitalize(text: string): string {
 }
 
 /**
- * 开屏沿用原有的节奏，但所有视觉元素都压缩到终端友好的信息栏：
- * 左侧是固定尺寸的鲸鱼娘，右侧是品牌、模型和目录；底部只留一行短提示。
- * 宠物状态由会话实时驱动，动画不会改变布局高度。
+ * 开屏沿用原有的节奏，视觉压成 Claude Code 那种信息栏：
+ * 左侧 11×4 字形小鲸，右侧品牌、模型、目录；底下只留一行短提示。
+ * 会话状态只切换姿势，不改变布局高度。
  */
 export function LogoV2({
   model,
@@ -78,12 +78,12 @@ export function LogoV2({
   intro?: WhaleIntroId
   /** Test seam: pin the startup tip line (probes need a deterministic tip). */
   tip?: Tip
-  /** Show the compact whale-girl pet (settings `dsh-tui.whale`); off → text-only header. */
+  /** Show the compact whale mark (settings `dsh-tui.whale`); off → text-only header. */
   whale?: boolean
   /** Test seam: pin/suppress the upstream-drift notice (`null` forces it off;
    * `undefined` — the production default — auto-detects the install). */
   drift?: UpstreamDriftSummary | null
-  /** 会话状态对应的宠物动作；未提供时使用待机动作。 */
+  /** 会话状态对应的小鲸姿势来源；未提供时使用待机姿势。 */
   petAnimation?: PetAnimationName
 }): React.ReactNode {
   // One intro per logo mount: the production path rolls (startup splash
@@ -130,21 +130,22 @@ export function LogoV2({
   const [driftLine] = React.useState<UpstreamDriftSummary | null | undefined>(() =>
     drift === undefined ? upstreamDriftSummary() : drift,
   )
-  const activePetAnimation = settled ? petAnimation ?? 'idle' : PET_INTRO_ANIMATION[introId]
+  const introPose = settled ? undefined : sequence[step]?.pose
+  const whalePose = introPose ?? poseFromPetAnimation(petAnimation)
   const tipText = getLang() === 'zh' ? randomTip.zh : randomTip.en
 
   return (
     <Box ref={ref} flexDirection="column" marginTop={1}>
-      <Box flexDirection="row" width="100%" alignItems="flex-start">
+      <Box flexDirection="row" width="100%" alignItems="center">
         {showWhale && (
-          <PetSprite
-            animation={activePetAnimation}
-          />
+          <Box marginRight={2}>
+            <CompactWhale pose={whalePose} />
+          </Box>
         )}
-        <Box flexDirection="column" flexShrink={1} marginLeft={showWhale ? 2 : 0}>
+        <Box flexDirection="column" flexShrink={1}>
           <Text wrap="truncate-end">
-            <Text bold color="claude">{sweep('✦ dsh', t, wordmarkRGB, wordmarkShimmerRGB, 60)}</Text>
-            <Text dimColor>{'-TUI · v' + VERSION}</Text>
+            <Text bold color="claude">{sweep('dsh', t, wordmarkRGB, wordmarkShimmerRGB, 60)}</Text>
+            <Text dimColor>{'  v' + VERSION}</Text>
           </Text>
           <Text wrap="truncate-end">
             <Text color="claudeBlue_FOR_SYSTEM_SPINNER">{model}</Text>

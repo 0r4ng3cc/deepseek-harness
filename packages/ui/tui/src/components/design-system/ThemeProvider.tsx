@@ -20,7 +20,7 @@ import { logForDebugging } from '../../utils/debug.js'
  * Theme provider with terminal-background auto-detection. With no explicit
  * `theme` prop, no DSH_TUI_THEME override and no persisted choice
  * (~/.dsh-tui/theme.json), it queries the terminal's background color
- * (OSC 11) before first paint and picks the Gentle Mist Blue `light` palette
+ * (OSC 11) before first paint and picks the DeepSeek brand `light` palette
  * on light backgrounds, `dark` otherwise. Priority: explicit `theme` prop >
  * DSH_TUI_THEME (built-in, static, or runtime plugin name) > persisted `/theme`
  * choice > OSC 11 detection. An invalid forced name is warned and skipped, so

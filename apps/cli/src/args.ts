@@ -10,8 +10,8 @@
  * `dsh --profile tui --resume abc` boots the tui profile with `--resume abc`,
  * and `dsh --profile web -h` prints the web app's help, not this one's.
  *
- * `web` is a hardcoded alias for `--profile web`; `plugin` manages a profile's
- * plugin dependencies by forwarding to pnpm.
+ * `web` and `tui` are hardcoded aliases for `--profile web` and `--profile tui`;
+ * `plugin` manages a profile's plugin dependencies by forwarding to pnpm.
  * @module @deepseek-ai/dsh/args
  */
 
@@ -47,7 +47,7 @@ interface PluginInvocation {
 /** The resolved `dsh` invocation. Help, version, and errors exit inside {@link parseDshArgs}. */
 export type DshInvocation = ProfileInvocation | DumpConfigInvocation | PluginInvocation
 
-/** Launcher flags shared by the default command and the `web` alias. */
+/** Launcher flags shared by the default command and the profile aliases. */
 interface BootOptions {
   patch?: string[]
   dumpConfig?: boolean
@@ -64,9 +64,10 @@ const collect = (value: string, previous: string[] = []): string[] => [...previo
 const HELP_EXAMPLES = `
 Examples:
   xfdsh --profile web                          boot the web profile (same as: xfdsh web)
+  xfdsh tui                                    boot the tui profile (same as: xfdsh --profile tui)
   xfdsh --profile headless "run the tests"     answer one task, print the result, and exit
-  xfdsh --profile tui --patch ./extra.yml      boot a custom profile with one extra overlay
-  xfdsh --profile tui --resume <session>       arguments after the launcher flags reach the app
+  xfdsh tui --patch ./extra.yml                boot the tui profile with one extra overlay
+  xfdsh tui --resume <session>                 arguments after the launcher flags reach the app
   xfdsh --profile web --help                   the web app's own flags and help
   xfdsh plugin --profile tui add <package>     install a plugin into the tui profile
 `
@@ -74,7 +75,7 @@ Examples:
 /**
  * Resolve a boot or dump invocation from the launcher flags and the leftover
  * inner arguments.
- * @param program - the command whose options were parsed (the root, or the `web` alias).
+ * @param program - the command whose options were parsed (the root, or a profile alias).
  * @param profile - the profile these flags boot.
  * @param options - the launcher flags commander collected.
  * @param args - the leftover arguments, in argv order.
@@ -153,20 +154,24 @@ export function parseDshArgs(argv: readonly string[], version: string): DshInvoc
     }
   }
 
-  const web = program.command('web').description('boot the web profile (alias of --profile web); the web app\'s own flags follow')
-  web
-    .helpOption(false)
-    .allowUnknownOption()
-    .passThroughOptions()
-    .enablePositionalOptions()
-    .argument('[args...]', 'arguments for the web app (see: xfdsh web --help)')
-    .option('--patch <path>', 'extra patch-list overlay applied after the profile layer (repeatable)', collect)
-    .option('--dump-config', 'print the composed web-profile tree (with the user layer and any --patch) and exit')
-    .option('--dump-default-config', 'print the web profile\'s bundle layers (no user layer) and exit')
-    .action((args: string[], options: BootOptions) => {
-      rejectParentOptions('web')
-      resolved = resolveBoot(web, 'web', options, args)
-    })
+  const addProfileAlias = (name: string): void => {
+    const alias = program.command(name).description(`boot the ${name} profile (alias of --profile ${name}); the app's own flags follow`)
+    alias
+      .helpOption(false)
+      .allowUnknownOption()
+      .passThroughOptions()
+      .enablePositionalOptions()
+      .argument('[args...]', `arguments for the ${name} app (see: xfdsh ${name} --help)`)
+      .option('--patch <path>', 'extra patch-list overlay applied after the profile layer (repeatable)', collect)
+      .option('--dump-config', `print the composed ${name}-profile tree (with the user layer and any --patch) and exit`)
+      .option('--dump-default-config', `print the ${name} profile's bundle layers (no user layer) and exit`)
+      .action((args: string[], options: BootOptions) => {
+        rejectParentOptions(name)
+        resolved = resolveBoot(alias, name, options, args)
+      })
+  }
+  addProfileAlias('web')
+  addProfileAlias('tui')
 
   const plugin = program.command('plugin').description('manage a profile\'s plugins by forwarding the remaining arguments to pnpm in the profile directory')
   plugin

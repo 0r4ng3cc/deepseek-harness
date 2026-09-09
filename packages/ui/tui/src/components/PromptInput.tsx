@@ -4,7 +4,7 @@ import { readFile, unlink } from 'node:fs/promises'
 import { basename } from 'node:path'
 import { t } from '../i18n.js'
 import { Box, Text, useInput, useTerminalSize, useTheme, type ScrollBoxHandle } from '../ui.js'
-import { EffortChargeGlyph } from './EffortChargeGlyph.js'
+import { POINTER } from '../cc/figures.js'
 import { EffortInputBorder, type InputBorderLabel } from './EffortInputBorder.js'
 import { EffortTierBadge } from './EffortTierBadge.js'
 import { isLightThemeActive } from '../theme.js'
@@ -1532,10 +1532,8 @@ export function PromptInput({
       return
     }
     if (key.leftArrow) {
-      // CC agent-view parity: ← on an EMPTY prompt backgrounds this session
-      // and opens the agent view; with text it moves the caret as usual.
-      // (The command/file overlays both imply non-empty text, so no extra
-      // gate beyond the help menu is needed.)
+      // Empty prompt ←/→ cycles run panes (queue · tools · jobs).
+      // Agent switching stays on /agentview and /bg.
       if (value.length === 0 && !helpOpen) {
         onBackgroundRequest?.()
         return
@@ -1548,6 +1546,10 @@ export function PromptInput({
       return
     }
     if (key.rightArrow) {
+      if (value.length === 0 && !helpOpen) {
+        onBackgroundRequest?.()
+        return
+      }
       const sel = selectionRef.current
       setInput(value, sel ? sel.end : nextGraphemeBoundary(bounds, cursor))
       return
@@ -1968,7 +1970,7 @@ export function PromptInput({
   const editorGutterCols = editorNoWidth + 3
   const inputWidth = expanded
     ? Math.max(1, columns - 4 - editorGutterCols)
-    : Math.max(1, columns - 3 - vimBadgeCols - (expandEnabled ? 2 : 0))
+    : Math.max(1, columns - 3 - vimBadgeCols)
   // 展开态无视折叠块：全屏编辑就是为了看全文（foldBlock 状态保留，
   // 收起后折叠显示恢复）。
   const block = expanded ? null : foldBlock
@@ -2779,11 +2781,7 @@ export function PromptInput({
         topRightLabel={topRightLabel}
       >
         <Box flexDirection="row" alignItems="flex-start" width="100%">
-          <EffortChargeGlyph
-            effort={channel.reasoningEffort}
-            levels={channel.effortLevels}
-            working={channel.working}
-          />
+          <Text dimColor={channel.working}>{POINTER} </Text>
           {vimEnabled && (
             <Text bold color={vimInsert ? 'success' : 'warning'}>
               {vimInsert ? 'INSERT' : 'NORMAL'} </Text>
@@ -2818,32 +2816,6 @@ export function PromptInput({
               <Box flexDirection="column">{rendered}</Box>
             )}
           </Box>
-          {/* ⛶ 全屏草稿编辑入口：点击展开；hover 提亮为输入框强调色。
-              inputWidth 已为它预留 2 列（见渲染派生区）；设置关闭时
-              整体不渲染（宽度预算同步归还）。 */}
-          {expandEnabled && (
-            <Box
-              flexShrink={0}
-              onClick={(event) => {
-                event.stopImmediatePropagation()
-                toggleExpand()
-              }}
-              onMouseEnter={() => {
-                setExpandHovered(true)
-              }}
-              onMouseLeave={() => {
-                setExpandHovered(false)
-              }}
-            >
-              <Text
-                dimColor={!expandHovered}
-                bold={expandHovered}
-                color={expandHovered ? promptAccent : undefined}
-              >
-                ⛶
-              </Text>
-            </Box>
-          )}
         </Box>
       </EffortInputBorder>
       {/* CC agent-view footer: "← N agents" when background sessions are
@@ -2855,7 +2827,7 @@ export function PromptInput({
           <Text dimColor>
             {backgroundAgentsNeedingInput > 0
               ? t('input-background-hint-count', { n: backgroundAgentsNeedingInput })
-              : t('input-background-hint-idle')}
+              : t('runpane-hint')}
           </Text>
         </Box>
       )}

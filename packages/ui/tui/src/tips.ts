@@ -637,8 +637,8 @@ export const TIPS: readonly Tip[] = [
   {
     id: 'disp-whale',
     group: 'display',
-    zh: '首屏鲸鱼娘动画（终端至少 48 列、24 行才显示）',
-    en: 'The mini whale-girl intro shows on terminals at least 48×24',
+    zh: '首屏小鲸动画（终端至少 48 列、20 行才显示）',
+    en: 'The compact whale intro shows on terminals at least 48×20',
   },
 
   // ── 避坑 ──────────────────────────────────────────────────

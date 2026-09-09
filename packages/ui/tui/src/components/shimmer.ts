@@ -17,7 +17,7 @@ export interface Rgb {
 
 /** Header blue-white ladder: brand → ice → pale → soft ice flash.
  *  FLASH stays visibly blue (never pure white) — the highlight reads as a
- *  mist-brightened crest, not a white strobe. */
+ *  ice-brightened crest, not a white strobe. */
 export const BRAND: Rgb = { r: 77, g: 107, b: 254 }
 /** Header ladder ice blue (`#93BEFF`). */
 export const ICE: Rgb = { r: 147, g: 190, b: 255 }

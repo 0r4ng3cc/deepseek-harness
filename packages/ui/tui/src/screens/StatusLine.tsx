@@ -21,7 +21,6 @@ import { formatProject } from '../sessions/format.js'
 import { homeDir } from '../utils/paths.js'
 import {
   USED_SEGMENTS,
-  renderMiniContextBar,
   renderTpsGauge,
   renderTpsSparkline,
   speedColor,
@@ -140,13 +139,7 @@ export function StatusLine({
 }) {
   const { columns } = useTerminalSize()
   const [themeName] = useTheme()
-  const [hover, setHover] = React.useState<HoverTarget | null>(null)
-  const hoverProps = React.useCallback((id: HoverTarget) => ({
-    onMouseEnter: () => setHover(id),
-    // Guarded leave: a late leave from a field the pointer already left must
-    // not clobber the field it entered.
-    onMouseLeave: () => setHover(current => (current === id ? null : current)),
-  }), [])
+  const hoverProps = React.useCallback((_id: HoverTarget) => ({}), [])
 
   const statusBar: StatusBarConfig = channel.minimal
     // Minimal mode overrides every field switch: model + cwd only, so the
@@ -189,46 +182,13 @@ export function StatusLine({
   const formattedContext = statusBar.contextUsage
     ? formatContextUsage(contextUsed, channel.contextWindow, statusBar.compact)
     : undefined
-  // The ctx field's two faces: the idle readout, and the hover state — an
-  // in-place pressure bar (the user-liked "text becomes a bar" morph).
-  //
-  // WIDTH-STABLE BY CONSTRUCTION: the idle variable part is
-  // `P + " (" + C + ")"` (either order; P = percent text, C = counts) —
-  // len(P)+len(C)+3 cells. The hover variant is `▕+bar+▏ + " " + P` —
-  // 3+barLen+len(P) cells. Sizing barLen = len(C) makes them equal, so the
-  // morph swaps glyphs in place and NO sibling field, separator, or the
-  // right-aligned group moves a single cell (the first attempt used a fixed
-  // 10-cell gauge and made the whole row jump).
-  const ctxParts = (() => {
-    if (formattedContext === undefined) return undefined
-    const open = formattedContext.indexOf(' (')
-    if (open < 0) return undefined
-    const first = formattedContext.slice(0, open)
-    const second = formattedContext.slice(open + 2, -1)
-    if (first.endsWith('%')) return { percent: first, counts: second }
-    if (second.endsWith('%')) return { percent: second, counts: first }
-    return undefined
-  })()
-  const ctxHoverBarWidth = ctxParts?.counts.length ?? 0
   const ctxNode = formattedContext === undefined
     ? undefined
-    : hover === 'ctx' &&
-        ctxParts !== undefined &&
-        ctxHoverBarWidth > 0 &&
-        contextUsed !== undefined &&
-        channel.contextWindow !== undefined
-      ? (
-        <Text color="inactiveShimmer">
-          <Text dimColor>ctx </Text>
-          {renderMiniContextBar(contextUsed, channel.contextWindow, ctxHoverBarWidth)}
-          {' '}{ctxParts.percent}
-        </Text>
-      )
-      : (
-        <Text color="inactiveShimmer">
-          <Text dimColor>ctx </Text>{formattedContext}
-        </Text>
-      )
+    : (
+      <Text color="inactiveShimmer">
+        <Text dimColor>ctx </Text>{formattedContext}
+      </Text>
+    )
   if (statusBar.cache) {
     const cacheRate = formatCacheHitRate(usage)
     if (cacheRate !== undefined) {
@@ -422,12 +382,9 @@ export function StatusLine({
 
   // The supplemental-row readout for the hovered field: replaces the idle
   // hint (never the activity line) while the pointer dwells on a field.
-  const detail = buildHoverDetail(hover, channel, usage, contextUsed)
-  const trailer: React.ReactNode = detail !== null
-    ? detail
-    : hint !== ''
-      ? <Text color="inactiveShimmer">{hint}</Text>
-      : null
+  const trailer: React.ReactNode = hint !== ''
+    ? <Text color="inactiveShimmer">{hint}</Text>
+    : null
 
   const compactFields = [...leftFields, ...rightFields]
   const fullLeftFields = [
@@ -472,11 +429,6 @@ export function StatusLine({
             contextWindow={channel.contextWindow ?? 0}
             width={barWidth}
             colors={barColors}
-            onHover={segment =>
-              setHover(current =>
-                segment === null
-                  ? (current !== null && current.startsWith('segment:') ? null : current)
-                  : `segment:${segment}`)}
           />
         ) : null}
         {/* Row 2: optional status fields — every field is independently gated. */}

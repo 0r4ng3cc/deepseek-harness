@@ -87,6 +87,8 @@ export type ChatOverlay =
    * the target is a directory (first row reads "open folder").
    */
   | { kind: 'file-actions'; path: string; index: number; isDir: boolean }
+  | { kind: 'queue'; index: number }
+  | { kind: 'tools'; index: number }
 
 export const NO_OVERLAY: ChatOverlay = { kind: 'none' }
 
@@ -117,7 +119,7 @@ export type ChatOverlayAction =
    *  with the authoritative focus (model list / preset roster), or a mouse
    *  click on a row of a panel that stays open (effort slider, workspace
    *  flow). Ignored unless that panel is still up. */
-  | { type: 'set-index'; kind: 'model' | 'preset' | 'effort' | 'permission' | 'workspace-flow' | 'rewind' | 'file-actions'; index: number }
+  | { type: 'set-index'; kind: 'model' | 'preset' | 'effort' | 'permission' | 'workspace-flow' | 'rewind' | 'file-actions' | 'queue' | 'tools'; index: number }
   /** Edit the history-search draft (query text, caret, focused match). */
   | { type: 'history-edit'; query?: string; cursor?: number; focus?: number }
   /** Workspace flow: an action is running (keys except Esc are swallowed). */
@@ -187,6 +189,8 @@ export function chatOverlayReducer(state: ChatOverlay, action: ChatOverlayAction
         || state.kind === 'plan'
         || state.kind === 'lang'
         || state.kind === 'file-actions'
+        || state.kind === 'queue'
+        || state.kind === 'tools'
       ) {
         return { ...state, index: wrapIndex(state.index, action.delta, action.count) }
       }
