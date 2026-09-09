@@ -43,11 +43,11 @@ export const PUBLISH_ATTEMPTS = 10
  */
 export const PUBLISH_SPACING_MS = 5_000
 
-/** First `E429` retry backoff. npm's new-package write budget is coarser than packument races. */
-export const RATE_LIMIT_BACKOFF_MS = 300_000
+/** First `E429` retry backoff. New-package quota recovers slowly; npm also retries 429 internally unless `--fetch-retries` is 0. */
+export const RATE_LIMIT_BACKOFF_MS = 2_700_000
 
-/** Longest `E429` retry backoff. Later attempts stay at this cap. */
-export const RATE_LIMIT_BACKOFF_CAP_MS = 900_000
+/** Longest `E429` retry backoff. Later attempts stay at this cap so one family can finish across a quota window. */
+export const RATE_LIMIT_BACKOFF_CAP_MS = 5_400_000
 
 /** What the registry knows about one version. */
 type RegistryState =
@@ -156,7 +156,7 @@ async function publishTarball(
     // No --access: every release member declares its own publishConfig, and
     // a command-line flag would override it. check-workspace-constraints
     // requires a public access level on every release member.
-    const result = attemptEchoed('npm', ['publish', tarball, ...tagArgs])
+    const result = attemptEchoed('npm', ['publish', tarball, ...tagArgs, '--fetch-retries', '0'])
     const output = `${result.stdout}${result.stderr}`
     if (result.status === 0) return
 
