@@ -459,6 +459,9 @@ async function executeRewind(
     if (agent.status !== 'idle') {
       agent.cancel({ kind: 'user' }, { keepInbox: true })
       const stopped = await waitForAgentIdle(agent, invocation.signal)
+      if (invocation.signal.aborted) {
+        return { kind: 'error', text: t('cancelled') }
+      }
       if (!stopped) {
         return { kind: 'error', text: t('stopFailed') }
       }
@@ -486,6 +489,13 @@ async function executeRewind(
         kind: 'error',
         text: t('failed', { error: error instanceof Error ? error.message : String(error) }),
       }
+    }
+
+    // Pause/abort after planning must not restore files or truncate the log.
+    // Truncating first would drop `command/run`, and `command/done` is then
+    // skipped, leaving the UI stuck on an executing command card.
+    if (invocation.signal.aborted) {
+      return { kind: 'error', text: t('cancelled') }
     }
 
     let restore = ''
@@ -517,6 +527,9 @@ async function executeRewind(
         kind: 'error',
         text: t('failed', { error: 'session persistence is unavailable; cannot delete conversation history' }),
       }
+    }
+    if (invocation.signal.aborted) {
+      return { kind: 'error', text: t('cancelled') }
     }
     try {
       await agent.runMaintenance(async () => {

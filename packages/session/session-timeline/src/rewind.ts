@@ -295,17 +295,11 @@ export function planRewind(
   if (targetEvent === undefined) {
     throw new RewindError('not-a-user-message', `no session event at seq ${targetSeq}`)
   }
-  // Assistant delete/rewind buttons pass the answer seq. Walk back to the
-  // human prompt that opened that turn so one control truncates the turn
-  // and every later surface node. Injected context and other non-assistant
-  // events stay rejected.
+  // UI buttons and slash `/rewind @seq` can land on an assistant answer,
+  // command card, or other non-human event. Walk back to the human prompt
+  // that opened that turn so one control truncates the turn and every later
+  // surface node.
   if (!isHumanUserMessageEvent(targetEvent)) {
-    if (targetEvent.type !== 'assistant/message') {
-      throw new RewindError(
-        'not-a-user-message',
-        `session event at seq ${targetSeq} is not a human user message (${targetEvent.type})`,
-      )
-    }
     const origin = events.findIndex(event => event.seq === targetSeq)
     let resolved: SessionEvent<'user/message'> | undefined
     for (let index = origin; index >= 0; index -= 1) {

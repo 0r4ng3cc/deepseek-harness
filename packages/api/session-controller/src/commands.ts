@@ -21,6 +21,7 @@ import { SessionTitleInvalidError } from '@x1a0f3n9/dsh-session-title'
 import { canonicalClientTimeZone } from '@x1a0f3n9/dsh-util-time'
 import { assertNever } from '@x1a0f3n9/dsh-util-values'
 import { RemoteError, remoteErrorOf } from '@x1a0f3n9/dsh-typert-protocol'
+import type {} from '@x1a0f3n9/dsh-commands'
 import type { Workspace } from '@x1a0f3n9/dsh-workspace'
 import {
   ApiSessionAgentController,
@@ -497,6 +498,8 @@ export class SessionCommandController {
 
   /**
    * Cancel one live ordinary Agent while retaining pending inbox work.
+   * Also abort in-flight slash commands for that Agent so pause/stop can
+   * settle a hanging rewind instead of leaving an unpaired `command/run`.
    * @param request - Session whose active Agent turn is cancelled.
    * @returns acknowledgement that cancellation was requested.
    */
@@ -513,6 +516,7 @@ export class SessionCommandController {
       throw apiSessionSubagentOwnershipError(request.sessionId)
     }
     agent.cancel({ kind: 'user' }, { keepInbox: true })
+    this.ctx.get('commands')?.abortInflight(agent)
     return { accepted: true }
   }
 

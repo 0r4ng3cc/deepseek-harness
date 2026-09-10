@@ -267,9 +267,46 @@ export class CommandRuntime extends TypertRemoteService {
   private readonly instanceToken = randomUUID().slice(0, 8)
   /** Optional provider installed by the Session upload owner. */
   private readonly fileReceipts: { resolver: CommandFileReceiptResolver | undefined } = { resolver: undefined }
+  /** Per-agent abort controllers for in-flight `execute` calls. */
+  private readonly inflight = new Map<string, Set<AbortController>>()
 
   constructor(ctx: Context) {
     super(ctx, 'commands')
+  }
+
+  /**
+   * Abort every in-flight `execute` for one agent.
+   *
+   * Session pause/stop cancels the live turn but does not abort the RPC that
+   * owns `invocation.signal`. Rewind and other long commands must see that
+   * pause, or they keep mutating after the user asked them to stop.
+   * @param agent - agent whose in-flight commands should stop.
+   * @param reason - abort reason copied onto each invocation signal.
+   */
+  abortInflight(agent: Agent, reason: unknown = new Error('session cancelled')): void {
+    const controllers = this.inflight.get(agent.id)
+    if (controllers === undefined) return
+    for (const controller of controllers) {
+      controller.abort(reason)
+    }
+  }
+
+  /** Track one execute abort controller until settlement. */
+  private trackInflight(agentId: string, controller: AbortController): void {
+    const controllers = this.inflight.get(agentId)
+    if (controllers === undefined) {
+      this.inflight.set(agentId, new Set([controller]))
+      return
+    }
+    controllers.add(controller)
+  }
+
+  /** Drop one execute abort controller after settlement. */
+  private untrackInflight(agentId: string, controller: AbortController): void {
+    const controllers = this.inflight.get(agentId)
+    if (controllers === undefined) return
+    controllers.delete(controller)
+    if (controllers.size === 0) this.inflight.delete(agentId)
   }
 
   /**
@@ -367,64 +404,75 @@ export class CommandRuntime extends TypertRemoteService {
     if (command === undefined) return undefined
     if (signal.aborted) throw abortError(signal)
     const commandId = this.mintCommandId()
-    this.appendLifecycle(agent.session, 'command/run', {
-      commandId,
-      name: parsed.name,
-      ...command.definition.recordInput === false ? {} : { args: parsed.rawInput },
-      source: { kind: 'user' },
-    })
-    const settle = (result: CommandResult): CommandExecution => {
-      this.appendLifecycle(agent.session, 'command/done', {
-        commandId, kind: result.kind,
-        ...result.text === undefined ? {} : { text: result.text },
-        ...result.kind === 'success' && result.sourceEventSeq !== undefined
-          ? { sourceEventSeq: result.sourceEventSeq }
-          : {},
+    const sessionAbort = new AbortController()
+    this.trackInflight(agent.id, sessionAbort)
+    const onCallerAbort = (): void => { sessionAbort.abort(abortError(signal)) }
+    signal.addEventListener('abort', onCallerAbort, { once: true })
+    if (signal.aborted) sessionAbort.abort(abortError(signal))
+    const invocationSignal = sessionAbort.signal
+    try {
+      this.appendLifecycle(agent.session, 'command/run', {
+        commandId,
+        name: parsed.name,
+        ...command.definition.recordInput === false ? {} : { args: parsed.rawInput },
+        source: { kind: 'user' },
       })
-      return Object.freeze({ commandId, result: Object.freeze(result) })
-    }
-    let attachments: readonly (ImageBlock | FileBlock)[] = NO_ATTACHMENTS
-    if (submittedAttachments.length > 0) {
-      if (command.definition.input?.attachments !== true) {
-        return settle({ kind: 'error', text: `/${parsed.name} does not accept attachments` })
+      const settle = (result: CommandResult): CommandExecution => {
+        this.appendLifecycle(agent.session, 'command/done', {
+          commandId, kind: result.kind,
+          ...result.text === undefined ? {} : { text: result.text },
+          ...result.kind === 'success' && result.sourceEventSeq !== undefined
+            ? { sourceEventSeq: result.sourceEventSeq }
+            : {},
+        })
+        return Object.freeze({ commandId, result: Object.freeze(result) })
       }
-      const store = this.ctx.get('attachments')
-      if (store === undefined) {
-        return settle({ kind: 'error', text: `/${parsed.name}: attachments are unavailable because no attachment store is composed` })
-      }
-      try {
-        attachments = await admitCommandAttachments(
-          store,
-          submittedAttachments,
-          receiptId => this.fileReceipts.resolver?.(agent, receiptId),
-        )
-      } catch (error: unknown) {
-        if (error instanceof AttachmentError) {
-          return settle({ kind: 'error', text: error.message })
+      let attachments: readonly (ImageBlock | FileBlock)[] = NO_ATTACHMENTS
+      if (submittedAttachments.length > 0) {
+        if (command.definition.input?.attachments !== true) {
+          return settle({ kind: 'error', text: `/${parsed.name} does not accept attachments` })
         }
+        const store = this.ctx.get('attachments')
+        if (store === undefined) {
+          return settle({ kind: 'error', text: `/${parsed.name}: attachments are unavailable because no attachment store is composed` })
+        }
+        try {
+          attachments = await admitCommandAttachments(
+            store,
+            submittedAttachments,
+            receiptId => this.fileReceipts.resolver?.(agent, receiptId),
+          )
+        } catch (error: unknown) {
+          if (error instanceof AttachmentError) {
+            return settle({ kind: 'error', text: error.message })
+          }
+          this.settleThrown(agent.session, parsed.name, commandId, error)
+          throw error
+        }
+        // Cancellation must be honored BEFORE the handler runs: admission may
+        // await slow storage, and a handler entered after the caller cancelled
+        // would mutate state the retrying caller then duplicates. (The committed
+        // image objects stay unreferenced and are deferred-GC territory.)
+        const cancelledDuringAdmission = cancellationOf(invocationSignal)
+        if (cancelledDuringAdmission !== undefined) {
+          this.settleThrown(agent.session, parsed.name, commandId, cancelledDuringAdmission)
+          throw cancelledDuringAdmission
+        }
+      }
+      const invocation = Object.freeze({ commandId, agent, rawInput: parsed.rawInput, attachments, signal: invocationSignal })
+      let result: CommandResult
+      try {
+        const output = command.definition.handler(invocation)
+        result = normalizeResult(parsed.name, await withAbort(Promise.resolve(output), invocationSignal))
+      } catch (error: unknown) {
         this.settleThrown(agent.session, parsed.name, commandId, error)
         throw error
       }
-      // Cancellation must be honored BEFORE the handler runs: admission may
-      // await slow storage, and a handler entered after the caller cancelled
-      // would mutate state the retrying caller then duplicates. (The committed
-      // image objects stay unreferenced and are deferred-GC territory.)
-      const cancelledDuringAdmission = cancellationOf(signal)
-      if (cancelledDuringAdmission !== undefined) {
-        this.settleThrown(agent.session, parsed.name, commandId, cancelledDuringAdmission)
-        throw cancelledDuringAdmission
-      }
+      return settle(result)
+    } finally {
+      signal.removeEventListener('abort', onCallerAbort)
+      this.untrackInflight(agent.id, sessionAbort)
     }
-    const invocation = Object.freeze({ commandId, agent, rawInput: parsed.rawInput, attachments, signal })
-    let result: CommandResult
-    try {
-      const output = command.definition.handler(invocation)
-      result = normalizeResult(parsed.name, await withAbort(Promise.resolve(output), signal))
-    } catch (error: unknown) {
-      this.settleThrown(agent.session, parsed.name, commandId, error)
-      throw error
-    }
-    return settle(result)
   }
 
   /** Contained `command/done` error append for a thrown handler or admission failure. */

@@ -186,8 +186,12 @@ describe('CommandRuntime', () => {
     expect(seen).toHaveBeenCalledWith(expect.objectContaining({
       agent,
       rawInput: '  untouched ',
-      signal: controller.signal,
+      attachments: [],
     }))
+    const invocation = seen.mock.calls[0]?.[0] as { signal: AbortSignal }
+    expect(invocation.signal).toBeInstanceOf(AbortSignal)
+    expect(invocation.signal).not.toBe(controller.signal)
+    expect(invocation.signal.aborted).toBe(false)
     await expect(ctx.commands.execute(agent, 'run', [], controller.signal)).resolves.toBeUndefined()
     await expect(ctx.commands.execute(agent, '/missing', [], controller.signal)).resolves.toBeUndefined()
   })
@@ -438,6 +442,26 @@ describe('CommandRuntime', () => {
       expect(lifecycleOf(agent)).toMatchObject([
         { type: 'command/run', data: { name: 'hang' } },
         { type: 'command/done', data: { kind: 'error', text: 'operator cancelled command' } },
+      ])
+    })
+  })
+
+  it('aborts in-flight execute when session pause asks the registry to stop', async () => {
+    const ctx = await mount()
+    const { agent } = await mintAgentScope(ctx, 'a')
+    ctx.commands.register({
+      name: 'hang',
+      description: 'Hang',
+      handler: () => new Promise(() => undefined),
+    })
+    const pending = ctx.commands.execute(agent, '/hang', [], new AbortController().signal)
+    await vi.waitFor(() => { expect(lifecycleOf(agent)).toHaveLength(1) })
+    ctx.commands.abortInflight(agent, new Error('session cancelled'))
+    await expect(pending).rejects.toThrow('session cancelled')
+    await vi.waitFor(() => {
+      expect(lifecycleOf(agent)).toMatchObject([
+        { type: 'command/run', data: { name: 'hang' } },
+        { type: 'command/done', data: { kind: 'error', text: 'session cancelled' } },
       ])
     })
   })
