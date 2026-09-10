@@ -1,8 +1,8 @@
 /** Composer compact control that runs `/compact` for the current session. */
 
-import { useCallback, useRef, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import type { SessionFace } from '@x1a0f3n9/dsh-api-session-controller/client'
-import { Tooltip } from '@x1a0f3n9/dsh-client-ui-primitives'
+import { Toast, Tooltip } from '@x1a0f3n9/dsh-client-ui-primitives'
 import type { RewindKey } from './locales.ts'
 import { CLASS } from './styles.ts'
 
@@ -20,30 +20,49 @@ interface CompactButtonProps {
  */
 export function CompactButton({ session, t }: CompactButtonProps): ReactNode {
   const busy = useRef(false)
+  const toastSeq = useRef(0)
+  const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
   const keepFocus = useCallback((event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
+  }, [])
+  const showToast = useCallback((text: string) => {
+    toastSeq.current += 1
+    setToast({ seq: toastSeq.current, text })
   }, [])
   const onClick = useCallback(() => {
     if (session === undefined || busy.current) return
     busy.current = true
-    void session.command('/compact').catch((error: unknown) => {
-      console.error('dsh-session-timeline: compact failed', error)
+    void session.command('/compact').then((result) => {
+      if (result.ok) return
+      showToast(t('compact.failed', { message: result.error.message }))
+    }).catch((error: unknown) => {
+      showToast(t('compact.failed', { message: error instanceof Error ? error.message : String(error) }))
     }).finally(() => { busy.current = false })
-  }, [session])
+  }, [session, showToast, t])
 
   return (
-    <Tooltip label={t('button.compact.title')} side="top">
-      <button
-        type="button"
-        className={CLASS.button}
-        aria-label={t('button.compact.aria')}
-        disabled={session === undefined}
-        onMouseDown={keepFocus}
-        onClick={onClick}
-      >
-        <CompactIcon />
-      </button>
-    </Tooltip>
+    <>
+      <Tooltip label={t('button.compact.title')} side="top">
+        <button
+          type="button"
+          className={`${CLASS.button} ${CLASS.buttonLabeled}`}
+          aria-label={t('button.compact.aria')}
+          disabled={session === undefined}
+          onMouseDown={keepFocus}
+          onClick={onClick}
+        >
+          <CompactIcon />
+          <span>{t('button.compact.title')}</span>
+        </button>
+      </Tooltip>
+      {toast !== null && (
+        <Toast
+          key={toast.seq}
+          text={toast.text}
+          onDone={() => { setToast(null) }}
+        />
+      )}
+    </>
   )
 }
 

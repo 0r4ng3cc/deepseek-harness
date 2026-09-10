@@ -7,7 +7,11 @@ import { CompactButton } from '../src/client/compact-button.tsx'
 
 afterEach(cleanup)
 
-const copy = (key: string): string => key
+const copy = (key: string, params?: Record<string, unknown>): string =>
+  Object.entries(params ?? {}).reduce(
+    (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+    key,
+  )
 
 function sessionFace(overrides: Partial<SessionFace> = {}): SessionFace {
   return {
@@ -21,7 +25,9 @@ describe('CompactButton', () => {
     const session = sessionFace()
     render(<CompactButton session={session} t={copy} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'button.compact.aria' }))
+    const button = screen.getByRole('button', { name: 'button.compact.aria' })
+    expect(button.textContent).toContain('button.compact.title')
+    fireEvent.click(button)
 
     await waitFor(() => expect(session.command).toHaveBeenCalledWith('/compact'))
   })
@@ -29,5 +35,14 @@ describe('CompactButton', () => {
   it('stays disabled when no session is selected', () => {
     render(<CompactButton session={undefined} t={copy} />)
     expect(screen.getByRole('button', { name: 'button.compact.aria' })).toHaveProperty('disabled', true)
+  })
+
+  it('announces a failed compact command', async () => {
+    const session = sessionFace({
+      command: vi.fn().mockResolvedValue({ ok: false, error: { message: 'agent is not idle' } }),
+    })
+    render(<CompactButton session={session} t={copy} />)
+    fireEvent.click(screen.getByRole('button', { name: 'button.compact.aria' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('compact.failed')
   })
 })

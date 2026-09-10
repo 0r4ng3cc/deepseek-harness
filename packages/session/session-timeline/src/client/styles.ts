@@ -9,6 +9,7 @@
 /** Class names shared between the injected DOM and the stylesheet. */
 export const CLASS = {
   button: 'dsh-session-timeline-btn',
+  buttonLabeled: 'dsh-session-timeline-btn-labeled',
   popover: 'dsh-session-timeline-popover',
   popoverTitle: 'dsh-session-timeline-popover-title',
   popoverTarget: 'dsh-session-timeline-popover-target',
@@ -47,6 +48,17 @@ export const STYLE = `
 }
 .dsh-session-timeline-btn:hover {
   background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+.dsh-session-timeline-btn-labeled {
+  width: auto;
+  min-width: 28px;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
   color: var(--dsw-alias-label-secondary);
 }
 
