@@ -10,11 +10,11 @@ Status: implemented
 
 ## Decision
 
-给 publish 命令加上 `--fetch-retries 0`，一个 tarball 只发一次 PUT。`E429` 只短重试两次（2 秒，再 4 秒），然后让 job 失败。之后再跑会跳过 registry 上同 integrity 的已发布成员。
+给 publish 命令加上 `--fetch-retries 0`，一个 tarball 只发一次 PUT。job 级 `E429` 间隔和第一次即失败见 [npm registry 调用必须间隔，第一次 429 即失败](2026-09-11-npm-registry-serial-spacing.zh.md)。之后再跑会跳过 registry 上同 integrity 的已发布成员。
 
 ## Verification
 
-`pnpm exec vitest run scripts/release/publish.spec.ts` 覆盖短退避和两次上限。
+`pnpm exec vitest run scripts/release/publish.spec.ts` 覆盖把 `E429` 归类为瞬时 registry 错误码。
 
 ## Alternatives considered
 
@@ -22,7 +22,7 @@ Status: implemented
 
 **在 job 里睡眠 45–90 分钟再继续。** 否决：GitHub Actions job 等不到额度窗口结束，一次跑了三小时的 in-progress 任务没有发出新包，还挡住了重跑。
 
-**第一次 429 立刻失败、完全不重试。** 否决：偶发 429 可能几秒就恢复；一次短重试仍然值得。
+**第一次 429 立刻失败、完全不重试。** 本笔记否决是因为偶发 429 可能几秒就恢复；后来的证据在 [npm registry 调用必须间隔，第一次 429 即失败](2026-09-11-npm-registry-serial-spacing.zh.md) 里推翻了这次重试。
 
 ## Consequences
 
