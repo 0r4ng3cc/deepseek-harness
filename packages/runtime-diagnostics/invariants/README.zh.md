@@ -49,7 +49,7 @@ kind: "package-reference"
 | `package_allowlist` | `[]` | 接纳包名的正则源；为空则全部接纳 |
 | `package_blocklist` | `[]` | 在 allowlist 匹配之后排除包名的正则源 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#x1a0f3n9dsh-invariants)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-invariants)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 运行哪些检查
 
@@ -97,7 +97,7 @@ ctx.plugin(SessionInvariant)
 <details>
 <summary>实现细节——点击展开</summary>
 
-本节解释注册表背后的设计；可观察行为已在[使用本包](#use-this-package)中说明。完整决策理由见[不变式服务 Agent Note](../../../.agents/notes/implemented/architecture/2026-07-19-package-owned-invariant-service.zh.md)。
+本节解释注册表背后的设计；可观察行为已在[使用本包](#use-this-package)中说明。
 
 ### 设计理念
 
@@ -127,8 +127,7 @@ ctx.plugin(SessionInvariant)
 当包级约定不够用时阅读以下页面。它们从生成的服务参考逐步进入决策证据与组地图。
 
 - [运行时不变式子系统](../../../docs/subsystems/invariants.zh.md)——`Config`、installer、服务与配套入口约定的生成参考。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#x1a0f3n9dsh-invariants)——每个受支持配置字段及其源声明。
-- [包自有不变式服务 Agent Note](../../../.agents/notes/implemented/architecture/2026-07-19-package-owned-invariant-service.zh.md)——检查为何放在归属者旁边，以及注册表为何拥有选择与生命周期。
+- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-invariants)——每个受支持配置字段及其源声明。
 - [不变式运行时约定 Agent Note](../../../.agents/notes/implemented/architecture/2026-07-19-package-invariant-runtime-contracts.zh.md)——运行时不变量可以断言什么，以及强制配套入口接线的机械门禁。
 - [runtime-diagnostics 组地图](../../README.zh.md)——相邻的诊断包。
 

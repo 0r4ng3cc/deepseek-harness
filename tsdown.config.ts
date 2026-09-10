@@ -16,21 +16,9 @@ function isBuildFaceClient(value: unknown): boolean {
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
   return {
-    // dsh-std 是内置协议源码仓库，顶层 package 仅作为 source container，不能被
-    // tsdown 当成可发布 workspace package 扫描；下面列出真正参与宿主构建的 vendor。
-    workspace: [
-      'vendor/cordis',
-      'vendor/cosmokit',
-      'vendor/group',
-      'vendor/hmr',
-      'vendor/include',
-      'vendor/loader',
-      'vendor/logger-console',
-      'vendor/schemastery',
-      'vendor/timer',
-      'packages/*/*',
-      'apps/cli',
-    ],
+    workspace: client
+      ? ['vendor/*', 'packages/*/*', 'apps/cli']
+      : ['vendor/*', 'packages/*/*', 'apps/cli', 'apps/desktop', 'apps/desktop-host'],
     entry: client ? '' : ['lib/types/{index,invariant,startup}.js'],
     outDir: 'lib',
     format: ['esm'],

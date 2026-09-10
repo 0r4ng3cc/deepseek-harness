@@ -271,6 +271,7 @@ describe('SessionStore.fork', () => {
         session.append('turn/start', { turn: 1 })
         session.append('step/start', { turn: 1, step: 1 })
         session.append('assistant/message', {
+          stream: [],
           turn: 1, step: 1,
           message: createMessage({
             role: 'assistant',
@@ -288,6 +289,7 @@ describe('SessionStore.fork', () => {
         session.append('turn/start', { turn: 1 })
         session.append('step/start', { turn: 1, step: 1 })
         session.append('assistant/message', {
+          stream: [],
           turn: 1,
           step: 1,
           message: createMessage({
