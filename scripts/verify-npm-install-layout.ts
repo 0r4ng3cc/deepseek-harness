@@ -11,6 +11,7 @@ import {
 } from './benchmark-npm-resolution.ts'
 
 const DSH_PACKAGE = '@x1a0f3n9/dsh'
+const OFFICIAL_DSH_PACKAGE = '@deepseek-ai/dsh'
 const CORDIS_PACKAGE = '@deepseek-ai/cordis'
 const NESTED_DSH_ALIAS = 'dsh-previous'
 const NESTED_DSH_PATH = `node_modules/${NESTED_DSH_ALIAS}`
@@ -35,9 +36,36 @@ export interface DshInstallLayoutSummary {
   readonly checkedDshEdges: number
 }
 
-function isDshPackage(name: string): boolean {
+function isForkDshPackage(name: string): boolean {
   return name === DSH_PACKAGE || name.startsWith(`${DSH_PACKAGE}-`)
 }
+
+function isOfficialDshPackage(name: string): boolean {
+  return name === OFFICIAL_DSH_PACKAGE || name.startsWith(`${OFFICIAL_DSH_PACKAGE}-`)
+}
+
+function isDshPackage(name: string): boolean {
+  return isForkDshPackage(name)
+}
+
+/**
+ * Official product name that community plugins still declare.
+ * @param name - a fork-scoped dsh package name.
+ * @returns the `@deepseek-ai/dsh*` alias, or `undefined` when `name` is not a fork dsh package.
+ */
+function officialDshAlias(name: string): string | undefined {
+  if (name === DSH_PACKAGE) return OFFICIAL_DSH_PACKAGE
+  if (!name.startsWith(`${DSH_PACKAGE}-`)) return undefined
+  return `${OFFICIAL_DSH_PACKAGE}${name.slice(DSH_PACKAGE.length)}`
+}
+
+const PREINSTALLED_PLUGIN_PACKAGES = new Set([
+  'dshmarket',
+  'dsh-reasoning-effort',
+  'dsh-context',
+  'dsh-better-sidebar',
+  '@vectorize-io/hindsight-coding-agents',
+])
 
 function cloneForVersion(manifest: object, version: string): MutableRegistryManifest {
   const cloned = structuredClone(manifest) as MutableRegistryManifest
@@ -45,9 +73,12 @@ function cloneForVersion(manifest: object, version: string): MutableRegistryMani
   for (const field of DEPENDENCY_FIELDS) {
     const dependencies = cloned[field]
     if (dependencies === undefined) continue
-    for (const name of Object.keys(dependencies)) {
-      if (isDshPackage(name)) dependencies[name] = `^${version}`
+    const next: Record<string, string> = {}
+    for (const [name, range] of Object.entries(dependencies)) {
+      if (PREINSTALLED_PLUGIN_PACKAGES.has(name)) continue
+      next[name] = isForkDshPackage(name) || isOfficialDshPackage(name) ? `^${version}` : range
     }
+    cloned[field] = next
   }
   return cloned
 }
@@ -69,10 +100,19 @@ export function buildDualDshRegistry(index: RegistryIndex, sourceVersion: string
     const source = versions.get(sourceVersion)
     if (source === undefined) throw new Error(`${name} has no workspace version ${sourceVersion}`)
     dshPackages++
-    output.set(name, new Map(SYNTHETIC_DSH_VERSIONS.map(version => [
+    const cloned = new Map(SYNTHETIC_DSH_VERSIONS.map(version => [
       version,
       cloneForVersion(source, version),
-    ])))
+    ]))
+    output.set(name, cloned)
+    const alias = officialDshAlias(name)
+    if (alias !== undefined) {
+      output.set(alias, new Map([...cloned].map(([version, manifest]) => {
+        const aliased = structuredClone(manifest)
+        aliased.name = alias
+        return [version, aliased]
+      })))
+    }
   }
   if (dshPackages === 0) throw new Error('registry contains no DSH packages')
   return output

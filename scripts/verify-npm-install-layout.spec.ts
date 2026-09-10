@@ -42,7 +42,7 @@ describe('npm install layout verifier', () => {
       ['@x1a0f3n9/dsh', new Map([['0.1.1-rc.2', {
         name: '@x1a0f3n9/dsh',
         version: '0.1.1-rc.2',
-        dependencies: { '@x1a0f3n9/dsh-child': '^0.1.1-rc.2' },
+        dependencies: { '@x1a0f3n9/dsh-child': '^0.1.1-rc.2', '@deepseek-ai/dsh-child': '^0.1.1-rc.2', 'dsh-better-sidebar': '0.19.0-alpha.1' },
         peerDependencies: { '@deepseek-ai/cordis': '^4.0.1' },
       }]])],
       ['@x1a0f3n9/dsh-child', new Map([['0.1.1-rc.2', {
@@ -60,7 +60,7 @@ describe('npm install layout verifier', () => {
     expect([...dual.get('@x1a0f3n9/dsh')?.keys() ?? []]).toEqual(['0.1.0', '0.2.0'])
     expect(dual.get('@x1a0f3n9/dsh')?.get('0.1.0')).toMatchObject({
       version: '0.1.0',
-      dependencies: { '@x1a0f3n9/dsh-child': '^0.1.0' },
+      dependencies: { '@x1a0f3n9/dsh-child': '^0.1.0', '@deepseek-ai/dsh-child': '^0.1.0' },
       peerDependencies: { '@deepseek-ai/cordis': '^4.0.1' },
     })
     expect(dual.get('@x1a0f3n9/dsh')?.get('0.2.0')).toMatchObject({
@@ -68,6 +68,17 @@ describe('npm install layout verifier', () => {
       dependencies: { '@x1a0f3n9/dsh-child': '^0.2.0' },
     })
     expect(dual.get('@deepseek-ai/cordis')).toBe(index.get('@deepseek-ai/cordis'))
+    expect(dual.get('@x1a0f3n9/dsh')?.get('0.1.0')?.dependencies).not.toHaveProperty('dsh-better-sidebar')
+    expect([...dual.get('@deepseek-ai/dsh')?.keys() ?? []]).toEqual(['0.1.0', '0.2.0'])
+    expect(dual.get('@deepseek-ai/dsh')?.get('0.1.0')).toMatchObject({
+      name: '@deepseek-ai/dsh',
+      version: '0.1.0',
+      dependencies: { '@x1a0f3n9/dsh-child': '^0.1.0' },
+    })
+    expect(dual.get('@deepseek-ai/dsh-child')?.get('0.2.0')).toMatchObject({
+      name: '@deepseek-ai/dsh-child',
+      version: '0.2.0',
+    })
   })
 
   it('accepts isolated DSH releases with one shared Cordis installation', () => {
