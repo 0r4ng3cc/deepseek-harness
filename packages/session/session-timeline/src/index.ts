@@ -412,6 +412,27 @@ async function waitForAgentIdle(agent: Agent, signal: AbortSignal, timeoutMs = 1
   }
 }
 
+/**
+ * Bound one otherwise unbounded restore so a slash-command card cannot run forever.
+ * @param promise - the restore or other async work.
+ * @param timeoutMs - deadline after which the wait rejects.
+ * @param message - rejection message used when the deadline hits.
+ * @returns the settled value of `promise`.
+ */
+async function withDeadline<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
 /** Sessions with a rewind currently executing (per-session in-flight guard). */
 type InflightRewinds = Set<string>
 
@@ -437,6 +458,7 @@ async function executeRewind(
   rawTarget: string,
   mode: RewindMode,
   inflight: InflightRewinds,
+  persistLog = true,
 ): Promise<CommandResult> {
   const { agent } = invocation
   const sessionId = agent.session.id
@@ -456,6 +478,7 @@ async function executeRewind(
     // the future being rolled back. Queued (next-turn) messages are left
     // untouched: the harness QueueDock already offers per-item edit/remove, so
     // a rewind must not silently drop messages the user may still want to send.
+    dropPendingSteering(agent)
     if (agent.status !== 'idle') {
       agent.cancel({ kind: 'user' }, { keepInbox: true })
       const stopped = await waitForAgentIdle(agent, invocation.signal)
@@ -481,16 +504,6 @@ async function executeRewind(
       return rewindErrorResult(error)
     }
 
-    let length: SessionLogOffset
-    try {
-      length = agent.session.deletionStart(SessionSeq(plan.targetSeq))
-    } catch (error) {
-      return {
-        kind: 'error',
-        text: t('failed', { error: error instanceof Error ? error.message : String(error) }),
-      }
-    }
-
     // Pause/abort after planning must not restore files or truncate the log.
     // Truncating first would drop `command/run`, and `command/done` is then
     // skipped, leaving the UI stuck on an executing command card.
@@ -505,7 +518,19 @@ async function executeRewind(
       // service would refuse as stale/absent. That is safe only because the
       // action set is the closed `planRestore`-derived one: paths the session
       // recorded, no symlink/hard link, differing from the disk.
-      const outcome = await store.restoreAfter(agent.session.id, plan.targetSeq, path => unlink(path))
+      let outcome: RestoreOutcome
+      try {
+        outcome = await withDeadline(
+          store.restoreAfter(agent.session.id, plan.targetSeq, path => unlink(path)),
+          30_000,
+          'rewind file restore timed out',
+        )
+      } catch (error) {
+        return {
+          kind: 'error',
+          text: t('failed', { error: error instanceof Error ? error.message : String(error) }),
+        }
+      }
       // The restore wrote through plain node:fs, invisible to the harness
       // observation policy: re-sync it so the session's next write of a
       // restored/deleted file is not judged against the stale pre-restore
@@ -517,6 +542,23 @@ async function executeRewind(
       if (outcome.skipped.length > 0) parts.push(t('skip.count', { count: outcome.skipped.length }))
       restore = parts.length > 0 ? `；${parts.join('、')}` : t('noRestorable')
       restore += renderFailures(outcome.failed)
+    }
+
+    if (!persistLog) {
+      return {
+        kind: 'success',
+        text: restore === '' ? t('plan.noChanges') : restore.replace(/^；/, ''),
+      }
+    }
+
+    let length: SessionLogOffset
+    try {
+      length = agent.session.deletionStart(SessionSeq(plan.targetSeq))
+    } catch (error) {
+      return {
+        kind: 'error',
+        text: t('failed', { error: error instanceof Error ? error.message : String(error) }),
+      }
     }
 
     const persistence = ctx.get('sessionPersistence') as {
@@ -617,6 +659,15 @@ async function handleRewind(
   if (parts[0] === '__candidates') {
     const candidates = listRewindCandidates(eventsOf(session), session.surface.nodes)
     return { kind: 'success', text: formatCandidateList(candidates) }
+  }
+
+  // Internal machine channel: restore tracked files without truncating the
+  // session log. The UI buttons then call deleteFrom so command/run is not
+  // cut out from under command/done.
+  if (parts[0] === '__restore') {
+    const target = parts[1]
+    if (target === undefined) return { kind: 'error', text: usage() }
+    return executeRewind(ctx, store, fs, invocation, target, 'both', inflight, false)
   }
 
   const target = parts[0]

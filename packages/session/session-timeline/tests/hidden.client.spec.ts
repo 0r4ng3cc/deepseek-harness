@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { chatSnapshotOf, messageTextAt, resolveChatWatch, type HiddenChat } from '../src/client/hidden.ts'
+import { chatSnapshotOf, hiddenSeqsOf, messageTextAt, resolveChatWatch, type HiddenChat } from '../src/client/hidden.ts'
 
 function chat(): HiddenChat {
   return {
@@ -30,5 +30,36 @@ describe('client chat view helpers', () => {
     expect(resolveChatWatch(() => ({ subscribe }), 'session-1', callback)).toBe(dispose)
     expect(subscribe).toHaveBeenCalledWith(callback)
     expect(resolveChatWatch(() => undefined, 'session-1', callback)).not.toBe(dispose)
+  })
+})
+
+function commandChat(args: string, outcome: { kind: 'success' | 'error' } | null, seq = 9): HiddenChat {
+  return {
+    order: ['command-1'],
+    nodes: {
+      get: () => ({
+        kind: 'command',
+        anchorSeq: seq,
+        data: {
+          kind: 'command',
+          seq,
+          name: 'rewind',
+          args,
+          outcome,
+        },
+      } as never),
+    },
+  }
+}
+
+describe('hiddenSeqsOf', () => {
+  it('hides running executed rewind cards and internal restore probes', () => {
+    expect(hiddenSeqsOf(commandChat('@3 both', null))).toEqual(new Set([9]))
+    expect(hiddenSeqsOf(commandChat('__restore @3', { kind: 'success' }))).toEqual(new Set([9]))
+    expect(hiddenSeqsOf(commandChat('preview @3 both', null))).toEqual(new Set([9]))
+  })
+
+  it('keeps a failed executed rewind visible', () => {
+    expect(hiddenSeqsOf(commandChat('@3 both', { kind: 'error' }))).toEqual(new Set())
   })
 })

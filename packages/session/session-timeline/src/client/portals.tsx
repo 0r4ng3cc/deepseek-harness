@@ -116,8 +116,10 @@ function userNodeOf(chat: HiddenChat | undefined, key: string): UserMessageNode 
 /**
  * Truncate from the popover target and, when that succeeds, put the
  * withdrawn user text back into the composer so the user can edit and re-send.
- * Conversation-only mode calls `deleteFrom`; workspace mode runs `/rewind both`
- * then resynchronizes. The target text is captured before truncation.
+ * Both modes stop the live turn, then `deleteFrom` rewrites the log.
+ * Workspace mode restores files first through the internal `/rewind __restore`
+ * probe so the visible command card is never truncated out from under
+ * `command/done`.
  */
 export async function runRewindAndFill(
   session: SessionFace,
@@ -136,19 +138,25 @@ export async function runRewindAndFill(
     return
   }
   try {
-    if (mode === 'chat') {
-      const deleted = await session.deleteFrom(SessionSeq(seq))
-      if (!deleted.ok) {
-        showHint(deleted.error.message)
-        return
+    await session.cancel()
+    if (mode === 'both') {
+      const restored = await session.command(`/rewind __restore @${seq}`)
+      if (!restored.ok || restored.value?.matched !== true) {
+        rewindLog.warn('refill', `file restore probe failed @${seq}`)
       }
-    } else {
-      const result = await session.command(`/rewind @${seq} both`)
-      if (!result.ok || result.value?.matched !== true) return
-      await session.resync()
+    }
+    const deleted = await session.deleteFrom(SessionSeq(seq))
+    if (!deleted.ok) {
+      showHint(deleted.error.message)
+      return
     }
   } catch (error) {
     rewindLog.warn('refill', `rewind threw, skipping refill @${seq}`, error)
+    try {
+      await session.resync()
+    } catch (resyncError) {
+      rewindLog.warn('refill', `resync after rewind failure @${seq} threw`, resyncError)
+    }
     return
   }
   // The user may have switched sessions while the rewind ran — fill only
