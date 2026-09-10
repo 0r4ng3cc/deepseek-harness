@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   PUBLISH_SPACING_MS,
   RATE_LIMIT_ATTEMPTS,
-  RATE_LIMIT_BACKOFF_MS,
+  REGISTRY_PROBE_SPACING_MS,
   existingPublishedVersionAction,
   isRateLimited,
   isTransientFailure,
@@ -34,11 +34,10 @@ describe('release publish retries', () => {
     expect(retryBackoffMs(packumentRace, 3)).toBe(PUBLISH_SPACING_MS * 4)
   })
 
-  it('backs off a rate-limit blip once, then the job must fail', () => {
-    expect(RATE_LIMIT_ATTEMPTS).toBe(2)
-    expect(retryBackoffMs(rateLimited, 1)).toBe(RATE_LIMIT_BACKOFF_MS)
-    expect(retryBackoffMs(rateLimited, 2)).toBe(RATE_LIMIT_BACKOFF_MS * 2)
-    expect(RATE_LIMIT_BACKOFF_MS).toBe(2_000)
+  it('spaces registry probes and fails on the first rate limit', () => {
+    expect(REGISTRY_PROBE_SPACING_MS).toBe(1_000)
+    expect(PUBLISH_SPACING_MS).toBe(5_000)
+    expect(RATE_LIMIT_ATTEMPTS).toBe(1)
   })
 })
 
