@@ -52,6 +52,38 @@
           "title": "Plugin market",
           "description": "Browse and install community dsh plugins.",
           "defaultEnabled": true
+        },
+        {
+          "id": "reasoning-effort",
+          "entryId": "reasoning-effort",
+          "packageName": "dsh-reasoning-effort",
+          "title": "Reasoning effort",
+          "description": "Pick thinking strength in the composer.",
+          "defaultEnabled": true
+        },
+        {
+          "id": "dsh-context",
+          "entryId": "dsh-context",
+          "packageName": "dsh-context",
+          "title": "Context dashboard",
+          "description": "Inspect context composition, compaction, and token use.",
+          "defaultEnabled": true
+        },
+        {
+          "id": "better-sidebar",
+          "entryId": "better-sidebar",
+          "packageName": "dsh-better-sidebar",
+          "title": "Better sidebar",
+          "description": "File, terminal, Git, and subagent workbench in the sidebar.",
+          "defaultEnabled": true
+        },
+        {
+          "id": "hindsight",
+          "entryId": "hindsight",
+          "packageName": "@vectorize-io/hindsight-coding-agents",
+          "title": "Hindsight memory",
+          "description": "Long-term project memory. Needs a Hindsight server or cloud account.",
+          "defaultEnabled": true
         }
       ]
     }
@@ -138,7 +170,11 @@
     "commander": "^15.0.0",
     "open": "^11.0.0",
     "dshmarket": "^1.44.0",
-    "@x1a0f3n9/dsh-session-timeline": "workspace:^"
+    "dsh-reasoning-effort": "github:HanaAyane/dsh-reasoning-effort#v0.7.1",
+    "@x1a0f3n9/dsh-session-timeline": "workspace:^",
+    "dsh-context": "0.48.0",
+    "dsh-better-sidebar": "0.19.0-alpha.1",
+    "@vectorize-io/hindsight-coding-agents": "0.5.2"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",

@@ -22,7 +22,10 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 | Web 端口 | `xfdsh web` 默认监听 `127.0.0.1:7777`。官方 `dsh web` 仍是 `3080`。 | 两套 UI 可以同时开。 |
 | Session Timeline | 预装且可关闭：回退、删除、重新生成，以及输入框压缩按钮。删除会截断选中的一轮以及后面的全部事件。 | 不满意的回答会从界面和后续模型请求里一起消失。一点即可运行 `/compact`。 |
 | 插件市场 | 预装 `dshmarket`，可关闭。官方 `@deepseek-ai/dsh-*` 插件会 remap 进这一套运行时。 | 社区插件用 `xfdsh plugin --profile web add` 安装。 |
-| 思考强度 | 可选社区插件 `github:HanaAyane/dsh-reasoning-effort`。不预装：GitHub 插件不能塞进本地未发布的 workspace 依赖图。 | 执行 `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1` 后，输入框可以选择思考强度。 |
+| 思考强度 | 预装且可关闭：`dsh-reasoning-effort@v0.7.1`。 | 输入框可以选择思考强度。可在 Settings → Plugins 关闭。 |
+| 上下文面板 | 预装且可关闭：`dsh-context@0.48.0`。 | Context 页和 `/context` 命令能看组成、压缩和 token 用量。 |
+| Better sidebar | 预装且可关闭：`dsh-better-sidebar@0.19.0-alpha.1`。 | 文件、终端、Git 和子代理都在侧边栏工作台里。 |
+| Hindsight 记忆 | 预装且可关闭：`@vectorize-io/hindsight-coding-agents@0.5.2`。 | 配好 Hindsight Cloud 或本地服务（`~/.hindsight/coding-agent.json`）后才有长期项目记忆。 |
 | 会话工具 | 工作区列表可以复制 session id。 | 方便分享和排障。 |
 | 内存与续跑 | 会话持久化限制内存读取；context overflow 会压缩并重试。 | 长会话更不容易卡住。 |
 | 纯文本模型 | 历史图片和新图片会变成稳定文本占位符。 | 切到不支持图片的模型不会让会话停摆。 |
@@ -67,7 +70,7 @@ pnpm dsh --profile web
 npx --package @x1a0f3n9/dsh xfdsh web
 ```
 
-`xfdsh` 的插件和 profile 放在 `~/.xfdsh`，不会写 `~/.dsh/profiles`。会话、分组、附件、settings 和 API key 仍在 `~/.dsh`，所以两套 CLI 看到同一份历史。预装的 timeline 和插件市场可以在 Settings → Plugins 关闭。思考强度用 `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1` 安装。
+`xfdsh` 的插件和 profile 放在 `~/.xfdsh`，不会写 `~/.dsh/profiles`。会话、分组、附件、settings 和 API key 仍在 `~/.dsh`，所以两套 CLI 看到同一份历史。预装的 timeline、插件市场、思考强度、上下文面板、better-sidebar 和 hindsight 可以在 Settings → Plugins 关闭。
 
 推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
 
