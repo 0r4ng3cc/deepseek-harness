@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   PUBLISH_SPACING_MS,
-  RATE_LIMIT_BACKOFF_CAP_MS,
+  RATE_LIMIT_ATTEMPTS,
   RATE_LIMIT_BACKOFF_MS,
   existingPublishedVersionAction,
   isRateLimited,
@@ -34,11 +34,11 @@ describe('release publish retries', () => {
     expect(retryBackoffMs(packumentRace, 3)).toBe(PUBLISH_SPACING_MS * 4)
   })
 
-  it('backs off rate limits longer and caps the wait', () => {
+  it('backs off a rate-limit blip once, then the job must fail', () => {
+    expect(RATE_LIMIT_ATTEMPTS).toBe(2)
     expect(retryBackoffMs(rateLimited, 1)).toBe(RATE_LIMIT_BACKOFF_MS)
     expect(retryBackoffMs(rateLimited, 2)).toBe(RATE_LIMIT_BACKOFF_MS * 2)
-    expect(retryBackoffMs(rateLimited, 3)).toBe(RATE_LIMIT_BACKOFF_CAP_MS)
-    expect(retryBackoffMs(rateLimited, 8)).toBe(RATE_LIMIT_BACKOFF_CAP_MS)
+    expect(RATE_LIMIT_BACKOFF_MS).toBe(2_000)
   })
 })
 
