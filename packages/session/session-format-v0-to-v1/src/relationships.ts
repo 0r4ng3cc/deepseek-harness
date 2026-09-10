@@ -38,6 +38,8 @@ export interface ReleasedRelationshipExtensions {
   readonly legacyInterruptedTurnRestart?: true
   /** Admit a closed-turn ghost step written after turn/end by historical rewind markers. */
   readonly legacyClosedTurnGhostStep?: true
+  /** Admit turn/start whose number is greater than nextTurn after the previous turn closed. */
+  readonly legacyTurnNumberSkip?: true
 }
 
 /**
@@ -103,6 +105,13 @@ export function assertReleasedArtifactRelationships(
             openTurn = null
             nextTurn += 1
           }
+        }
+        if (extensions.legacyTurnNumberSkip === true
+          && openTurn === null
+          && ghostTurn === null
+          && lastClosedTurn !== null
+          && (data['turn'] as number) > nextTurn) {
+          nextTurn = data['turn'] as number
         }
         if (openTurn !== null || ghostTurn !== null || data['turn'] !== nextTurn) {
           throw new SessionFormatError(`turn/start ${JSON.stringify(data['turn'])} does not open expected turn ${nextTurn}`)

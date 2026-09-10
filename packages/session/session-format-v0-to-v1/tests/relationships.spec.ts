@@ -16,6 +16,14 @@ function decode(rows: readonly unknown[], physicalHeader: unknown = header) {
   return restoreV1(physicalHeader, rows)
 }
 
+function relationshipArtifact(events: readonly object[]) {
+  return {
+    header: { version: 1, id: 'relationships', createdAt: 1, isSeeded: false, delegationDepth: 0 },
+    inheritedEventCount: 0,
+    events,
+  }
+}
+
 describe('released v1 whole-artifact relationships', () => {
   it.each([
     ['lone turn/end', [
@@ -743,38 +751,33 @@ describe('released v1 whole-artifact relationships', () => {
     const ghost = (turn: number, step: number) => ({
       type: 'step/start', seq: 5, time: 6, data: { turn, step },
     })
-    const artifact = (events: readonly object[]) => ({
-      header: { version: 1, id: 'relationships', createdAt: 1, isSeeded: false, delegationDepth: 0 },
-      inheritedEventCount: 0,
-      events,
-    })
     expect(() => decode([...prefix, ghost(1, 2)])).toThrow(/open turn and next step/)
     expect(() => {
-      assertReleasedArtifactRelationships(artifact([...prefix, ghost(2, 2)]) as never, {
+      assertReleasedArtifactRelationships(relationshipArtifact([...prefix, ghost(2, 2)]) as never, {
         legacyClosedTurnGhostStep: true,
       })
     }).toThrow(/open turn and next step/)
     expect(() => {
-      assertReleasedArtifactRelationships(artifact([...prefix, ghost(1, 3)]) as never, {
+      assertReleasedArtifactRelationships(relationshipArtifact([...prefix, ghost(1, 3)]) as never, {
         legacyClosedTurnGhostStep: true,
       })
     }).toThrow(/open turn and next step/)
     expect(() => {
-      assertReleasedArtifactRelationships(artifact([
+      assertReleasedArtifactRelationships(relationshipArtifact([
         ...prefix,
         ghost(1, 2),
         { type: 'turn/start', seq: 6, time: 7, data: { turn: 2 } },
       ]) as never, { legacyClosedTurnGhostStep: true })
     }).toThrow(/does not open expected turn/)
     expect(() => {
-      assertReleasedArtifactRelationships(artifact([
+      assertReleasedArtifactRelationships(relationshipArtifact([
         ...prefix,
         ghost(1, 2),
         { type: 'step/start', seq: 6, time: 7, data: { turn: 1, step: 3 } },
       ]) as never, { legacyClosedTurnGhostStep: true })
     }).toThrow(/open turn and next step/)
     expect(() => {
-      assertReleasedArtifactRelationships(artifact([
+      assertReleasedArtifactRelationships(relationshipArtifact([
         ...prefix,
         ghost(1, 2),
         {
@@ -791,5 +794,51 @@ describe('released v1 whole-artifact relationships', () => {
         },
       ]) as never, { legacyClosedTurnGhostStep: true })
     }).toThrow(/sourceEventSeqs omit/)
+  })
+
+  it('accepts a closed-turn number skip when the extension is on', () => {
+    const events = [
+      { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+      { type: 'turn/end', seq: 1, time: 2, data: { turn: 1, reason: { kind: 'completed' } } },
+      { type: 'agent/inbox/spliced', seq: 2, time: 3, data: { target: 'next-turn', start: 0, inserted: [user('later')] } },
+      { type: 'turn/start', seq: 3, time: 4, data: { turn: 3 } },
+      { type: 'turn/end', seq: 4, time: 5, data: { turn: 3, reason: { kind: 'completed' } } },
+    ]
+    const artifact = {
+      header: { version: 1, id: 'relationships', createdAt: 1, isSeeded: false, delegationDepth: 0 },
+      inheritedEventCount: 0,
+      events,
+    }
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact as never, { legacyTurnNumberSkip: true })
+    }).not.toThrow()
+  })
+
+  it('refuses turn number skips that are off, backwards, or still open', () => {
+    const closed = [
+      { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+      { type: 'turn/end', seq: 1, time: 2, data: { turn: 1, reason: { kind: 'completed' } } },
+    ]
+    expect(() => decode([
+      ...closed,
+      { type: 'turn/start', seq: 2, time: 3, data: { turn: 3 } },
+    ])).toThrow(/does not open expected turn/)
+    expect(() => {
+      assertReleasedArtifactRelationships(relationshipArtifact([
+        ...closed,
+        { type: 'turn/start', seq: 2, time: 3, data: { turn: 0 } },
+      ]) as never, { legacyTurnNumberSkip: true })
+    }).toThrow(/does not open expected turn/)
+    expect(() => {
+      assertReleasedArtifactRelationships(relationshipArtifact([
+        { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+        { type: 'turn/start', seq: 1, time: 2, data: { turn: 3 } },
+      ]) as never, { legacyTurnNumberSkip: true })
+    }).toThrow(/does not open expected turn/)
+    expect(() => {
+      assertReleasedArtifactRelationships(relationshipArtifact([
+        { type: 'turn/start', seq: 0, time: 1, data: { turn: 3 } },
+      ]) as never, { legacyTurnNumberSkip: true })
+    }).toThrow(/does not open expected turn/)
   })
 })

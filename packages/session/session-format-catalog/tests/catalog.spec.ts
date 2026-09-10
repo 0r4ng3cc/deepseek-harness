@@ -275,4 +275,16 @@ describe('first-party Session format catalog', () => {
     expect(artifact.header.version).toBe(3)
     expect(artifact.events[0]?.data).toMatchObject({ version: 3, mode: 'one-shot', provider: 'spawn', label: 'task' })
   })
+
+  it('restores a v0 log whose next turn/start skips ahead after turn/end', () => {
+    const restore = sessionFormatCatalog.createRestore({
+      type: 'session', version: 0, id: 'skip', createdAt: 1, delegationDepth: 0,
+    }, { recovery: 'strict', validation: 'transformed' })
+    restore.decodeRow({ type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } })
+    restore.decodeRow({ type: 'turn/end', seq: 1, time: 2, data: { turn: 1, reason: { kind: 'completed' } } })
+    restore.decodeRow({ type: 'turn/start', seq: 2, time: 3, data: { turn: 3 } })
+    const artifact = restore.finish()
+    expect(artifact.header.version).toBe(3)
+    expect(artifact.events.map(event => event.type)).toEqual(['turn/start', 'turn/end', 'turn/start'])
+  })
 })
