@@ -33,6 +33,12 @@ declare module '@deepseek-ai/cordis' {
 }
 
 export {
+  registerOfficialDshPackageResolve,
+  remapOfficialDshSpecifier,
+  resolveOfficialDshPackage,
+} from './official-package-resolve.ts'
+
+export {
   ensureProfilePnpmfile,
   FORK_DSH_PACKAGE_PREFIX,
   forkDshPackageName,
