@@ -109,6 +109,28 @@ describe('PluginInventorySettingsTab', () => {
     await waitFor(() => expect(setEnabled).toHaveBeenCalledWith({ entryId: 'schedule-entry', enabled: false }))
   })
 
+  it('shows the host error when a catalog toggle fails', async () => {
+    const setEnabled = vi.fn().mockRejectedValue(new Error('prebundled plugin "dsh-context" is not installed'))
+    render(<PluginInventorySettingsTab {...props(async () => ({
+      entries: [],
+      catalog: [{
+        id: 'context',
+        entryId: 'dsh-context',
+        packageName: 'dsh-context',
+        title: 'Context dashboard',
+        required: false,
+        defaultEnabled: true,
+        installed: false,
+        enabled: false,
+      }],
+    } as unknown as Snapshot), undefined, setEnabled)} />)
+    await screen.findByRole('searchbox', { name: en.search })
+    fireEvent.click(screen.getByRole('switch', { name: en.enablePlugin.replace('{name}', 'Context dashboard') }))
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      en.updateError.replace('{message}', 'prebundled plugin "dsh-context" is not installed'),
+    )
+  })
+
   it('shows the default preset first and keeps the global plane collapsed', async () => {
     const view = await renderReady()
 

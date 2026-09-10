@@ -151,6 +151,61 @@ describe('PluginInventoryGateway', () => {
     })
   })
 
+  it('matches include-prefixed runtime ids to catalog entry ids', async () => {
+    const { ctx, inventory } = await harness()
+    const localId = await ctx.loader.create({ name: 'cordis:active' })
+    const catalogEntryId = localId as PluginEntryId
+    const runtime = [...ctx.loader.entries()].find(entry => entry.options.id === localId)
+    if (runtime === undefined) throw new Error('expected created loader entry')
+    Object.defineProperty(runtime, 'id', {
+      configurable: true,
+      get: () => `include:${localId}`,
+    })
+    const profileDir = mkdtempSync(join(tmpdir(), 'dsh-plugin-inventory-nested-'))
+    writeFileSync(join(profileDir, 'package.json'), JSON.stringify({ name: 'web', dsh: { profile: {} } }))
+    ctx.provide('dshProfile', {
+      binName: 'xfdsh',
+      profile: {
+        name: 'web',
+        dir: profileDir,
+        layers: [{
+          packageName: '@x1a0f3n9/dsh-web-app',
+          packageDir: profileDir,
+          patchPath: join(profileDir, 'cordis.patch.yml'),
+          patches: [],
+          plugins: [{
+            id: 'context',
+            entryId: catalogEntryId,
+            packageName: 'dsh-context',
+            title: 'Context dashboard',
+            defaultEnabled: true,
+          }],
+        }],
+        pluginOverrides: {},
+        patchPath: join(profileDir, 'cordis.patch.yml'),
+        patches: [],
+        patchReload: 'live',
+      },
+      installAnchor: join(profileDir, 'package.json'),
+    } satisfies DshProfileRuntime)
+
+    expect((await inventory.list()).catalog).toEqual([{
+      id: 'context',
+      entryId: catalogEntryId,
+      packageName: 'dsh-context',
+      title: 'Context dashboard',
+      required: false,
+      defaultEnabled: true,
+      installed: true,
+      enabled: true,
+    }])
+    await expect(inventory.setEnabled({ entryId: catalogEntryId, enabled: false })).resolves.toEqual({ enabled: false })
+    expect((await inventory.list()).catalog?.[0]?.enabled).toBe(false)
+    expect(JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8'))).toMatchObject({
+      dsh: { profile: { pluginOverrides: { [localId]: false } } },
+    })
+  })
+
   it('carries each composed preset with root-fiber states mapped to phases', async () => {
     const { ctx, inventory } = await harness()
     ctx.provide('agentPresets', {

@@ -299,8 +299,9 @@ export function PluginInventorySettingsTab({ list, setEnabled, presetName, t }: 
               : candidate),
           },
         })
-    } catch {
-      setUpdateFailed(entry.entryId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setUpdateFailed(message.length > 0 ? message : entry.entryId)
     } finally {
       setUpdatingEntry(null)
     }
@@ -445,7 +446,7 @@ export function PluginInventorySettingsTab({ list, setEnabled, presetName, t }: 
                   {` · ${String(filteredCatalog.length)} ${t('countUnit')}`}
                 </span>
               </p>
-              {updateFailed !== null ? <p className={css.updateFailure} role="alert">{t('updateError')}</p> : null}
+              {updateFailed !== null ? <p className={css.updateFailure} role="alert">{t('updateError', { message: updateFailed })}</p> : null}
               {filteredCatalog.length > 0 ? (
                 <ul className={css.catalogCards}>
                   {filteredCatalog.map((entry) => {
