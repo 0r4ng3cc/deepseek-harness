@@ -16,7 +16,7 @@ The plugin is prebundled and enabled by default by the fork Web profile. Users c
 
 ## Timeline actions
 
-The client plugin owns the destructive conversation controls: rewind, delete, and regenerate. Each action is a separate button, and delete/regenerate require the shared risk acknowledgement before calling the session controller. Delete permanently truncates the selected message and every later event; regenerate truncates the same tail and submits the original user content again. The session controller remains the durable mutation owner, while this plugin owns the Web presentation and action policy.
+The client plugin owns the destructive conversation controls: rewind, delete, and regenerate. Each action is a separate button, and delete/regenerate require the shared risk acknowledgement before calling the session controller. Delete permanently truncates the selected message and every later event; regenerate truncates the same tail and submits the original user content again. The session controller remains the durable mutation owner, while this plugin owns the Web presentation and action policy. The composer trailing slot also hosts a compact button that runs `/compact` on the current session.
 
 ## Table of Contents
 
