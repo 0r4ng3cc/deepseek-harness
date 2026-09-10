@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { AttachmentIdType } from '@x1a0f3n9/dsh-attachment'
 import type { PromptContentPart } from '@x1a0f3n9/dsh-api-session-controller/types'
 import type { SessionFace } from '@x1a0f3n9/dsh-api-session-controller/client'
+import { SessionSeq } from '@x1a0f3n9/dsh-session/types'
 import {
   IconRefreshOutline16, IconTrashOutline16, RiskConfirmation, Tooltip,
 } from '@x1a0f3n9/dsh-client-ui-primitives'
@@ -41,11 +42,12 @@ export function TimelineActions({ kind, seq, content, session, t }: TimelineActi
     if (selected === null || session === undefined || busy.current) return
     busy.current = true
     void (async () => {
-      const rewind = await session.command(`/rewind @${seq} chat`)
-      if (!rewind.ok) throw new Error(rewind.error.message)
-      if (selected === 'delete') return
-      if (content === undefined) return
-      const prompt = await historyPromptContent(session, content)
+      const prompt = selected === 'regenerate' && content !== undefined
+        ? await historyPromptContent(session, content)
+        : undefined
+      const deleted = await session.deleteFrom(SessionSeq(seq))
+      if (!deleted.ok) throw new Error(deleted.error.message)
+      if (selected === 'delete' || prompt === undefined) return
       await session.prompt(prompt, 'queue')
     })().catch((error) => {
       console.error('dsh-session-timeline: timeline action failed', error)

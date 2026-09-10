@@ -36,10 +36,11 @@ import {
 import { createPortal } from 'react-dom'
 import type { SessionFace } from '@x1a0f3n9/dsh-api-session-controller/client'
 import type { UserMessageNode } from '@x1a0f3n9/dsh-client-ui-conversation/client'
-import { hiddenSeqsOf, isExecutedRewindCommand, messageTextAt, type ChatOf, type ChatWatch, type HiddenChat } from './hidden.ts'
+import { SessionSeq } from '@x1a0f3n9/dsh-session/types'
+import { hiddenSeqsOf, messageTextAt, type ChatOf, type ChatWatch, type HiddenChat } from './hidden.ts'
 import type { RewindKey } from './locales.ts'
 import { messagePreviewOf } from './candidates.ts'
-import { knownCommandSeqs, openPopover, waitForCommand } from './popover.ts'
+import { openPopover } from './popover.ts'
 import { matchPendingRows, retractSpan } from './pending.ts'
 import { rewindLog } from './log.ts'
 import { CLASS, REWIND_ICON_SVG } from './styles.ts'
@@ -113,17 +114,10 @@ function userNodeOf(chat: HiddenChat | undefined, key: string): UserMessageNode 
 }
 
 /**
- * Execute one rewind from the popover and, when it settles successfully,
- * put the withdrawn target message's text back into the composer so the
- * user can edit and re-send.
- *
- * THE COMPOSER FILL IS EVENT-DRIVEN: it runs only when THIS page performed
- * the rewind (the user clicked confirm moments ago). It must NEVER scan
- * loaded history for rewind commands: a session window opens with only
- * the tail page and grows via loadOlder, so a "command already in the
- * snapshot" cannot be told apart from "command executed in this page" —
- * the old baseline heuristic refilled withdrawn text into the composer
- * after switching sessions or restarting dsh.
+ * Truncate from the popover target and, when that succeeds, put the
+ * withdrawn user text back into the composer so the user can edit and re-send.
+ * Conversation-only mode calls `deleteFrom`; workspace mode runs `/rewind both`
+ * then resynchronizes. The target text is captured before truncation.
  */
 export async function runRewindAndFill(
   session: SessionFace,
@@ -131,63 +125,35 @@ export async function runRewindAndFill(
   mode: 'chat' | 'both',
   currentSessionId: () => string | undefined,
   chatOf: ChatOf,
-  watchChat: ChatWatch,
+  _watchChat: ChatWatch,
   setComposerText: (sessionId: string, text: string) => boolean,
 ): Promise<void> {
-  // Exclude already-present executed-rewind nodes for this target BEFORE
-  // issuing the command: a repeated rewind of the same message must wait
-  // for THIS command's node, not settle on the previous one.
-  const known = knownCommandSeqs(session, chatOf, node => isExecutedRewindCommand(node, seq))
-  let result: Awaited<ReturnType<SessionFace['command']>>
-  try {
-    result = await session.command(`/rewind @${seq} ${mode}`)
-  } catch (error) {
-    // A command/teardown throw must never become a silent unhandled rejection
-    // on the `void runRewindAndFill(...)` call site.
-    rewindLog.warn('refill', `rewind command threw, skipping refill @${seq}`, error)
-    return
-  }
-  if (!result.ok || result.value?.matched !== true) {
-    return
-  }
-  // The executed rewind lands as a CommandNode with a marker-carrying
-  // success outcome; wait for exactly that (longer than the preview wait:
-  // a running turn is cancelled first, which can take seconds).
-  let outcome: Awaited<ReturnType<typeof waitForCommand>>
-  try {
-    outcome = await waitForCommand(
-      session,
-      chatOf,
-      node => isExecutedRewindCommand(node, seq) && !known.has(node.seq),
-      20_000,
-      cb => watchChat(session.sessionId, cb),
-    )
-  } catch (error) {
-    rewindLog.warn('refill', `waiting for rewind @${seq} outcome threw`, error)
-    return
-  }
-  if (outcome === null) {
-    rewindLog.warn('refill', `rewind @${seq} never settled within timeout, no refill`)
-    return
-  }
-  if (outcome.kind !== 'success') {
-    // The host rejected the rewind (e.g. the target was shadowed by
-    // compaction and is no longer in the model context). The refusal is the
-    // correct behavior, but it must not fail silently — surface the host's
-    // reason instead.
-    showHint(outcome.text ?? 'rewind failed')
-    return
-  }
-  // The user may have switched sessions while the rewind ran — fill only
-  // the composer of the session the rewind actually happened in.
-  if (currentSessionId() !== session.sessionId) {
-    return
-  }
   let text: string | undefined
   try {
     text = messageTextAt(chatOf(session), seq)
   } catch (error) {
     rewindLog.warn('refill', `reading target text for @${seq} threw`, error)
+    return
+  }
+  try {
+    if (mode === 'chat') {
+      const deleted = await session.deleteFrom(SessionSeq(seq))
+      if (!deleted.ok) {
+        showHint(deleted.error.message)
+        return
+      }
+    } else {
+      const result = await session.command(`/rewind @${seq} both`)
+      if (!result.ok || result.value?.matched !== true) return
+      await session.resync()
+    }
+  } catch (error) {
+    rewindLog.warn('refill', `rewind threw, skipping refill @${seq}`, error)
+    return
+  }
+  // The user may have switched sessions while the rewind ran — fill only
+  // the composer of the session the rewind actually happened in.
+  if (currentSessionId() !== session.sessionId) {
     return
   }
   if (text === undefined || text === '') {

@@ -3,11 +3,10 @@
  * checkpoint store, composed as one dual-face bundle row (the browser half
  * lives in `src/client/`).
  *
- * Rewind mechanism: planning is pure (`src/rewind.ts`); execution appends a
- * plugin `user/message` into the session log whose `surfaceOp` replaces the
- * target turn and every later surface node with the marker. The append-only
- * log stays intact — only the model-visible surface is cut, so the next
- * request no longer carries the withdrawn turns.
+ * Rewind mechanism: planning is pure (`src/rewind.ts`); execution permanently
+ * truncates the selected turn and every later event from the live session and
+ * the current durable generation. File restore (mode `both`) still uses the
+ * checkpoint store. The plugin does not write a surface marker.
  *
  * File restore (mode `both`) follows Claude Code's checkpointing: the plugin
  * backs up each tracked write-class edit BEFORE it happens (at the
@@ -29,8 +28,7 @@ import type {} from '@x1a0f3n9/dsh-settings'
 import type { Agent } from '@x1a0f3n9/dsh-agent'
 import type { CommandInvocation, CommandResult } from '@x1a0f3n9/dsh-commands'
 import type { FileSystem, FsTarget } from '@x1a0f3n9/dsh-fs'
-import { boundContextSummary, createUserMessage } from '@x1a0f3n9/dsh-llm'
-import { SessionSeq, type Session, type SessionEvent, type UserMessage } from '@x1a0f3n9/dsh-session'
+import { SessionLogOffset, SessionSeq, type Session, type SessionEvent } from '@x1a0f3n9/dsh-session'
 import type { PostToolDecision, ToolExecution, ToolExecutionResult } from '@x1a0f3n9/dsh-tools'
 import { unlink } from 'node:fs/promises'
 import { translate, type HostKey, type HostLocaleId } from './locales.ts'
@@ -258,22 +256,6 @@ async function commitEntry(
   tracked.add(capture.path)
 }
 
-/**
- * Build the rewind marker: a plugin `user/message` that current session
- * validation can use as a surface `replace` carrier. Assistant messages cannot
- * cite `sourceEventSeqs`, and a replace must name every shadowed surface node,
- * so the marker follows compaction and uses a plugin-sourced user message.
- * The notice is a one-line stand-in; withdrawn turns stay in the append-only
- * log but leave the derived model context.
- */
-function buildMarker(): UserMessage {
-  const summary = boundContextSummary('Conversation rewound.')
-  return createUserMessage({
-    content: [{ type: 'text', text: summary }],
-    source: { kind: 'plugin', plugin: 'dsh-session-timeline', form: 'notice', summary },
-  })
-}
-
 /** Render a parsed target for the step-2 hint. */
 function describeTarget(target: RewindTarget): string {
   return target.kind === 'seq'
@@ -446,7 +428,7 @@ function dropPendingSteering(agent: Agent): void {
   }
 }
 
-/** Execute a validated rewind: append the marker, then optionally restore files. */
+/** Execute a validated rewind: restore files when requested, then truncate the session tail. */
 async function executeRewind(
   ctx: Context,
   store: SnapshotStore,
@@ -496,32 +478,15 @@ async function executeRewind(
       return rewindErrorResult(error)
     }
 
-    const marker = buildMarker()
-    let event: ReturnType<Session['append']>
+    let length: SessionLogOffset
     try {
-      // Compaction's replace carrier is a plugin `user/message`. The same
-      // shape is required here: assistant messages cannot carry
-      // `sourceEventSeqs`, and a replace must cite every shadowed surface node.
-      event = agent.session.append('user/message', marker, {
-        surfaceOp: {
-          op: 'replace',
-          startSeq: SessionSeq(plan.surfaceStart),
-          endSeq: SessionSeq(plan.surfaceEnd),
-        },
-        sourceEventSeqs: plan.shadowedSeqs.map(seq => SessionSeq(seq)),
-      })
+      length = agent.session.deletionStart(SessionSeq(plan.targetSeq))
     } catch (error) {
       return {
         kind: 'error',
         text: t('failed', { error: error instanceof Error ? error.message : String(error) }),
       }
     }
-
-    // A rewind cuts only the model-visible surface and never touches the
-    // log-only `plan/mode` events — plan mode is a separate state the plugin
-    // does not manage. `/plan text` is two independent actions (enter plan
-    // mode + steer the message); rewinding the message undoes only the
-    // message, leaving plan mode for the user to leave with `/plan off`.
 
     let restore = ''
     if (mode === 'both') {
@@ -544,12 +509,32 @@ async function executeRewind(
       restore += renderFailures(outcome.failed)
     }
 
-    // Every rewind withdraws the target message and everything after it; its
-    // content is offered back in the composer for re-sending.
+    const persistence = ctx.get('sessionPersistence') as {
+      truncate(id: Session['id'], retained: SessionLogOffset): Promise<void>
+    } | undefined
+    if (persistence === undefined) {
+      return {
+        kind: 'error',
+        text: t('failed', { error: 'session persistence is unavailable; cannot delete conversation history' }),
+      }
+    }
+    try {
+      await agent.runMaintenance(async () => {
+        await persistence.truncate(agent.session.id, length)
+        agent.session.truncate(length)
+      })
+    } catch (error) {
+      return {
+        kind: 'error',
+        text: t('failed', { error: error instanceof Error ? error.message : String(error) }),
+      }
+    }
+
+    // Every rewind removes the target turn and everything after it; the
+    // client offers the withdrawn user text back in the composer.
     return {
       kind: 'success',
       text: t('success', { targetSeq: plan.targetSeq, restore }),
-      sourceEventSeq: event.seq,
     }
   } finally {
     inflight.delete(sessionId)

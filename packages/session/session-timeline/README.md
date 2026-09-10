@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@x1a0f3n9/dsh-session-timeline` is a Web plugin for persisted dsh sessions. It rewinds the model-visible conversation to a selected human message and can restore workspace files from durable pre-edit checkpoints. Rewind appends an auditable surface marker; it does not rewrite or delete the session log. This is separate from the true session deletion command, which removes the selected session and later history.
+`@x1a0f3n9/dsh-session-timeline` is a Web plugin for persisted dsh sessions. It rewinds a conversation to a selected human message and can restore workspace files from durable pre-edit checkpoints. Delete, rewind, and regenerate all truncate the selected turn and every later event from the live session and the current durable generation. Mode `both` also restores tracked workspace files.
 
 The plugin is prebundled and enabled by default by the fork Web profile. Users can disable it from **Settings → Plugins**, or install it as a profile plugin when using a profile that does not include the Web bundle.
 
@@ -50,9 +50,9 @@ The package exports a `dsh.bundle` patch, so the profile installer can mount it 
 1. Open a user message and click its **↶** action.
 2. Choose **conversation only** or **conversation and workspace**.
 3. Review the file impact list and confirm the workspace restore when that mode is selected.
-4. The selected message and everything after it are withdrawn from the model-visible surface, and the selected user text is placed back in the composer for editing and resubmission.
+4. The selected turn and everything after it are permanently deleted, and the selected user text is placed back in the composer for editing and resubmission.
 
-The `/rewind` and `/undo` commands provide the same flow for keyboard users. Rewind cancels an active run before applying the marker and serializes concurrent requests per session.
+The `/rewind` and `/undo` commands provide the same flow for keyboard users. Rewind cancels an active run before truncating history and serializes concurrent requests per session.
 
 -----
 
@@ -83,9 +83,9 @@ The plugin tracks supported write-class tool calls (`write`, `edit`, and mutatin
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-The Host half listens to command and tool seams. It creates a pure rewind plan from the session event log, appends a surface replacement marker, and restores checkpointed files after the session is idle. The Client half registers localized command decoration and a typed conversation action slot; it does not modify the chat DOM directly.
+The Host half listens to command and tool seams. It creates a pure rewind plan from the session event log, truncates the selected turn tail, and restores checkpointed files after the session is idle. The Client half registers localized command decoration and a typed conversation action slot; it does not modify the chat DOM directly.
 
-Snapshot data is owned by the plugin and is independent of session persistence. The append-only log remains the audit record, while the surface projection hides withdrawn events from later model requests and the Web transcript. True deletion remains owned by the session controller and is not implemented by rewind.
+Snapshot data is owned by the plugin and is independent of session persistence. Conversation deletion rewrites only the current JSONL generation; historical format generations stay in place. The session controller owns the truncate primitive; this plugin owns presentation, file restore, and the `/rewind` command.
 
 -----
 
@@ -96,7 +96,7 @@ Snapshot data is owned by the plugin and is independent of session persistence. 
 
 #### What the model sees
 
-The next agent request is rebuilt from the selected human message onward after the `surfaceOp` rewind marker. Withdrawn messages and later tool activity are excluded from the active surface, while the append-only log remains available to persistence and diagnostics.
+The next agent request is rebuilt from the retained prefix after the selected turn is deleted. Removed messages and later tool activity are gone from both the live session and the current durable generation.
 
 #### Token effect
 
@@ -111,7 +111,7 @@ Rewinding changes the request prefix at the selected target, so provider cache r
 <a id="known-limitations-and-deferred-work"></a>
 
 - Workspace restore is limited to supported write-class tool calls and tracked paths; shell, subagent, and unrecognized edits are outside the capture guarantee.
-- A rewind is intentionally not an undo stack. The append-only marker can be audited, but applying a later rewind does not restore a previously withdrawn surface automatically.
+- A rewind is intentionally not an undo stack. Truncation is destructive; applying a later rewind cannot restore already deleted events.
 - Removing checkpoint files disables file restoration for those files, while conversation rewind remains available.
 
 <a id="dev-note"></a>
