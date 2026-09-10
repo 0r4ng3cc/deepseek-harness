@@ -255,4 +255,24 @@ describe('first-party Session format catalog', () => {
 
     expect(() => stream.finish()).toThrow(/open turn/)
   })
+
+  it('restores a v0 child whose subagent descriptor still carries version 2', () => {
+    const restore = sessionFormatCatalog.createRestore({
+      type: 'session',
+      version: 0,
+      id: 'child',
+      createdAt: 1,
+      parentSession: 'parent',
+      origin: 'subagent',
+      delegationDepth: 1,
+    }, { recovery: 'strict', validation: 'transformed' })
+    restore.decodeRow({
+      type: 'subagent/descriptor', seq: 0, time: 1,
+      data: { version: 2, mode: 'one-shot', provider: 'spawn', label: 'task' },
+    })
+    restore.decodeRow({ type: 'session/end-seed', seq: 1, time: 2, data: {} })
+    const artifact = restore.finish()
+    expect(artifact.header.version).toBe(3)
+    expect(artifact.events[0]?.data).toMatchObject({ version: 3, mode: 'one-shot', provider: 'spawn', label: 'task' })
+  })
 })
