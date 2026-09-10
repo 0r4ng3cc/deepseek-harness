@@ -20,9 +20,9 @@
  * the rewind candidates instead of executing the command. Picking one
  * continues the SAME flow as the ↶ button: the mode popover, both-impact
  * confirmation, execution, row hiding and the composer refill
- * (`runRewindAndFill`). The parameterized forms (`/rewind @<seq> chat|both`,
- * `/rewind preview …`) stay internal channels the ↶ button and the popover
- * drive through `session.command`.
+ * (`runRewindAndFill`). File restore uses `/rewind __restore`; impact preview
+ * uses `/rewind preview`. Conversation truncation uses `deleteFrom` so a
+ * slash-command handler never cuts `command/run` out from under `command/done`.
  *
  * @module dsh-session-timeline/client
  */

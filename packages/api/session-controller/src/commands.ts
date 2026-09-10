@@ -73,6 +73,29 @@ function hasPromptContent(content: readonly PromptContentCandidate[]): boolean {
   return content.some(part => part.type !== 'text' || part.text.trim().length > 0)
 }
 
+/**
+ * Wait until an Agent reaches quiescence, or the deadline hits.
+ * @param agent - Agent whose activity promise is awaited.
+ * @param timeoutMs - maximum wait before treating the Agent as still busy.
+ * @returns whether the Agent became idle in time.
+ */
+async function waitForAgentIdle(agent: Agent, timeoutMs = 15_000): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      agent.whenIdle(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('deleteFrom idle wait timed out')), timeoutMs)
+      }),
+    ])
+    return true
+  } catch {
+    return false
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
 /** Implements Session business commands delegated by the Session Controller Remote service. */
 export class SessionCommandController {
   /**
@@ -522,6 +545,8 @@ export class SessionCommandController {
 
   /**
    * Rewrite one live Session to the prefix before the selected turn.
+   * A live turn is cancelled first so delete/rewind/regenerate can finish
+   * instead of leaving the UI blocked on an executing command card.
    * @param request - Session identity and event sequence inside the turn to remove.
    * @returns acknowledgement after durable and in-memory logs agree.
    */
@@ -531,11 +556,16 @@ export class SessionCommandController {
       throw apiSessionSubagentOwnershipError(request.sessionId)
     }
     if (agent.status === 'running') {
-      throw new RemoteError(
-        'session/agent-busy',
-        'cannot delete conversation history while the session is running',
-        { reason: 'DELETE_ACTIVE_TURN' },
-      )
+      agent.cancel({ kind: 'user' }, { keepInbox: true })
+      this.ctx.get('commands')?.abortInflight(agent)
+      const stopped = await waitForAgentIdle(agent)
+      if (!stopped || agent.status === 'running') {
+        throw new RemoteError(
+          'session/agent-busy',
+          'cannot delete conversation history while the session is running',
+          { reason: 'DELETE_ACTIVE_TURN' },
+        )
+      }
     }
     let sequence: SessionSeq
     try {

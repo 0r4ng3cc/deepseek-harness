@@ -45,6 +45,7 @@ export function TimelineActions({ kind, seq, content, session, t }: TimelineActi
       const prompt = selected === 'regenerate' && content !== undefined
         ? await historyPromptContent(session, content)
         : undefined
+      await session.cancel()
       const deleted = await session.deleteFrom(SessionSeq(seq))
       if (!deleted.ok) throw new Error(deleted.error.message)
       if (selected === 'delete' || prompt === undefined) return

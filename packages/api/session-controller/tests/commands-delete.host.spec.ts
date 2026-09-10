@@ -72,4 +72,38 @@ describe('Session deletion command', () => {
       })
     await ctx.fiber.dispose()
   })
+
+  it('cancels a running turn before truncating history', async () => {
+    const ctx = commandContext()
+    await ctx.plugin(SessionStore)
+    const session = ctx.sessions.create(SessionId('delete-running'), { meta: { cwd: '/workspace' } })
+    session.append('turn/start', { turn: 1 })
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'remove me' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    const truncate = vi.fn(() => Promise.resolve())
+    ctx.provide('sessionPersistence', { truncate } as never)
+    const phase = { status: 'running' as 'idle' | 'running' }
+    const agent = {
+      id: session.id,
+      session,
+      get status() { return phase.status },
+      ctx,
+      cancel: vi.fn(() => { phase.status = 'idle' }),
+      whenIdle: vi.fn(() => Promise.resolve()),
+      runMaintenance: (job: (signal: AbortSignal) => Promise<unknown>) => job(new AbortController().signal),
+    }
+    const agents = {
+      resolveAgent: () => Promise.resolve({ agent }),
+    } as unknown as ApiSessionAgentController
+    const controller = new SessionCommandController(ctx, agents, '/workspace')
+
+    await expect(controller.deleteFrom({ sessionId: session.id, fromSeq: SessionSeq(1) }))
+      .resolves.toEqual({ accepted: true })
+    expect(agent.cancel).toHaveBeenCalledWith({ kind: 'user' }, { keepInbox: true })
+    expect(agent.whenIdle).toHaveBeenCalledOnce()
+    expect(truncate).toHaveBeenCalledOnce()
+    await ctx.fiber.dispose()
+  })
 })

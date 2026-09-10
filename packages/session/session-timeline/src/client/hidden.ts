@@ -142,6 +142,11 @@ function isPreviewCommand(command: CommandNode): boolean {
   return (command.args ?? '').includes('preview')
 }
 
+/** True when a `/rewind` command is the internal file-restore probe. */
+function isRestoreCommand(command: CommandNode): boolean {
+  return (command.args ?? '').includes('__restore')
+}
+
 /**
  * True when a `/rewind` command node is the internal candidate-list probe
  * (`/rewind __candidates`) the popupSelect runs to fetch the FULL candidate
@@ -185,14 +190,20 @@ export function hiddenSeqsOf(snap: HiddenChat): Set<number> {
     // state — pending, succeeded, or errored — so no row flashes in the
     // transcript while the popover/popup shows its result. Probes never
     // contribute to the cut range (nothing was actually rewound).
-    if (isPreviewCommand(command) || isCandidateCommand(command)) {
+    if (isPreviewCommand(command) || isCandidateCommand(command) || isRestoreCommand(command)) {
+      hidden.add(command.seq)
+      continue
+    }
+    // Hide an executed rewind that has not settled. Failed executed rewinds
+    // keep a visible error row.
+    if (command.outcome === null) {
       hidden.add(command.seq)
       continue
     }
     // Only SUCCESSFUL executed rewinds are hidden (their result is noise once
     // the conversation is rewound). A failed executed rewind must stay visible
     // so the user sees the error instead of silently missing the rewind.
-    if (command.outcome?.kind !== 'success') continue
+    if (command.outcome.kind !== 'success') continue
     // A success WITHOUT a marker rewound nothing (the step-2 "choose a mode"
     // hint from the now-blocked manual text flow): leave its row visible and
     // do not extend the cut range.
