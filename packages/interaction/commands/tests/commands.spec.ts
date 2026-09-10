@@ -4,7 +4,7 @@ import { createScope } from '@x1a0f3n9/dsh-scope'
 import type { Scope } from '@x1a0f3n9/dsh-scope'
 import type { Agent } from '@x1a0f3n9/dsh-agent'
 import SessionStore, { SessionId, SessionLogOffset } from '@x1a0f3n9/dsh-session'
-import CommandRuntime, { parseCommand, type CommandDefinition } from '@x1a0f3n9/dsh-commands'
+import CommandRuntime, { parseCommand, type CommandDefinition, type CommandInvocation } from '@x1a0f3n9/dsh-commands'
 import { AttachmentStore } from '@x1a0f3n9/dsh-attachment'
 
 function command(name: string, text = `ran:${name}`): CommandDefinition {
@@ -173,7 +173,7 @@ describe('CommandRuntime', () => {
   it('passes exact invocation context and detaches valid handler results', async () => {
     const ctx = await mount()
     const { agent } = await mintAgentScope(ctx, 'a')
-    const seen = vi.fn(() => ({ kind: 'success' as const, text: 'ok' }))
+    const seen = vi.fn((_invocation: CommandInvocation) => ({ kind: 'success' as const, text: 'ok' }))
     ctx.commands.register({ name: 'run', description: 'Run it', handler: seen })
     const controller = new AbortController()
 
@@ -188,7 +188,8 @@ describe('CommandRuntime', () => {
       rawInput: '  untouched ',
       attachments: [],
     }))
-    const invocation = seen.mock.calls[0]?.[0] as { signal: AbortSignal }
+    const invocation = seen.mock.calls[0]?.[0]
+    if (invocation === undefined) throw new Error('command handler was not invoked')
     expect(invocation.signal).toBeInstanceOf(AbortSignal)
     expect(invocation.signal).not.toBe(controller.signal)
     expect(invocation.signal.aborted).toBe(false)
