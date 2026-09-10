@@ -11,7 +11,7 @@ const copy = (key: string): string => key
 
 function sessionFace(overrides: Partial<SessionFace> = {}): SessionFace {
   return {
-    command: vi.fn().mockResolvedValue({ ok: true, value: { matched: true } }),
+    deleteFrom: vi.fn().mockResolvedValue({ ok: true, value: { accepted: true } }),
     prompt: vi.fn().mockResolvedValue({ ok: true, value: { accepted: true } }),
     readAttachment: vi.fn(),
     ...overrides,
@@ -31,7 +31,7 @@ describe('TimelineActions', () => {
     expect(confirm).toHaveProperty('disabled', false)
     fireEvent.click(confirm)
 
-    await waitFor(() => expect(session.command).toHaveBeenCalledWith('/rewind @7 chat'))
+    await waitFor(() => expect(session.deleteFrom).toHaveBeenCalledWith(7))
     expect(session.prompt).not.toHaveBeenCalled()
   })
 
@@ -66,9 +66,12 @@ describe('TimelineActions', () => {
       { type: 'text', text: 'Explain this.' },
       { type: 'image', mediaType: 'image/png', data: 'QUI=', name: 'diagram.png' },
     ], 'queue'))
-    expect(session.command).toHaveBeenCalledWith('/rewind @12 chat')
-    const command = vi.mocked(session.command)
+    expect(session.readAttachment).toHaveBeenCalledWith('attachment-1')
+    expect(session.deleteFrom).toHaveBeenCalledWith(12)
+    const loaded = vi.mocked(session.readAttachment)
+    const deleted = vi.mocked(session.deleteFrom)
     const prompt = vi.mocked(session.prompt)
-    expect(command.mock.invocationCallOrder[0]!).toBeLessThan(prompt.mock.invocationCallOrder[0]!)
+    expect(loaded.mock.invocationCallOrder[0]!).toBeLessThan(deleted.mock.invocationCallOrder[0]!)
+    expect(deleted.mock.invocationCallOrder[0]!).toBeLessThan(prompt.mock.invocationCallOrder[0]!)
   })
 })

@@ -3,17 +3,10 @@
  * No I/O and no `Session` dependency — everything derives from the event log
  * and the ordered surface, so this module stays unit-testable.
  *
- * Rewind semantics (see README): rewinding to a user message appends a marker
- * node into the session log whose `surfaceOp` replaces the target and every
- * later surface node. The log (the audit trail) is untouched; only the
- * model-visible surface is cut, so the next request no longer carries the
- * withdrawn turns.
- *
- * Marker shape: a plugin-sourced `user/message` with
- * `{ op: 'replace', startSeq, endSeq }` and `sourceEventSeqs` covering every
- * shadowed surface node. Assistant messages cannot cite `sourceEventSeqs`, so
- * they cannot be the replace carrier under the current session contract.
- * `markerTurnOf` / `markerStepOf` remain for leftover ghost-step fixtures.
+ * Rewind semantics (see README): rewinding to a user message permanently
+ * truncates that turn and every later event. Planning still names the
+ * surface range so the host can restore files and fill the composer.
+ * `markerTurnOf` / `markerStepOf` remain only for leftover ghost-step fixtures.
  *
  * @module dsh-session-timeline/rewind
  */
