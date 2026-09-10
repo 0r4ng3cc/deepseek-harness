@@ -289,12 +289,8 @@ function transformMessage(
     emitSource(state, messageEvent(event, attemptGroup(turn, step)), context)
     return
   }
-  // Historical rewind markers keep leftover provenance after the attempt settled.
-  if (pending === undefined) {
-    emitSource(state, messageEvent(event, attemptGroup(turn, step)), context)
-    return
-  }
-  if (!matchesChunkSources(pending.group, sources)) {
+  if (pending === undefined
+    || !matchesChunkSources(pending.group, sources)) {
     throw refusal(`assistant/message ${event.seq} chunk provenance is not one complete ordered attempt`)
   }
   assertAttemptCut(state, pending.group, event.seq)

@@ -23,8 +23,6 @@ const LOG_OPTIONAL = ['ignorable'] as const
 const RELEASED_V2_RELATIONSHIP_EXTENSIONS = {
   stepEvents: new Set(['assistant/attempt']),
   preservedSourceTitleRequestText: true,
-  legacyClosedTurnGhostStep: true,
-  legacyTurnNumberSkip: true,
 } as const
 
 /**

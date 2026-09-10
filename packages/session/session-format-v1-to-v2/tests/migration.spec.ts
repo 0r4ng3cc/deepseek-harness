@@ -890,7 +890,7 @@ describe('sessionFormatV1ToV2', () => {
     },
   )
 
-  it('keeps a later-step message whose leftover provenance is not an open chunk attempt', () => {
+  it('refuses leftover message provenance when no chunk attempt is open', () => {
     const source: SessionFormatArtifact = {
       header: {
         version: 1, id: 'v1-leftover-message-provenance', createdAt: 1,
@@ -918,15 +918,7 @@ describe('sessionFormatV1ToV2', () => {
         event('turn/end', 9, 10, { turn: 1, reason: { kind: 'completed' } }),
       ],
     }
-    const migrated = migrateV1ToV2(source)
-    const later = migrated.events.find(event => (
-      event.type === 'assistant/message'
-      && (event.data as { step?: number }).step === 2
-    ))
-    expect(later).toMatchObject({
-      type: 'assistant/message', data: { stream: [] }, surfaceOp: 'append',
-    })
-    expect(later).not.toHaveProperty('sourceEventSeqs')
+    expect(() => migrateV1ToV2(source)).toThrow(/complete ordered attempt/)
   })
 
   it('refuses missing, partial, or reordered provenance for a present v1 attempt', () => {
