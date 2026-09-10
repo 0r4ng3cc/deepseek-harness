@@ -36,6 +36,8 @@ export interface ReleasedRelationshipExtensions {
   readonly preservedSourceTitleRequestText?: true
   /** Admit the released resume pattern whose next-turn inbox insert omitted the prior turn/end. */
   readonly legacyInterruptedTurnRestart?: true
+  /** Admit a closed-turn ghost step written after turn/end by historical rewind markers. */
+  readonly legacyClosedTurnGhostStep?: true
 }
 
 /**
@@ -52,6 +54,9 @@ export function assertReleasedArtifactRelationships(
   let openStepProvider: string | undefined
   let nextTurn = 1
   let nextStep = 1
+  let lastClosedTurn: number | null = null
+  let ghostTurn: number | null = null
+  let ghostStep: number | null = null
   let surface: number[] = []
   let openCompaction: CompactionState | undefined
   const staleCompactionStarts = inheritedOrphanCompactionStarts(artifact.events)
@@ -66,13 +71,19 @@ export function assertReleasedArtifactRelationships(
     const extensionStepEvent = extensions.stepEvents?.has(event.type) === true
     if (RELEASED_V0_EVENT_DISPOSITIONS[event.type] === undefined && !extensionStepEvent) continue
     const data = releasedV0Record(event.data, `${event.type} ${event.seq} data`)
-    if (SURFACE_TYPES.has(event.type)) surface = applySurface(surface, event)
+    if (SURFACE_TYPES.has(event.type)) {
+      surface = applySurface(
+        surface,
+        event,
+        extensions.legacyClosedTurnGhostStep === true && ghostTurn !== null,
+      )
+    }
     if ((event.type === 'turn/start' || event.type === 'turn/end')
       && openCompaction !== undefined && !staleCompactionStarts.has(openCompaction.startSeq)) {
       throw new SessionFormatError(`${event.type} crosses an open compaction`)
     }
     if (extensionStepEvent) {
-      requireOpenStep(event, data, openTurn, openStep)
+      requireOpenStep(event, data, openTurn, openStep, ghostTurn, ghostStep)
       continue
     }
 
@@ -93,7 +104,7 @@ export function assertReleasedArtifactRelationships(
             nextTurn += 1
           }
         }
-        if (openTurn !== null || data['turn'] !== nextTurn) {
+        if (openTurn !== null || ghostTurn !== null || data['turn'] !== nextTurn) {
           throw new SessionFormatError(`turn/start ${JSON.stringify(data['turn'])} does not open expected turn ${nextTurn}`)
         }
         openTurn = data['turn']
@@ -110,27 +121,46 @@ export function assertReleasedArtifactRelationships(
         if (openStep !== null) {
           throw new SessionFormatError(`turn/end ${JSON.stringify(data['turn'])} crosses an open step`)
         }
+        lastClosedTurn = data['turn'] as number
         openTurn = null
         nextTurn += 1
         break
-      case 'step/start':
-        if (openTurn !== data['turn'] || openStep !== null || data['step'] !== nextStep) {
+      case 'step/start': {
+        const closedTurnGhost = extensions.legacyClosedTurnGhostStep === true
+          && openTurn === null
+          && openStep === null
+          && ghostTurn === null
+          && lastClosedTurn !== null
+          && data['turn'] === lastClosedTurn
+          && data['step'] === nextStep
+        if (closedTurnGhost) {
+          ghostTurn = data['turn'] as number
+          ghostStep = data['step'] as number
+          break
+        }
+        if (openTurn !== data['turn'] || openStep !== null || ghostTurn !== null || data['step'] !== nextStep) {
           throw new SessionFormatError(`${event.type} does not match the open turn and next step`)
         }
-        openStep = data['step']
+        openStep = data['step'] as number
         break
+      }
       case 'step/end':
-        requireOpenStep(event, data, openTurn, openStep)
+        requireOpenStep(event, data, openTurn, openStep, ghostTurn, ghostStep)
         assertNoUnresolvedTools(toolLifecycles, 'step/end')
         toolLifecycles.clear()
-        openStep = null
+        if (ghostTurn !== null) {
+          ghostTurn = null
+          ghostStep = null
+        } else {
+          openStep = null
+        }
         nextStep += 1
         break
       case 'assistant/chunk':
-        requireOpenStep(event, data, openTurn, openStep)
+        requireOpenStep(event, data, openTurn, openStep, ghostTurn, ghostStep)
         break
       case 'assistant/message': {
-        requireOpenStep(event, data, openTurn, openStep)
+        requireOpenStep(event, data, openTurn, openStep, ghostTurn, ghostStep)
         const message = releasedV0Record(data['message'], `assistant/message ${event.seq} message`)
         const content = message['content'] as readonly Record<string, SessionFormatJsonValue>[]
         for (const block of content) {
@@ -148,7 +178,7 @@ export function assertReleasedArtifactRelationships(
         break
       }
       case 'tool/call': {
-        requireOpenStep(event, data, openTurn, openStep)
+        requireOpenStep(event, data, openTurn, openStep, ghostTurn, ghostStep)
         const callId = data['callId'] as string
         const lifecycle = toolLifecycles.get(callId)
         if (lifecycle === undefined || lifecycle.state !== 'advertised'
@@ -160,7 +190,7 @@ export function assertReleasedArtifactRelationships(
       }
       case 'tool/result':
         if (event['surfaceOp'] === 'append') {
-          requireOpenStep(event, data, openTurn, openStep)
+          requireOpenStep(event, data, openTurn, openStep, ghostTurn, ghostStep)
           const message = releasedV0Record(data['message'], `tool/result ${event.seq} message`)
           const source = releasedV0Record(message['source'], `tool/result ${event.seq} source`)
           const callId = source['callId'] as string
@@ -366,8 +396,12 @@ function requireOpenStep(
   data: Record<string, SessionFormatJsonValue>,
   openTurn: number | null,
   openStep: number | null,
+  ghostTurn: number | null = null,
+  ghostStep: number | null = null,
 ): void {
-  if (data['turn'] !== openTurn || data['step'] !== openStep || openTurn === null || openStep === null) {
+  const turn = ghostTurn ?? openTurn
+  const step = ghostStep ?? openStep
+  if (data['turn'] !== turn || data['step'] !== step || turn === null || step === null) {
     throw new SessionFormatError(`${event.type} does not match an open turn and step`)
   }
 }
@@ -401,7 +435,11 @@ function isExactToolNotStartedRepair(
       === 'The tool call was interrupted before the Harness recorded it as started. Retry it if it is still needed.'
 }
 
-function applySurface(surface: readonly number[], event: SessionFormatEvent): number[] {
+function applySurface(
+  surface: readonly number[],
+  event: SessionFormatEvent,
+  allowUncitedReplaceRange = false,
+): number[] {
   const operation = event['surfaceOp']
   if (operation === undefined) throw new SessionFormatError(`${event.type} requires a surfaceOp marker`)
   if (operation === 'append') return [...surface, event.seq]
@@ -411,7 +449,8 @@ function applySurface(surface: readonly number[], event: SessionFormatEvent): nu
   if (start < 0 || end < start) throw new SessionFormatError(`${event.type} replacement range is not on the current surface`)
   const shadowed = surface.slice(start, end + 1)
   const sources = new Set(Array.isArray(event['sourceEventSeqs']) ? event['sourceEventSeqs'] as readonly number[] : [])
-  if (shadowed.some(seq => !sources.has(seq))) {
+  if (shadowed.some(seq => !sources.has(seq))
+    && !(allowUncitedReplaceRange && event['sourceEventSeqs'] === undefined)) {
     throw new SessionFormatError(`${event.type} replacement sourceEventSeqs omit a shadowed surface node`)
   }
   return [...surface.slice(0, start), event.seq, ...surface.slice(end + 1)]
