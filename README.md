@@ -22,7 +22,10 @@ The rows below summarize the fork's user-visible and release-impacting changes; 
 | Web port | `xfdsh web` listens on `127.0.0.1:7777`. Official `dsh web` stays on `3080`. | Both UIs can run at the same time. |
 | Session timeline | Preinstalled, disableable plugin: rewind, delete, regenerate, and a composer compact button. Delete truncates the selected turn and every later event. | Unwanted answers leave the UI and later model requests. One click runs `/compact`. |
 | Plugin market | `dshmarket` is preinstalled and disableable. Official `@deepseek-ai/dsh-*` plugins remap into this runtime. | Community plugins install with `xfdsh plugin --profile web add`. |
-| Reasoning effort | Optional community plugin `github:HanaAyane/dsh-reasoning-effort`. Not preinstalled: a GitHub plugin cannot be vendored into the unpublished local workspace graph. | After `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1`, the composer can pick thinking strength. |
+| Reasoning effort | Preinstalled, disableable plugin `dsh-reasoning-effort@v0.7.1`. | The composer can pick thinking strength. Disable it from Settings → Plugins. |
+| Context dashboard | Preinstalled, disableable plugin `dsh-context@0.48.0`. | A Context tab and `/context` command show composition, compaction, and token use. |
+| Better sidebar | Preinstalled, disableable plugin `dsh-better-sidebar@0.19.0-alpha.1`. | Files, terminal, Git, and subagents live in the sidebar workbench. |
+| Hindsight memory | Preinstalled, disableable plugin `@vectorize-io/hindsight-coding-agents@0.5.2`. | Long-term project memory is available after a Hindsight Cloud account or local server is configured in `~/.hindsight/coding-agent.json`. |
 | Session utilities | Workspace rows can copy the session id. | Session ids are easier to share and debug. |
 | Memory and continuation | Session persistence bounds in-memory reads; context overflow triggers compaction and retry. | Long sessions are less likely to stall. |
 | Text-only models | Historical and new images become stable text placeholders on text-only routes. | Switching models does not strand a session that already contains images. |
@@ -67,7 +70,7 @@ For one-off use without a global install:
 npx --package @x1a0f3n9/dsh xfdsh web
 ```
 
-`xfdsh` keeps plugins and profiles in `~/.xfdsh` and never writes `~/.dsh/profiles`. Sessions, workspace groups, attachments, settings, and API keys stay in `~/.dsh`, so both CLIs see the same history. Preinstalled timeline and plugin-market entries can be disabled from Settings → Plugins. Thinking strength is `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1`.
+`xfdsh` keeps plugins and profiles in `~/.xfdsh` and never writes `~/.dsh/profiles`. Sessions, workspace groups, attachments, settings, and API keys stay in `~/.dsh`, so both CLIs see the same history. Preinstalled timeline, plugin-market, reasoning-effort, context, better-sidebar, and hindsight entries can be disabled from Settings → Plugins.
 
 Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. `master` currently tracks upstream and does not publish this fork. A later stable fork publish uses `@xfcodeai/*`.
 
