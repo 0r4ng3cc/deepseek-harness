@@ -692,4 +692,104 @@ describe('released v1 whole-artifact relationships', () => {
       data: { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'x' } },
     }])).toThrow(/open turn and step/)
   })
+
+  it('accepts a closed-turn rewind ghost step when the extension is on', () => {
+    const marker = {
+      type: 'assistant/message', seq: 6, time: 7,
+      data: {
+        turn: 1, step: 2,
+        message: {
+          id: 'rewind-marker', role: 'assistant', content: [],
+          source: { kind: 'model', provider: 'dsh-session-timeline', model: 'rewind-marker' },
+        },
+      },
+      surfaceOp: { op: 'replace', start: 1, end: 1 },
+    }
+    const events = [
+      { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+      { type: 'user/message', seq: 1, time: 2, data: user('prompt'), surfaceOp: 'append' },
+      { type: 'step/start', seq: 2, time: 3, data: { turn: 1, step: 1 } },
+      { type: 'step/end', seq: 3, time: 4, data: { turn: 1, step: 1 } },
+      { type: 'turn/end', seq: 4, time: 5, data: { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } } },
+      { type: 'step/start', seq: 5, time: 6, data: { turn: 1, step: 2 } },
+      marker,
+      { type: 'step/end', seq: 7, time: 8, data: { turn: 1, step: 2 } },
+      { type: 'turn/start', seq: 8, time: 9, data: { turn: 2 } },
+    ]
+    const artifact = {
+      header: { version: 1, id: 'relationships', createdAt: 1, isSeeded: false, delegationDepth: 0 },
+      inheritedEventCount: 0,
+      events,
+    }
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact as never, { legacyClosedTurnGhostStep: true })
+    }).not.toThrow()
+    expect(() => {
+      assertReleasedArtifactRelationships({
+        ...artifact,
+        events: [...events.slice(0, 6), { ...marker, sourceEventSeqs: [1] }, ...events.slice(7)],
+      } as never, { legacyClosedTurnGhostStep: true })
+    }).not.toThrow()
+  })
+
+  it('refuses closed-turn ghost steps that are off, mistimed, or left open', () => {
+    const prefix = [
+      { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+      { type: 'user/message', seq: 1, time: 2, data: user('prompt'), surfaceOp: 'append' },
+      { type: 'step/start', seq: 2, time: 3, data: { turn: 1, step: 1 } },
+      { type: 'step/end', seq: 3, time: 4, data: { turn: 1, step: 1 } },
+      { type: 'turn/end', seq: 4, time: 5, data: { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } } },
+    ]
+    const ghost = (turn: number, step: number) => ({
+      type: 'step/start', seq: 5, time: 6, data: { turn, step },
+    })
+    const artifact = (events: readonly object[]) => ({
+      header: { version: 1, id: 'relationships', createdAt: 1, isSeeded: false, delegationDepth: 0 },
+      inheritedEventCount: 0,
+      events,
+    })
+    expect(() => decode([...prefix, ghost(1, 2)])).toThrow(/open turn and next step/)
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact([...prefix, ghost(2, 2)]) as never, {
+        legacyClosedTurnGhostStep: true,
+      })
+    }).toThrow(/open turn and next step/)
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact([...prefix, ghost(1, 3)]) as never, {
+        legacyClosedTurnGhostStep: true,
+      })
+    }).toThrow(/open turn and next step/)
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact([
+        ...prefix,
+        ghost(1, 2),
+        { type: 'turn/start', seq: 6, time: 7, data: { turn: 2 } },
+      ]) as never, { legacyClosedTurnGhostStep: true })
+    }).toThrow(/does not open expected turn/)
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact([
+        ...prefix,
+        ghost(1, 2),
+        { type: 'step/start', seq: 6, time: 7, data: { turn: 1, step: 3 } },
+      ]) as never, { legacyClosedTurnGhostStep: true })
+    }).toThrow(/open turn and next step/)
+    expect(() => {
+      assertReleasedArtifactRelationships(artifact([
+        ...prefix,
+        ghost(1, 2),
+        {
+          type: 'assistant/message', seq: 6, time: 7,
+          data: {
+            turn: 1, step: 2,
+            message: {
+              id: 'rewind-marker', role: 'assistant', content: [],
+              source: { kind: 'model', provider: 'dsh-session-timeline', model: 'rewind-marker' },
+            },
+          },
+          surfaceOp: { op: 'replace', start: 1, end: 1 },
+          sourceEventSeqs: [0],
+        },
+      ]) as never, { legacyClosedTurnGhostStep: true })
+    }).toThrow(/sourceEventSeqs omit/)
+  })
 })
