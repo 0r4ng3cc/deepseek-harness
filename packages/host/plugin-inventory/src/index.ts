@@ -29,6 +29,23 @@ function pluginEntryId(value: string): PluginEntryId {
   return value as PluginEntryId
 }
 
+/**
+ * Match a catalog Loader id to a runtime entry, including include-prefixed ids.
+ * Nested trees prefix `Entry.id` with the parent entry; catalog metadata stores
+ * the local `options.id`.
+ * @param entries - current Loader entries, including subtree members.
+ * @param catalogId - bundle catalog `entryId`.
+ * @returns the matching entry, or `undefined` when it is not mounted.
+ */
+function findLoaderEntry(entries: Iterable<Entry>, catalogId: string): Entry | undefined {
+  let nested: Entry | undefined
+  for (const entry of entries) {
+    if (entry.id === catalogId) return entry
+    if (nested === undefined && entry.options.id === catalogId) nested = entry
+  }
+  return nested
+}
+
 /** Runtime mirror: FiberState is a cross-package const enum. */
 const FIBER_STATE = {
   PENDING: 0 as FiberState.PENDING,
@@ -53,8 +70,6 @@ const FIBER_PHASE = {
 function catalogEntries(ctx: Context): PluginInventoryCatalogEntry[] {
   const runtime = ctx.get('dshProfile')
   if (runtime === undefined) return []
-  const entries = new Map<string, Entry>()
-  for (const entry of ctx.loader.entries()) entries.set(entry.id, entry)
   const catalog: PluginInventoryCatalogEntry[] = []
   const seen = new Set<string>()
   for (const layer of runtime.profile.layers) {
@@ -63,7 +78,7 @@ function catalogEntries(ctx: Context): PluginInventoryCatalogEntry[] {
         throw new RemoteError('gateway/bad-request', `duplicate prebundled plugin entry id ${JSON.stringify(plugin.entryId)}`, {})
       }
       seen.add(plugin.entryId)
-      const entry = entries.get(plugin.entryId)
+      const entry = findLoaderEntry(ctx.loader.entries(), plugin.entryId)
       catalog.push({
         id: plugin.id,
         entryId: pluginEntryId(plugin.entryId),
@@ -158,13 +173,7 @@ export class PluginInventoryGateway extends TypertRemoteService {
     if (catalog.required && !request.enabled) {
       throw new RemoteError('gateway/bad-request', `required plugin ${JSON.stringify(request.entryId)} cannot be disabled`, {})
     }
-    let entry: Entry | undefined
-    for (const candidate of this.ctx.loader.entries()) {
-      if (candidate.id === request.entryId) {
-        entry = candidate
-        break
-      }
-    }
+    const entry = findLoaderEntry(this.ctx.loader.entries(), request.entryId)
     if (entry === undefined) {
       throw new RemoteError('gateway/internal', `prebundled plugin ${JSON.stringify(request.entryId)} is not installed`, {})
     }
