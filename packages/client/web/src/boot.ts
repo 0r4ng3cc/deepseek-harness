@@ -1,7 +1,8 @@
 /**
  * Web boot kernel. It owns only the module system, Cordis loader, and a
  * framework-free boot page. The dynamic UI renderer receives the mount
- * point after every client entry activates.
+ * point as soon as `uiRenderer` exists; remaining client entries may still
+ * be arriving.
  * @module @x1a0f3n9/dsh-client-web/src/boot
  */
 import { Context } from '@deepseek-ai/cordis'
@@ -39,8 +40,10 @@ export class AppWebEntry {
   }
 
   /**
-   * Load and activate every client entry, then hand the mount point to the
-   * UI renderer. Plugin failures remain visible on the boot page.
+   * Prefetch the immediately tier, create those entries, and hand the
+   * mount point to the UI renderer when that service exists. Deferred
+   * entries start after that wave. Later plugin failures remain visible
+   * on the boot page.
    * @returns Resolves after application mount or failure rendering.
    */
   async run(): Promise<void> {
@@ -77,7 +80,6 @@ export class AppWebEntry {
       const ctx = new Context()
       this.ctx = ctx
       await this.runPluginBoot(ctx, prefetching)
-      await this.mountApp(ctx)
     } catch (reason) {
       console.error(reason)
       this.page.fail(reason instanceof Error ? reason.message : String(reason))
@@ -109,7 +111,21 @@ export class AppWebEntry {
       })))
   }
 
-  /** Mount the Loader, create all graph entries, await quiescence, and audit activation. */
+  /**
+   * Create one wave of graph entries and record import failures on the boot page.
+   * @param loader - Live Cordis loader after `ctx.plugin(Loader)`.
+   * @param names - Entry ids in this wave.
+   * @returns Resolves after every name has been created or failed to import.
+   */
+  private async createEntries(loader: Context['loader'], names: readonly string[]): Promise<void> {
+    await Promise.all(names.map(async (name) => {
+      this.page.setState(name, 'loading')
+      const id = await loader.create({ name })
+      if (loader.resolve(id).fiber === undefined) this.page.setState(name, 'failed')
+    }))
+  }
+
+  /** Mount the Loader, create immediately-tier entries, hydrate when uiRenderer exists, then create the rest and audit activation. */
   private async runPluginBoot(ctx: Context, prefetching: Promise<void>): Promise<void> {
     await ctx.plugin(Loader)
     const loader = ctx.loader
@@ -121,17 +137,17 @@ export class AppWebEntry {
       this.page.setState(entry.options.name, STATE_LABELS[entry.fiber.state])
     })
 
-    const rows = this.manifest.plugins.map(row => row.id)
-    this.page.setTotal(rows.length)
+    const immediate = this.manifest.plugins.filter(row => row.immediately).map(row => row.id)
+    const deferred = this.manifest.plugins.filter(row => !row.immediately).map(row => row.id)
+    this.page.setTotal(immediate.length + deferred.length)
     await prefetching
-    await Promise.all(rows.map(async (name) => {
-      this.page.setState(name, 'loading')
-      const id = await loader.create({ name })
-      if (loader.resolve(id).fiber === undefined) this.page.setState(name, 'failed')
-    }))
-
+    const creatingImmediate = this.createEntries(loader, immediate)
+    const mounted = this.mountApp(ctx)
+    await creatingImmediate
+    await this.createEntries(loader, deferred)
     await loader.await()
     this.assertEntriesActive(ctx)
+    await mounted
   }
 
   /** Reject entries that failed import/apply or still wait on missing services. */
