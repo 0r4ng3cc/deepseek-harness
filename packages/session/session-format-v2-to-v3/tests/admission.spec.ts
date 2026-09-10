@@ -164,3 +164,13 @@ describe('closed-turn rewind ghost step', () => {
     ])).not.toThrow()
   })
 })
+
+describe('legacy turn number skip', () => {
+  it('restores turn/start that jumps past the next turn after turn/end', () => {
+    expect(() => native([
+      event('turn/start', { turn: 1 }),
+      event('turn/end', { turn: 1, reason: { kind: 'completed' } }),
+      event('turn/start', { turn: 3 }),
+    ])).not.toThrow()
+  })
+})
