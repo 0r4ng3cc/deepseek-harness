@@ -94,10 +94,18 @@ function normalizeReleasedV0Event(
   const retry = normalizeLegacyRetry(steering, sessionId, state.retryIds)
   const compaction = normalizeLegacyCompaction(retry, sessionId, state)
   const message = normalizeLegacyMessage(compaction, sessionId, state.messageIds)
-  if (message.type !== 'assistant/chunk') assertReleasedEventPayload(message, 0)
-  const messageId = eventMessageId(message)
-  if (messageId !== undefined) state.messageIds.set(message.seq, messageId)
-  return message
+  const descriptor = normalizeLegacySubagentDescriptor(message)
+  if (descriptor.type !== 'assistant/chunk') assertReleasedEventPayload(descriptor, 0)
+  const messageId = eventMessageId(descriptor)
+  if (messageId !== undefined) state.messageIds.set(descriptor.seq, messageId)
+  return descriptor
+}
+
+function normalizeLegacySubagentDescriptor(event: SessionFormatEvent): SessionFormatEvent {
+  if (event.type !== 'subagent/descriptor') return event
+  const data = releasedV0Record(event.data, `${event.type} ${event.seq} data`)
+  if (data['version'] !== 2) return event
+  return { ...event, data: { ...data, version: 3 } }
 }
 
 function normalizeLegacyCompactionType(event: SessionFormatEvent): SessionFormatEvent {
