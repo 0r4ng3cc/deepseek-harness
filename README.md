@@ -20,7 +20,7 @@ The rows below summarize the fork's user-visible and release-impacting changes; 
 | Launcher | The shipped command is `xfdsh`. Official `dsh` stays the upstream CLI. | The two products can be installed together. |
 | Homes | `xfdsh` stores plugins and profiles in `~/.xfdsh`. Official `dsh` keeps plugins and profiles in `~/.dsh`. Sessions, workspace groups, attachments, settings, and API keys stay in `~/.dsh`. | History is shared without a migration wizard. `xfdsh` never writes `~/.dsh/profiles`. |
 | Web port | `xfdsh web` listens on `127.0.0.1:7777`. Official `dsh web` stays on `3080`. | Both UIs can run at the same time. |
-| Session timeline | Preinstalled, disableable plugin: rewind, delete, and regenerate. Delete truncates the selected turn and every later event. | Unwanted answers leave the UI and later model requests. |
+| Session timeline | Preinstalled, disableable plugin: rewind, delete, regenerate, and a composer compact button. Delete truncates the selected turn and every later event. | Unwanted answers leave the UI and later model requests. One click runs `/compact`. |
 | Plugin market | `dshmarket` is preinstalled and disableable. Official `@deepseek-ai/dsh-*` plugins remap into this runtime. | Community plugins install with `xfdsh plugin --profile web add`. |
 | Reasoning effort | Optional community plugin `github:HanaAyane/dsh-reasoning-effort`. Not preinstalled: a GitHub plugin cannot be vendored into the unpublished local workspace graph. | After `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1`, the composer can pick thinking strength. |
 | Session utilities | Workspace rows can copy the session id. | Session ids are easier to share and debug. |

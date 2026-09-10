@@ -45,6 +45,7 @@ import {
 import { openPopover, knownCommandSeqs, waitForCommand } from './popover.ts'
 import { createRewindBridge, runRewindAndFill, type SlotsLike } from './portals.tsx'
 import { TimelineActions } from './actions.tsx'
+import { CompactButton } from './compact-button.tsx'
 import { chatSnapshotOf, isCandidateCommand, type ChatOf, type ChatWatch } from './hidden.ts'
 import { rewindLog } from './log.ts'
 import { BUILD_HASH, PLUGIN_VERSION } from './build-info.ts'
@@ -167,6 +168,10 @@ export function apply(ctx: ClientContext): void {
       ({ seq }: { readonly seq: number }) => (
         createElement(TimelineActions, { kind: 'assistant', seq, session: actionSession(), t })
       ),
+    ))
+    yield slots.inject('conversation.input.right', () => slots.register(
+      { name: 'conversation.input.right', id: 'dsh-session-timeline-compact', order: 100 },
+      () => createElement(CompactButton, { session: actionSession(), t }),
     ))
 
     // ---- snapshot-cleanup settings card (Settings > Plugins > Plugin config) ----

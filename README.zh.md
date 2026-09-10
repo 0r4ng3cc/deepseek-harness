@@ -20,7 +20,7 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 | 启动器 | 发布出来的命令是 `xfdsh`。官方 `dsh` 仍是上游 CLI。 | 两套产品可以并装。 |
 | 数据目录 | `xfdsh` 的插件和 profile 放在 `~/.xfdsh`。官方 `dsh` 的插件和 profile 仍在 `~/.dsh`。会话、分组、附件、settings 和 API key 共用 `~/.dsh`。 | 不用迁移向导就能读到同一份历史。`xfdsh` 不会写 `~/.dsh/profiles`。 |
 | Web 端口 | `xfdsh web` 默认监听 `127.0.0.1:7777`。官方 `dsh web` 仍是 `3080`。 | 两套 UI 可以同时开。 |
-| Session Timeline | 预装且可关闭：回退、删除、重新生成。删除会截断选中的一轮以及后面的全部事件。 | 不满意的回答会从界面和后续模型请求里一起消失。 |
+| Session Timeline | 预装且可关闭：回退、删除、重新生成，以及输入框压缩按钮。删除会截断选中的一轮以及后面的全部事件。 | 不满意的回答会从界面和后续模型请求里一起消失。一点即可运行 `/compact`。 |
 | 插件市场 | 预装 `dshmarket`，可关闭。官方 `@deepseek-ai/dsh-*` 插件会 remap 进这一套运行时。 | 社区插件用 `xfdsh plugin --profile web add` 安装。 |
 | 思考强度 | 可选社区插件 `github:HanaAyane/dsh-reasoning-effort`。不预装：GitHub 插件不能塞进本地未发布的 workspace 依赖图。 | 执行 `xfdsh plugin --profile web add github:HanaAyane/dsh-reasoning-effort#v0.7.1` 后，输入框可以选择思考强度。 |
 | 会话工具 | 工作区列表可以复制 session id。 | 方便分享和排障。 |
