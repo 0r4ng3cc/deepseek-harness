@@ -39,8 +39,6 @@ import type {
   SessionCancelValue,
   SessionCreateRequest,
   SessionCreateValue,
-  SessionDeleteFromRequest,
-  SessionDeleteFromValue,
   SessionForkRequest,
   SessionForkValue,
   SessionPromptRequest,
@@ -509,52 +507,6 @@ export class SessionCommandController {
       throw apiSessionSubagentOwnershipError(request.sessionId)
     }
     agent.cancel({ kind: 'user' }, { keepInbox: true })
-    return { accepted: true }
-  }
-
-  /**
-   * Rewrite one live Session to the prefix before the selected turn.
-   * @param request - Session identity and event sequence inside the turn to remove.
-   * @returns acknowledgement after persistence and the live log agree.
-   */
-  async deleteFrom(request: SessionDeleteFromRequest): Promise<SessionDeleteFromValue> {
-    const agent = await this.resolveAgent(request.sessionId)
-    if (hasApiSessionSubagentOwner(this.ctx, agent.session, agent)) {
-      throw apiSessionSubagentOwnershipError(request.sessionId)
-    }
-    if (agent.status === 'running') {
-      throw new RemoteError(
-        'session/agent-busy',
-        'cannot delete conversation history while the session is running',
-        { reason: 'DELETE_ACTIVE_TURN' },
-      )
-    }
-    let sequence: SessionSeq
-    try {
-      sequence = SessionSeq(request.fromSeq)
-    } catch (error: unknown) {
-      throw new RemoteError(
-        'gateway/bad-request',
-        `invalid deletion sequence: ${error instanceof Error ? error.message : String(error)}`,
-        {},
-      )
-    }
-    let length: SessionLogOffset
-    try {
-      length = agent.session.deletionStart(sequence)
-    } catch (error: unknown) {
-      throw new RemoteError(
-        'gateway/bad-request',
-        error instanceof Error ? error.message : String(error),
-        {},
-      )
-    }
-    const persistence = this.ctx.get('sessionPersistence')
-    if (persistence === undefined) {
-      throw new Error('session deletion requires a configured session persistence service')
-    }
-    await persistence.truncate(agent.session, length)
-    agent.session.truncate(length)
     return { accepted: true }
   }
 

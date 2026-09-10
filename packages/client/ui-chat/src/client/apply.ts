@@ -156,9 +156,6 @@ export function apply(ctx: Context): void {
                 // Fork or child-title failure leaves the source view unchanged.
               })
           },
-          deleteFrom: (seq) => {
-            void session.deleteFrom(SessionSeq(seq))
-          },
         }
       },
     }, ChatView)
