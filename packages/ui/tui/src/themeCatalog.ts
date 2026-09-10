@@ -101,7 +101,7 @@ function runtimeEntries(
   // and the comparator must never see a non-string name. Compare on the
   // lowercased key so ordering does not depend on the runtime ICU locale.
   const ordered = snapshot
-    .filter(registration => typeof registration?.name === 'string')
+    .filter(registration => typeof registration.name === 'string')
     .sort((a, b) => {
       const ka = keyOf(a.name)
       const kb = keyOf(b.name)

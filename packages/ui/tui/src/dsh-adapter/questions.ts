@@ -117,11 +117,11 @@ function buildSummary(pending: PendingQuestion): QuestionSummary {
     const text = pending.redact
       ? '••••••'
       : (() => {
-          const labels = answer.selected.join('、')
-          return answer.custom !== undefined && answer.custom !== ''
-            ? labels === '' ? answer.custom : `${labels}：${answer.custom}`
-            : labels
-        })()
+        const labels = answer.selected.join('、')
+        return answer.custom !== undefined && answer.custom !== ''
+          ? labels === '' ? answer.custom : `${labels}：${answer.custom}`
+          : labels
+      })()
     return `· ${question.question} → ${clip(text)}`
   })
   const total = pending.request.questions.length
@@ -220,7 +220,7 @@ export class QuestionStore {
    *   submits the batch, or rejecting when the ask is interrupted.
    */
   ask(request: AskUserQuestionRequest,
-      options?: { redact?: boolean }): Promise<AskUserQuestionAnswer> {
+    options?: { redact?: boolean }): Promise<AskUserQuestionAnswer> {
     return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
       const pending: PendingQuestion = {
         request,

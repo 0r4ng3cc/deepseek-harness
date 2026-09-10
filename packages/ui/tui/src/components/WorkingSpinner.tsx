@@ -98,7 +98,7 @@ export function useThinkingStatus(
       const showDuration = (): void => {
         setThinkingStatus(duration)
         // Clear after 2s
-        clearStatusTimer = setTimeout(() => setThinkingStatus(null), 2000)
+        clearStatusTimer = setTimeout(() => { setThinkingStatus(null) }, 2000)
       }
 
       if (remainingThinkingTime > 0) {

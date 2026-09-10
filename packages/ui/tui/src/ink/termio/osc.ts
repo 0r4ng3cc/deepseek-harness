@@ -223,19 +223,19 @@ function copyNative(text: string): void {
         return
       }
       // First call: probe wl-copy (Wayland) then xclip/xsel (X11), cache winner.
-      void execFileNoThrow('wl-copy', [], opts).then(r => {
+      void execFileNoThrow('wl-copy', [], opts).then((r) => {
         if (r.code === 0) {
           linuxCopy = 'wl-copy'
           return
         }
         void execFileNoThrow('xclip', ['-selection', 'clipboard'], opts).then(
-          r2 => {
+          (r2) => {
             if (r2.code === 0) {
               linuxCopy = 'xclip'
               return
             }
             void execFileNoThrow('xsel', ['--clipboard', '--input'], opts).then(
-              r3 => {
+              (r3) => {
                 linuxCopy = r3.code === 0 ? 'xsel' : null
               },
             )
@@ -248,6 +248,8 @@ function copyNative(text: string): void {
       // clip.exe is always available on Windows. Unicode handling is
       // imperfect (system locale encoding) but good enough for a fallback.
       void execFileNoThrow('clip', [], opts)
+      return
+    default:
       return
   }
 }
@@ -361,9 +363,9 @@ export function parseOscColor(spec: string): Color | null {
   if (hex) {
     return {
       type: 'rgb',
-      r: parseInt(hex[1]!, 16),
-      g: parseInt(hex[2]!, 16),
-      b: parseInt(hex[3]!, 16),
+      r: parseInt(hex[1], 16),
+      g: parseInt(hex[2], 16),
+      b: parseInt(hex[3], 16),
     }
   }
   const rgb = spec.match(
@@ -375,9 +377,9 @@ export function parseOscColor(spec: string): Color | null {
       Math.round((parseInt(s, 16) / (16 ** s.length - 1)) * 255)
     return {
       type: 'rgb',
-      r: scale(rgb[1]!),
-      g: scale(rgb[2]!),
-      b: scale(rgb[3]!),
+      r: scale(rgb[1]),
+      g: scale(rgb[2]),
+      b: scale(rgb[3]),
     }
   }
   return null

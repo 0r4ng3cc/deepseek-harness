@@ -107,12 +107,10 @@ export function TrajectoryScene({
     () => applyQuery(nodes, query),
     // `nodes` is mutated in place by the incremental fold, so its length is
     // the honest dependency — the array identity never changes.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
     [nodes, nodes.length, query],
   )
 
   const agg = React.useMemo(
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
     () => aggregate(build, sort),
     [build, nodes.length, sort],
   )
@@ -145,7 +143,6 @@ export function TrajectoryScene({
   )
 
   const band = React.useMemo(
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
     () => projectWave(nodes, bandWidth, projection),
     [nodes, nodes.length, bandWidth, projection],
   )
@@ -167,7 +164,7 @@ export function TrajectoryScene({
     (delta: number) => {
       setExpanded(false)
       setInspectScroll(0)
-      setCursor(previous => {
+      setCursor((previous) => {
         const next = Math.max(0, Math.min(filtered.length - 1, previous + delta))
         setFollow(next >= filtered.length - 1)
         return next
@@ -302,9 +299,18 @@ export function TrajectoryScene({
       return
     }
 
-    if (key.leftArrow) return switchView('timeline')
-    if (key.rightArrow) return switchView('hotspot')
-    if (input === 'h') return switchView(view === 'hotspot' ? 'timeline' : 'hotspot')
+    if (key.leftArrow) {
+      switchView('timeline')
+      return
+    }
+    if (key.rightArrow) {
+      switchView('hotspot')
+      return
+    }
+    if (input === 'h') {
+      switchView(view === 'hotspot' ? 'timeline' : 'hotspot')
+      return
+    }
     if (input === '/') {
       setQueryOpen(true)
       return
@@ -312,24 +318,43 @@ export function TrajectoryScene({
 
     if (view === 'hotspot') {
       const total = hotspotRows(agg).length
-      if (key.upArrow) return setHotCursor(previous => Math.max(0, previous - 1))
-      if (key.downArrow) return setHotCursor(previous => Math.min(total - 1, previous + 1))
+      if (key.upArrow) {
+        setHotCursor(previous => Math.max(0, previous - 1))
+        return
+      }
+      if (key.downArrow) {
+        setHotCursor(previous => Math.min(total - 1, previous + 1))
+        return
+      }
       if (input === 't') {
-        setSort(previous => HOTSPOT_SORTS[(HOTSPOT_SORTS.indexOf(previous) + 1) % HOTSPOT_SORTS.length]!)
+        setSort(previous => HOTSPOT_SORTS[(HOTSPOT_SORTS.indexOf(previous) + 1) % HOTSPOT_SORTS.length])
         setSwitchTick(tick)
         return
       }
       if (key.return) {
         // Jump back to the timeline, positioned on the group's first member.
-        return jumpFromHotspot(hotspotRows(agg)[hotCursor])
+        jumpFromHotspot(hotspotRows(agg)[hotCursor])
+        return
       }
       return
     }
 
-    if (key.upArrow) return move(-1)
-    if (key.downArrow) return move(1)
-    if (key.pageUp) return move(-ledgerRows)
-    if (key.pageDown) return move(ledgerRows)
+    if (key.upArrow) {
+      move(-1)
+      return
+    }
+    if (key.downArrow) {
+      move(1)
+      return
+    }
+    if (key.pageUp) {
+      move(-ledgerRows)
+      return
+    }
+    if (key.pageDown) {
+      move(ledgerRows)
+      return
+    }
     // Bare-letter jumps must not fire on Ctrl+G (the prompt's external-editor
     // key) or other modified chords that share the letter.
     if (input === 'g' && !key.ctrl && !key.meta && !key.super) {
@@ -342,12 +367,24 @@ export function TrajectoryScene({
       setFollow(true)
       return
     }
-    if (input === '[') return seek(isFailure, false)
-    if (input === ']') return seek(isFailure, true)
-    if (input === '{') return seek(index => filtered[index]?.kind === 'turn', false)
-    if (input === '}') return seek(index => filtered[index]?.kind === 'turn', true)
+    if (input === '[') {
+      seek(isFailure, false)
+      return
+    }
+    if (input === ']') {
+      seek(isFailure, true)
+      return
+    }
+    if (input === '{') {
+      seek(index => filtered[index]?.kind === 'turn', false)
+      return
+    }
+    if (input === '}') {
+      seek(index => filtered[index]?.kind === 'turn', true)
+      return
+    }
     if (input === 'm') {
-      setProjection(previous => WAVE_PROJECTIONS[(WAVE_PROJECTIONS.indexOf(previous) + 1) % WAVE_PROJECTIONS.length]!)
+      setProjection(previous => WAVE_PROJECTIONS[(WAVE_PROJECTIONS.indexOf(previous) + 1) % WAVE_PROJECTIONS.length])
       setSwitchTick(tick)
       return
     }
@@ -413,9 +450,9 @@ export function TrajectoryScene({
         flexShrink={0}
         width={CLOSE_WIDTH}
         // 可点击退出（q/Esc 的鼠标等价）——hover 提亮给出可点指示
-        onClick={() => onClose()}
-        onMouseEnter={(): void => setCloseHovered(true)}
-        onMouseLeave={(): void => setCloseHovered(false)}
+        onClick={() => { onClose() }}
+        onMouseEnter={(): void => { setCloseHovered(true) }}
+        onMouseLeave={(): void => { setCloseHovered(false) }}
       >
         <Text color={closeHovered ? 'text' : 'subtle'}>{' ✕'}</Text>
       </Box>
@@ -439,9 +476,9 @@ export function TrajectoryScene({
     queryText_ === ''
       ? ''
       : truncateWidth(
-          queryText_,
-          Math.max(0, leftRoom - stringWidth(tabTimelineText) - stringWidth(hotspotShown)),
-        )
+        queryText_,
+        Math.max(0, leftRoom - stringWidth(tabTimelineText) - stringWidth(hotspotShown)),
+      )
   const tabs = (
     <Box width="100%" height={1} flexShrink={0}>
       {/* Clickable segments over the same pre-measured line: each tab click
@@ -452,9 +489,9 @@ export function TrajectoryScene({
       <Box
         flexShrink={0}
         width={stringWidth(tabTimelineText)}
-        onClick={() => switchView('timeline')}
-        onMouseEnter={(): void => setHoverTab('timeline')}
-        onMouseLeave={(): void => setHoverTab(previous => (previous === 'timeline' ? null : previous))}
+        onClick={() => { switchView('timeline') }}
+        onMouseEnter={(): void => { setHoverTab('timeline') }}
+        onMouseLeave={(): void => { setHoverTab(previous => (previous === 'timeline' ? null : previous)) }}
       >
         <Text
           color={view === 'timeline' ? 'permission' : hoverTab === 'timeline' ? 'text' : 'subtle'}
@@ -466,9 +503,9 @@ export function TrajectoryScene({
       <Box
         flexShrink={0}
         width={stringWidth(hotspotShown)}
-        onClick={() => switchView('hotspot')}
-        onMouseEnter={(): void => setHoverTab('hotspot')}
-        onMouseLeave={(): void => setHoverTab(previous => (previous === 'hotspot' ? null : previous))}
+        onClick={() => { switchView('hotspot') }}
+        onMouseEnter={(): void => { setHoverTab('hotspot') }}
+        onMouseLeave={(): void => { setHoverTab(previous => (previous === 'hotspot' ? null : previous)) }}
       >
         <Text
           color={view === 'hotspot' ? 'permission' : hoverTab === 'hotspot' ? 'text' : 'subtle'}
@@ -478,7 +515,7 @@ export function TrajectoryScene({
         </Text>
       </Box>
       {queryShown !== '' && (
-        <Box flexShrink={0} width={stringWidth(queryShown)} onClick={() => setQueryOpen(true)}>
+        <Box flexShrink={0} width={stringWidth(queryShown)} onClick={() => { setQueryOpen(true) }}>
           <Text color="suggestion">{queryShown}</Text>
         </Box>
       )}
@@ -494,16 +531,16 @@ export function TrajectoryScene({
         width={stringWidth(tabsLine.right) + 1}
         onClick={() => {
           if (view === 'hotspot') {
-            setSort(previous => HOTSPOT_SORTS[(HOTSPOT_SORTS.indexOf(previous) + 1) % HOTSPOT_SORTS.length]!)
+            setSort(previous => HOTSPOT_SORTS[(HOTSPOT_SORTS.indexOf(previous) + 1) % HOTSPOT_SORTS.length])
           } else {
             setProjection(
-              previous => WAVE_PROJECTIONS[(WAVE_PROJECTIONS.indexOf(previous) + 1) % WAVE_PROJECTIONS.length]!,
+              previous => WAVE_PROJECTIONS[(WAVE_PROJECTIONS.indexOf(previous) + 1) % WAVE_PROJECTIONS.length],
             )
           }
           setSwitchTick(tick)
         }}
-        onMouseEnter={(): void => setHoverAxis(true)}
-        onMouseLeave={(): void => setHoverAxis(false)}
+        onMouseEnter={(): void => { setHoverAxis(true) }}
+        onMouseLeave={(): void => { setHoverAxis(false) }}
       >
         <Text color={hoverAxis ? 'text' : 'subtle'}>{tabsLine.right}</Text>
       </Box>
@@ -536,7 +573,7 @@ export function TrajectoryScene({
         matches={matchColumns}
         tick={tick}
         alertTick={alertTick}
-        onColumnClick={column => {
+        onColumnClick={(column) => {
           // 点击波形列（或标尺行）= 跳到该列最近事件；空列继承前驱的
           // firstIndex，空档区点击落在空档开始处。查询过滤掉的行不跳。
           const nodeIndex = band.buckets[column]?.firstIndex ?? -1
@@ -566,7 +603,7 @@ export function TrajectoryScene({
               tick={tick}
               arrivalTick={arrivalTick}
               arrivalFrom={arrivalFrom}
-              onRowClick={index => jumpTo(index)}
+              onRowClick={(index) => { jumpTo(index) }}
             />
             {/* `Divider` defaults to the FULL terminal width; inside this
                 padded scene that overflows by two cells and wraps onto a
@@ -591,7 +628,7 @@ export function TrajectoryScene({
             cursor={hotCursor}
             tick={tick}
             switchTick={switchTick}
-            onRowClick={index => jumpFromHotspot(hotspotRows(agg)[index])}
+            onRowClick={(index) => { jumpFromHotspot(hotspotRows(agg)[index]) }}
           />
         )}
       </ink-box>

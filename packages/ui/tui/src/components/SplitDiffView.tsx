@@ -5,7 +5,6 @@ import { extname } from 'node:path'
 import type { ToolFileDiff } from '../dsh-adapter/channel.js'
 import type { Color } from '../ink/styles.js'
 import { getCliHighlightPromise, type CliHighlight } from '../cc/cliHighlight.js'
-import { chalkFromToken } from '../cc/syntaxTheme.js'
 import { highlightLines, syntaxThemeSignature, type SyntaxRun } from '../cc/syntaxRuns.js'
 // Backward-compatible re-export: repro scripts import chalkFromToken from
 // this module's old home.
@@ -80,8 +79,8 @@ function mergeRuns(
   let sOff = 0
   let wOff = 0
   while (si < syntax.length && wi < words.length) {
-    const s = syntax[si]!
-    const w = words[wi]!
+    const s = syntax[si]
+    const w = words[wi]
     const sLen = s.text.length - sOff
     const wLen = w.text.length - wOff
     const take = Math.min(sLen, wLen)
@@ -141,20 +140,20 @@ function lcsPairs(oldLines: readonly string[], newLines: readonly string[]): [nu
   const eq = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase()
   for (let i = m - 1; i >= 0; i--) {
     for (let j = n - 1; j >= 0; j--) {
-      dp[i]![j] = eq(oldLines[i]!, newLines[j]!)
-        ? dp[i + 1]![j + 1]! + 1
-        : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!)
+      dp[i][j] = eq(oldLines[i], newLines[j])
+        ? dp[i + 1][j + 1] + 1
+        : Math.max(dp[i + 1][j], dp[i][j + 1])
     }
   }
   const pairs: [number, number][] = []
   let i = 0
   let j = 0
   while (i < m && j < n) {
-    if (eq(oldLines[i]!, newLines[j]!)) {
+    if (eq(oldLines[i], newLines[j])) {
       pairs.push([i, j])
       i++
       j++
-    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
       i++
     } else {
       j++
@@ -171,7 +170,7 @@ function alignFileDiff(fileIndex: number, oldText: string | null, newText: strin
   let oldIndex = 0
   let newIndex = 0
   for (let i = 0; i < parts.length; i++) {
-    const part = parts[i]!
+    const part = parts[i]
     const lines = part.value.replace(/\n$/, '').split('\n')
     if (!part.added && !part.removed) {
       for (const line of lines) {
@@ -187,7 +186,7 @@ function alignFileDiff(fileIndex: number, oldText: string | null, newText: strin
       continue
     }
     if (part.removed) {
-      const addedPart = parts[i + 1]?.added === true ? parts[i + 1] : undefined
+      const addedPart = parts[i + 1]?.added ? parts[i + 1] : undefined
       const addedLines = addedPart === undefined ? [] : addedPart.value.replace(/\n$/, '').split('\n')
       // Same-length replacement blocks zip index-for-index (the common
       // edit case); unequal blocks pair through the ci-LCS so an inserted
@@ -209,7 +208,8 @@ function alignFileDiff(fileIndex: number, oldText: string | null, newText: strin
       while (ai < addedLines.length) events.push({ kind: 'add', a: ai++ })
       for (const event of events) {
         if (event.kind === 'change') {
-          const segments = wordSegments(lines[event.o!]!, addedLines[event.a!]!)
+          if (event.o === undefined || event.a === undefined) continue
+          const segments = wordSegments(lines[event.o], addedLines[event.a])
           rows.push({
             kind: 'change',
             fileIndex,
@@ -219,9 +219,11 @@ function alignFileDiff(fileIndex: number, oldText: string | null, newText: strin
             newWords: segments.new,
           })
         } else if (event.kind === 'del') {
-          rows.push({ kind: 'del', fileIndex, oldIndex: oldIndex++, oldWords: plainSegments(lines[event.o!]!) })
+          if (event.o === undefined) continue
+          rows.push({ kind: 'del', fileIndex, oldIndex: oldIndex++, oldWords: plainSegments(lines[event.o]) })
         } else {
-          rows.push({ kind: 'add', fileIndex, newIndex: newIndex++, newWords: plainSegments(addedLines[event.a!]!) })
+          if (event.a === undefined) continue
+          rows.push({ kind: 'add', fileIndex, newIndex: newIndex++, newWords: plainSegments(addedLines[event.a]) })
         }
       }
       if (addedPart !== undefined) i++
@@ -320,7 +322,7 @@ export function SplitDiffView({
   const [hl, setHl] = React.useState<CliHighlight | null>(null)
   React.useEffect(() => {
     let mounted = true
-    void getCliHighlightPromise().then(loaded => {
+    void getCliHighlightPromise().then((loaded) => {
       if (mounted) setHl(loaded)
     })
     return () => { mounted = false }
@@ -360,7 +362,7 @@ export function SplitDiffView({
 
   // Whole-hunk highlight per file (multi-line lexer state preserved);
   // only the visible rows merge syntax runs with word flags below.
-  const fileSyntax = diffs.map(diff => {
+  const fileSyntax = diffs.map((diff) => {
     const language = extname(diff.path).replace(/^\./, '') || undefined
     return {
       old: highlightLines(expandTabs(diff.oldText ?? ''), language, hl, syntaxTheme, themeSig),
@@ -381,8 +383,8 @@ export function SplitDiffView({
           )
         }
         const syntax = fileSyntax[row.fileIndex]
-        const oldRuns = row.oldIndex !== undefined ? syntax?.old?.[row.oldIndex] : undefined
-        const newRuns = row.newIndex !== undefined ? syntax?.next?.[row.newIndex] : undefined
+        const oldRuns = row.oldIndex !== undefined ? syntax.old[row.oldIndex] : undefined
+        const newRuns = row.newIndex !== undefined ? syntax.next[row.newIndex] : undefined
         const oldSide = row.oldWords === undefined
           ? undefined
           : { segments: oldRuns !== undefined ? mergeRuns(oldRuns, row.oldWords) : row.oldWords }

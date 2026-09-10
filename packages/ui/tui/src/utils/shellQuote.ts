@@ -30,7 +30,7 @@ export function cmdEscapeCommand(command: string): string {
  * parse the line a second time).
  */
 export function cmdEscapeArgument(arg: string, doubleEscapeMetaChars = false): string {
-  let out = `${arg}`
+  let out = arg
   out = out.replace(/(?=(\\+?)?)\1"/g, '$1$1\\"')
   out = out.replace(/(?=(\\+?)?)\1$/, '$1$1')
   out = `"${out}"`

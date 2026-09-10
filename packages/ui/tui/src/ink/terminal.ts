@@ -3,7 +3,6 @@ import type { Writable } from 'stream'
 import { appendFileSync } from 'node:fs'
 import { env } from '../utils/env.js'
 import { gte } from '../utils/semver.js'
-import { getClearTerminalSequence } from './clearTerminal.js'
 import type { Diff } from './frame.js'
 import {
   CURSOR_HOME,
@@ -326,7 +325,7 @@ export function isDecstbmSafe(): boolean {
   // 未被环境变量识别的真实 TTY 仍然是标准 VT 滚动语义；启用 DECSTBM
   // 可以把滚动从逐格重写降为边缘行更新。非 TTY 的 headless/管道测试
   // 继续走确定性的普通 diff，避免假终端收到硬件滚动序列。
-  return SYNC_OUTPUT_SUPPORTED || process.stdout.isTTY === true
+  return SYNC_OUTPUT_SUPPORTED || process.stdout.isTTY
 }
 
 /**

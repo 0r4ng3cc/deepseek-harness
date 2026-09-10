@@ -37,12 +37,21 @@ const NOTICE_CELLS = 200
 export const DECISION_HANDLER_TIMEOUT_MS = 1000
 export const DECISION_TOTAL_TIMEOUT_MS = 5000
 
+function warnDecision(ctx: Context, message: string, error?: unknown): void {
+  try {
+    if (error === undefined) ctx.logger.warn(message)
+    else ctx.logger.warn(message, error)
+  } catch {
+    // Degraded ctx without a logger: warnings are best-effort.
+  }
+}
+
 function freezeClone<T>(value: T): T {
   const seen = new WeakSet<object>()
   const freeze = (current: unknown): unknown => {
     if (current === null || typeof current !== 'object' || Object.isFrozen(current)) return current
-    if (seen.has(current as object)) return current
-    seen.add(current as object)
+    if (seen.has(current)) return current
+    seen.add(current)
     for (const child of Object.values(current as Record<string, unknown>)) freeze(child)
     return Object.freeze(current)
   }
@@ -66,9 +75,9 @@ async function runBounded(task: () => unknown, timeoutMs: number): Promise<Bound
   let timer: ReturnType<typeof setTimeout> | undefined
   const work: Promise<BoundedResult> = Promise.resolve()
     .then(task)
-    .then(value => ({ kind: 'value' as const, value }), error => ({ kind: 'error' as const, error }))
-  const timeout = new Promise<BoundedResult>(resolve => {
-    timer = setTimeout(() => resolve({ kind: 'timeout' }), timeoutMs)
+    .then(value => ({ kind: 'value' as const, value }), (error: unknown) => ({ kind: 'error' as const, error }))
+  const timeout = new Promise<BoundedResult>((resolve) => {
+    timer = setTimeout(() => { resolve({ kind: 'timeout' }) }, timeoutMs)
   })
   try {
     return await Promise.race([work, timeout])
@@ -108,14 +117,6 @@ export async function dispatchTuiDecision<T>(
   const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : undefined
   const scope = sessionId === undefined ? undefined : `session:${sessionId}`
   const listeners = decisionHandlersOf(ctx, name, scope)
-  const log = (message: string, error?: unknown): void => {
-    try {
-      if (error === undefined) ctx.logger.warn(message)
-      else ctx.logger.warn(message, error)
-    } catch {
-      // Degraded ctx without a logger: warnings are best-effort.
-    }
-  }
   const started = Date.now()
   for (const handler of listeners) {
     const permission = DECISION_EVENT_PERMISSIONS[name]
@@ -129,12 +130,12 @@ export async function dispatchTuiDecision<T>(
         permission,
         scope ?? handler.scope,
       )) {
-      log(`dsh-tui: ${name} handler from Component "${handler.componentId}" skipped after grant revocation`)
+      warnDecision(ctx, `dsh-tui: ${name} handler from Component "${handler.componentId}" skipped after grant revocation`)
       continue
     }
     const remaining = DECISION_TOTAL_TIMEOUT_MS - (Date.now() - started)
     if (remaining <= 0) {
-      log(`dsh-tui: ${name} total decision budget exceeded; remaining handlers skipped`)
+      warnDecision(ctx, `dsh-tui: ${name} total decision budget exceeded; remaining handlers skipped`)
       break
     }
     const bounded = await runBounded(
@@ -142,11 +143,11 @@ export async function dispatchTuiDecision<T>(
       Math.min(DECISION_HANDLER_TIMEOUT_MS, remaining),
     )
     if (bounded.kind === 'timeout') {
-      log(`dsh-tui: ${name} handler from Component "${handler.componentId}" exceeded ${DECISION_HANDLER_TIMEOUT_MS}ms; continuing`)
+      warnDecision(ctx, `dsh-tui: ${name} handler from Component "${handler.componentId}" exceeded ${DECISION_HANDLER_TIMEOUT_MS}ms; continuing`)
       continue
     }
     if (bounded.kind === 'error') {
-      log(`dsh-tui: ${name} listener failed; continuing with the next listener: %o`, bounded.error)
+      warnDecision(ctx, `dsh-tui: ${name} listener failed; continuing with the next listener: %o`, bounded.error)
       continue
     }
     const result = bounded.value
@@ -156,9 +157,9 @@ export async function dispatchTuiDecision<T>(
     // unhandled rejections at the fire-and-forget call sites.
     let decision: T | undefined
     try {
-      decision = normalize(result, what => log(`dsh-tui: ${name} listener returned ${what}; ignored`))
+      decision = normalize(result, (what) => { warnDecision(ctx, `dsh-tui: ${name} listener returned ${what}; ignored`) })
     } catch (error) {
-      log(`dsh-tui: ${name} listener returned a value that threw during validation; ignored: %o`, error)
+      warnDecision(ctx, `dsh-tui: ${name} listener returned a value that threw during validation; ignored: %o`, error)
       continue
     }
     if (decision !== undefined) return decision
@@ -176,30 +177,22 @@ export async function dispatchTuiNotification(
   const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : undefined
   const scope = sessionId === undefined ? undefined : `session:${sessionId}`
   const listeners = decisionHandlersOf(ctx, name, scope)
-  const log = (message: string, error?: unknown): void => {
-    try {
-      if (error === undefined) ctx.logger.warn(message)
-      else ctx.logger.warn(message, error)
-    } catch {
-      // Degraded ctx without a logger: warnings are best-effort.
-    }
-  }
   const started = Date.now()
 
   // Notifications have no return-value or ordering semantics. Start every
   // listener from the same snapshot so one slow plugin cannot delay another
   // plugin's session rebind (or make a fire-and-forget dispatch look stuck).
-  await Promise.all(listeners.map(async handler => {
+  await Promise.all(listeners.map(async (handler) => {
     const permission = DECISION_EVENT_PERMISSIONS[name]
     const principal = { componentId: handler.componentId, activationId: handler.activationId }
     if (permission !== undefined
       && !decisionRegistryOf(ctx).grants.allows(principal, permission, scope ?? handler.scope)) {
-      log(`dsh-tui: ${name} handler from Component "${handler.componentId}" skipped after grant revocation`)
+      warnDecision(ctx, `dsh-tui: ${name} handler from Component "${handler.componentId}" skipped after grant revocation`)
       return
     }
     const remaining = DECISION_TOTAL_TIMEOUT_MS - (Date.now() - started)
     if (remaining <= 0) {
-      log(`dsh-tui: ${name} total decision budget exceeded; handler skipped`)
+      warnDecision(ctx, `dsh-tui: ${name} total decision budget exceeded; handler skipped`)
       return
     }
     const bounded = await runBounded(
@@ -207,9 +200,9 @@ export async function dispatchTuiNotification(
       Math.min(DECISION_HANDLER_TIMEOUT_MS, remaining),
     )
     if (bounded.kind === 'timeout') {
-      log(`dsh-tui: ${name} handler from Component "${handler.componentId}" exceeded ${DECISION_HANDLER_TIMEOUT_MS}ms; continuing`)
+      warnDecision(ctx, `dsh-tui: ${name} handler from Component "${handler.componentId}" exceeded ${DECISION_HANDLER_TIMEOUT_MS}ms; continuing`)
     } else if (bounded.kind === 'error') {
-      log(`dsh-tui: ${name} listener failed; continuing with the other listeners: %o`, bounded.error)
+      warnDecision(ctx, `dsh-tui: ${name} listener failed; continuing with the other listeners: %o`, bounded.error)
     }
   }))
 }

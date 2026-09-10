@@ -80,9 +80,9 @@ export function SuggestionCard({
           key={index}
           flexDirection="row"
           width="100%"
-          onClick={onRowPick ? () => onRowPick(index) : undefined}
-          onMouseEnter={onRowPick ? () => setHoveredRow(index) : undefined}
-          onMouseLeave={onRowPick ? () => setHoveredRow(current => (current === index ? -1 : current)) : undefined}
+          onClick={onRowPick ? () => { onRowPick(index) } : undefined}
+          onMouseEnter={onRowPick ? () => { setHoveredRow(index) } : undefined}
+          onMouseLeave={onRowPick ? () => { setHoveredRow(current => (current === index ? -1 : current)) } : undefined}
         >
           <Text color={borderColor}>│</Text>
           {/* flexGrow 钉住右侧 │ 在最后一列；行内容自行按 cardContentWidth 截断。 */}

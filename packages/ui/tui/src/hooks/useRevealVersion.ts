@@ -27,7 +27,7 @@ export function useRevealVersion(enabled: boolean = true): number {
     // Catch up on any tick that fired between the first render and this
     // effect's mount — the subscription alone would miss it.
     setVersion(getRevealVersion())
-    return subscribeReveal(() => setVersion(getRevealVersion()))
+    return subscribeReveal(() => { setVersion(getRevealVersion()) })
   }, [enabled])
   return version
 }

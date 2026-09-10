@@ -41,8 +41,8 @@ export function AutoRecapRow({
         marginTop={1}
         marginLeft={1}
         onClick={onExpand}
-        onMouseEnter={(): void => setHovered(true)}
-        onMouseLeave={(): void => setHovered(false)}
+        onMouseEnter={(): void => { setHovered(true) }}
+        onMouseLeave={(): void => { setHovered(false) }}
       >
         {/* 默认 wrap：完整换行显示，不截断。 */}
         <Text dimColor={!hovered}>{line}</Text>

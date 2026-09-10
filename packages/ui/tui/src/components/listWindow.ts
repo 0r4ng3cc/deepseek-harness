@@ -32,9 +32,9 @@ export function listWindow(
   let upUsed = 0
   let downUsed = 0
   for (;;) {
-    const up = start > 0 ? gap + heights[start - 1]! : Number.POSITIVE_INFINITY
-    const down = end < heights.length ? gap + heights[end]! : Number.POSITIVE_INFINITY
-    const used = heights[focus]! + upUsed + downUsed
+    const up = start > 0 ? gap + heights[start - 1] : Number.POSITIVE_INFINITY
+    const down = end < heights.length ? gap + heights[end] : Number.POSITIVE_INFINITY
+    const used = heights[focus] + upUsed + downUsed
     const canUp = used + up <= maxRows
     const canDown = used + down <= maxRows
     if (!canUp && !canDown) return { start, end }

@@ -54,7 +54,7 @@ const SPINE = { open: '╭', mid: '│', close: '╰', none: ' ' } as const
 
 /** Which spine glyph a row gets, given its neighbours' turns. */
 function spineGlyph(rows: readonly TrajNode[], index: number): string {
-  const node = rows[index]!
+  const node = rows[index]
   if (node.kind === 'turn') return SPINE.open
   const next = rows[index + 1]
   if (next === undefined || next.turn !== node.turn || next.kind === 'turn') return SPINE.close
@@ -129,16 +129,16 @@ export function Ledger({
           onRowClick === undefined
             ? undefined
             : {
-                onClick: (event: ClickEvent): void => {
-                  onRowClick(index, event)
-                },
-                onMouseEnter: (): void => {
-                  setHoverIndex(index)
-                },
-                onMouseLeave: (): void => {
-                  setHoverIndex(previous => (previous === index ? -1 : previous))
-                },
-              }
+              onClick: (event: ClickEvent): void => {
+                onRowClick(index, event)
+              },
+              onMouseEnter: (): void => {
+                setHoverIndex(index)
+              },
+              onMouseLeave: (): void => {
+                setHoverIndex(previous => (previous === index ? -1 : previous))
+              },
+            }
 
         // ── structural rows are RULES, not rows ────────────────────────────
         //
@@ -232,7 +232,7 @@ export function Ledger({
             )}
             <Box flexShrink={0}>
               <Text
-                color={isNew ? mix(theme[KIND_FG[node.kind]] as string, theme.text, arriving) : KIND_FG[node.kind]}
+                color={isNew ? mix(theme[KIND_FG[node.kind]], theme.text, arriving) : KIND_FG[node.kind]}
                 backgroundColor={badgeBg}
                 bold
               >

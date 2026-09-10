@@ -142,11 +142,11 @@ const SENTINEL = csi('c')
 
 type Pending =
   | {
-      kind: 'query'
-      match: (r: TerminalResponse) => boolean
-      resolve: (r: TerminalResponse | undefined) => void
-      releaseRawMode: () => void
-    }
+    kind: 'query'
+    match: (r: TerminalResponse) => boolean
+    resolve: (r: TerminalResponse | undefined) => void
+    releaseRawMode: () => void
+  }
   | { kind: 'sentinel'; resolve: () => void; releaseRawMode: () => void }
 
 /**
@@ -197,11 +197,11 @@ export class TerminalQuerier {
     query: TerminalQuery<T>,
   ): Promise<T | undefined> {
     if (this.disposed) return Promise.resolve(undefined)
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.queue.push({
         kind: 'query',
         match: query.match,
-        resolve: r => resolve(r as T | undefined),
+        resolve: (r) => { resolve(r as T | undefined) },
         releaseRawMode: this.holdRawMode(),
       })
       this.stdout.write(query.request)
@@ -219,7 +219,7 @@ export class TerminalQuerier {
    */
   flush(): Promise<void> {
     if (this.disposed) return Promise.resolve()
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.queue.push({
         kind: 'sentinel',
         resolve,
@@ -262,7 +262,7 @@ export class TerminalQuerier {
     const idx = this.queue.findIndex(p => p.kind === 'query' && p.match(r))
     if (idx !== -1) {
       const [q] = this.queue.splice(idx, 1)
-      if (q?.kind === 'query') {
+      if (q.kind === 'query') {
         q.resolve(r)
         q.releaseRawMode()
       }

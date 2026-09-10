@@ -119,7 +119,7 @@ export function GlimmerMessage({
     <>
       {segments.map(({ segment, width }, index) => {
         let charStart = 0
-        for (let i = 0; i < index; i++) charStart += segments[i]!.width
+        for (let i = 0; i < index; i++) charStart += segments[i].width
 
         // Character is highlighted if it falls within the glimmer window
         const isHighlighted =

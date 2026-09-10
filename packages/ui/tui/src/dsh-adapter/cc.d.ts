@@ -12,7 +12,7 @@ import type {} from 'react'
 // helper (an effect-slot array). @types/react does not declare the
 // compiler-runtime subpath.
 declare module 'react/compiler-runtime' {
-  export function c(size: number): any[]
+  export function c(size: number): unknown[]
 }
 
 // The fork renders custom DOM element names for its reconciler; the original
@@ -21,7 +21,30 @@ declare module 'react/compiler-runtime' {
 declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {
-      'ink-box': unknown
+      'ink-box': {
+        ref?: ((el: {
+          scrollTop?: number
+          onStickyRestore?: () => void
+        } | null) => void) | { current: unknown }
+        tabIndex?: number
+        autoFocus?: boolean
+        onClick?: (event: unknown) => void
+        onContextMenu?: (event: unknown) => void
+        onDragStart?: (event: unknown) => void
+        onDragMove?: (event: unknown) => void
+        onDragEnd?: (event: unknown) => void
+        onWheel?: (event: { deltaY: number; deltaX: number }) => void
+        onFocus?: (event: unknown) => void
+        onFocusCapture?: (event: unknown) => void
+        onBlur?: (event: unknown) => void
+        onBlurCapture?: (event: unknown) => void
+        onMouseEnter?: (event: unknown) => void
+        onMouseLeave?: (event: unknown) => void
+        onKeyDown?: (event: unknown) => void
+        onKeyDownCapture?: (event: unknown) => void
+        style?: unknown
+        children?: React.ReactNode
+      }
       'ink-text': unknown
       'ink-link': unknown
       'ink-raw': unknown
@@ -32,8 +55,17 @@ declare module 'react' {
 
 // The ported core probes Bun's fast string-width/wrap implementations at
 // module scope; dsh-tui runs on Node, where the probes must stay inert.
+interface BunRuntime {
+  wrapAnsi?: (input: string, columns: number, options?: {
+    hard?: boolean
+    wordWrap?: boolean
+    trim?: boolean
+  }) => string
+  stringWidth?: (input: string, options?: { ambiguousIsNarrow?: boolean }) => number
+}
+
 declare global {
-  const Bun: any
+  const Bun: BunRuntime | undefined
 }
 
 // `session/title` records are appended by the optional dsh-session-title

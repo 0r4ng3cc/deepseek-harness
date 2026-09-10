@@ -266,9 +266,9 @@ export function PlanReviewPanel({
               key={option.label}
               flexDirection="row"
               marginTop={focused ? 1 : 0}
-              onClick={() => clickOption(index)}
-              onMouseEnter={() => setHoverIndex(index)}
-              onMouseLeave={() => setHoverIndex(current => (current === index ? -1 : current))}
+              onClick={() => { clickOption(index) }}
+              onMouseEnter={() => { setHoverIndex(index) }}
+              onMouseLeave={() => { setHoverIndex(current => (current === index ? -1 : current)) }}
               backgroundColor={hoverIndex === index && !focused ? 'userMessageBackgroundHover' : undefined}
             >
               <Box width={1} flexShrink={0}>
@@ -297,8 +297,8 @@ export function PlanReviewPanel({
           flexDirection="row"
           marginTop={inputFocused ? 1 : 0}
           onClick={focusFeedbackRow}
-          onMouseEnter={() => setHoverIndex(options.length)}
-          onMouseLeave={() => setHoverIndex(current => (current === options.length ? -1 : current))}
+          onMouseEnter={() => { setHoverIndex(options.length) }}
+          onMouseLeave={() => { setHoverIndex(current => (current === options.length ? -1 : current)) }}
           backgroundColor={hoverIndex === options.length && !inputFocused ? 'userMessageBackgroundHover' : undefined}
         >
           <Box width={1} flexShrink={0}>

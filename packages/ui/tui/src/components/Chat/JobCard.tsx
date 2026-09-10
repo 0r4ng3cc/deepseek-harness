@@ -41,7 +41,8 @@ function clipLine(text: string, maxWidth: number): string {
   let width = 0
   let index = 0
   while (index < text.length) {
-    const next = text.codePointAt(index)!
+    const next = text.codePointAt(index)
+    if (next === undefined) break
     const char = String.fromCodePoint(next)
     const charWidth = stringWidth(char)
     if (width + charWidth > maxWidth - 1) break
@@ -69,7 +70,7 @@ function clipLine(text: string, maxWidth: number): string {
 export function JobCard({ job, addMargin, onClick }: {
   job: JobRow
   addMargin: boolean
-  onClick?(): void
+  onClick?: () => void
 }): React.ReactNode {
   const settled = job.status === 'completed' || job.status === 'failed' || job.status === 'killed'
   // 动画订阅仅限存活卡片：settled 后退订共享 clock（同 SubagentMessage 的
@@ -95,8 +96,8 @@ export function JobCard({ job, addMargin, onClick }: {
     marginTop={addMargin ? 1 : 0}
     ref={viewportRef}
     onClick={onClick}
-    onMouseEnter={clickable ? () => setHovered(true) : undefined}
-    onMouseLeave={clickable ? () => setHovered(false) : undefined}
+    onMouseEnter={clickable ? () => { setHovered(true) } : undefined}
+    onMouseLeave={clickable ? () => { setHovered(false) } : undefined}
   >
     <Box flexDirection="row" gap={1}>
       <Text color={hovered && clickable ? 'claude' : info.color}>{info.glyph}</Text>

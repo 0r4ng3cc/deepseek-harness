@@ -70,8 +70,8 @@ export function ContextBarView({
         height={1}
         flexShrink={0}
         backgroundColor={segment.color}
-        onMouseEnter={onHover === undefined ? undefined : () => onHover(segment.key)}
-        onMouseLeave={onHover === undefined ? undefined : () => onHover(null)}
+        onMouseEnter={onHover === undefined ? undefined : () => { onHover(segment.key) }}
+        onMouseLeave={onHover === undefined ? undefined : () => { onHover(null) }}
       >
         <Text color={USED_TEXT}>
           {label.length > 0 ? centeredText(label, segmentWidth) : ' '.repeat(segmentWidth)}
@@ -89,8 +89,8 @@ export function ContextBarView({
         height={1}
         flexShrink={0}
         backgroundColor={colors?.freeFill ?? FREE_FILL}
-        onMouseEnter={onHover === undefined ? undefined : () => onHover('free')}
-        onMouseLeave={onHover === undefined ? undefined : () => onHover(null)}
+        onMouseEnter={onHover === undefined ? undefined : () => { onHover('free') }}
+        onMouseLeave={onHover === undefined ? undefined : () => { onHover(null) }}
       >
         <Text color={colors?.freeText ?? FREE_TEXT}>
           {composeFreeSegmentText(

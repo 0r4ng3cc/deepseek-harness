@@ -99,8 +99,8 @@ export function swallowNestedUpdateOverflow(error: unknown, source: string): boo
     logError(
       new Error(
         `Recovered from React nested-update overflow (#185) at ${source} — ` +
-          `dropped 1 update, counter reset by React. If this repeats, a ` +
-          `component is oscillating state updates in a tight commit chain.`,
+          'dropped 1 update, counter reset by React. If this repeats, a ' +
+          'component is oscillating state updates in a tight commit chain.',
       ),
     )
   }
@@ -122,7 +122,7 @@ export function swallowNestedUpdateOverflow(error: unknown, source: string): boo
           `Sustained rendering oscillation at ${source} (#185 x${TRIP_THRESHOLD} in ${LOG_WINDOW_MS / 1000}s) — ` +
             `its channel is PAUSED for ${ms / 1000}s to break the loop ` +
             `(trip #${state.trips}, backoff doubles; animations freeze, no data loss). ` +
-            `This is a bug: please report the component involved.`,
+            'This is a bug: please report the component involved.',
         ),
       )
     } else {
@@ -130,7 +130,7 @@ export function swallowNestedUpdateOverflow(error: unknown, source: string): boo
         new Error(
           `SUSTAINED rendering oscillation at ${source} (#185 x${TRIP_THRESHOLD} in ${LOG_WINDOW_MS / 1000}s, ` +
             `trip #${state.trips}) — no quench registered for this source, absorbing only. ` +
-            `This is a bug: please report the component involved.`,
+            'This is a bug: please report the component involved.',
         ),
       )
     }
@@ -171,13 +171,13 @@ export function installNestedUpdateOverflowProcessGuard(): void {
   if (processGuardInstalled) return
   if (process.env.DSH_TUI_NO_185_PROCESS_GUARD === '1') return
   processGuardInstalled = true
-  process.on('uncaughtException', error => {
+  process.on('uncaughtException', (error) => {
     if (swallowNestedUpdateOverflow(error, 'process.uncaught')) return
     // Unknown errors keep Node's default semantics: rethrowing from a
     // listener crashes the process with the original error.
     throw error
   })
-  process.on('unhandledRejection', error => {
+  process.on('unhandledRejection', (error) => {
     if (swallowNestedUpdateOverflow(error, 'process.rejection')) return
     throw error as Error
   })

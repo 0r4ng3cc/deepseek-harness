@@ -34,19 +34,19 @@ function windowQuery(
   ) {
     caret-- // mid-surrogate: snap to the emoji's start
   }
-  const beforeChars = [...query.slice(0, caret)]
-  const at = caret < query.length ? [...query.slice(caret)][0]! : ' '
+  const beforeChars = Array.from(query.slice(0, caret))
+  const at = caret < query.length ? Array.from(query.slice(caret))[0] : ' '
   const atWidth = Math.max(1, stringWidth(at))
   let caretColumn = 0
   for (const ch of beforeChars) caretColumn += stringWidth(ch)
   let start = 0
   while (start < beforeChars.length && caretColumn + atWidth > budget) {
-    caretColumn -= stringWidth(beforeChars[start]!)
+    caretColumn -= stringWidth(beforeChars[start])
     start++
   }
   let rest = budget - caretColumn - atWidth
   let after = ''
-  for (const ch of [...query.slice(caret + at.length)]) {
+  for (const ch of Array.from(query.slice(caret + at.length))) {
     const w = stringWidth(ch)
     if (w > rest) break
     after += ch

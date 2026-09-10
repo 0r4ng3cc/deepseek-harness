@@ -114,7 +114,7 @@ export default function wrapText(
     )
   }
 
-  if (wrapType!.startsWith('truncate')) {
+  if (wrapType !== undefined && wrapType.startsWith('truncate')) {
     let position: 'end' | 'middle' | 'start' = 'end'
 
     if (wrapType === 'truncate-middle') {

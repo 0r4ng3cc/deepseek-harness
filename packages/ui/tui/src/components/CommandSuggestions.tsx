@@ -89,11 +89,11 @@ export function CommandSuggestions({
             key={command.name}
             flexDirection="row"
             width="100%"
-            onClick={onPick === undefined ? undefined : () => onPick(absoluteIndex)}
-            onMouseEnter={onPick === undefined ? undefined : () => setHoveredRow(absoluteIndex)}
+            onClick={onPick === undefined ? undefined : () => { onPick(absoluteIndex) }}
+            onMouseEnter={onPick === undefined ? undefined : () => { setHoveredRow(absoluteIndex) }}
             onMouseLeave={onPick === undefined
               ? undefined
-              : () => setHoveredRow(current => (current === absoluteIndex ? -1 : current))}
+              : () => { setHoveredRow(current => (current === absoluteIndex ? -1 : current)) }}
             backgroundColor={hoveredRow === absoluteIndex ? 'userMessageBackgroundHover' : undefined}
           >
             <Text wrap="truncate">

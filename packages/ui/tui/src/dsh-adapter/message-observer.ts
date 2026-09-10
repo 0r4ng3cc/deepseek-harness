@@ -173,9 +173,9 @@ async function runWithBudget(
   let timer: ReturnType<typeof setTimeout> | undefined
   const work: Promise<BoundedCallbackResult> = Promise.resolve()
     .then(task)
-    .then(() => ({ kind: 'fulfilled' as const }), error => ({ kind: 'rejected' as const, error }))
-  const timeout = new Promise<BoundedCallbackResult>(resolve => {
-    timer = setTimeout(() => resolve({ kind: 'timeout' }), timeoutMs)
+    .then(() => ({ kind: 'fulfilled' as const }), (error: unknown) => ({ kind: 'rejected' as const, error }))
+  const timeout = new Promise<BoundedCallbackResult>((resolve) => {
+    timer = setTimeout(() => { resolve({ kind: 'timeout' }) }, timeoutMs)
   })
   try {
     return await Promise.race([work, timeout])
@@ -243,7 +243,7 @@ export class TuiMessageObserverRuntime extends Service {
   ) {
     super(ctx, 'tuiMessageObserver')
     const state: ObserverState = {
-hostContext: compositionRoot(ctx),
+      hostContext: compositionRoot(ctx),
       grantsOption: options.grants,
       fallbackGrants: readGrantStore(),
       ledgerOption: options.ledger,
@@ -253,28 +253,27 @@ hostContext: compositionRoot(ctx),
       validatorWarned: false,
       buildChain: Promise.resolve(),
     }
-    const runtime = this
     const host: TuiMessageObserverHost = Object.freeze({
       publish: (session, event) => {
         try {
-          runtime.#publishGuarded(session, event)
-        } catch (error) {
-          runtime.ctx.logger.warn(
+          this.#publishGuarded(session, event)
+        } catch {
+          this.ctx.logger.warn(
             'dsh-tui: messages.observe publish failed (event dropped)',
           )
         }
       },
     })
-    hostMessageObservers.set(runtime, host)
+    hostMessageObservers.set(this, host)
     if (Object.hasOwn(options, 'validateEnvelope')) {
       state.validatorUnavailable = options.validateEnvelope === undefined
       state.validateEnvelope = options.validateEnvelope ?? (() => { throw new Error('standard envelope validator unavailable') })
     } else if (Object.hasOwn(options, 'envelopeSchema')) {
-      const schema = options.envelopeSchema
+      const schema = (options as { envelopeSchema?: Record<string, unknown> }).envelopeSchema
       state.validatorUnavailable = schema === undefined
       state.validateEnvelope = schema === undefined
         ? (() => { throw new Error('vendored envelope schema unavailable') })
-        : (value: unknown) => check(value, schema, schema)
+        : (value: unknown) => { check(value, schema, schema) }
     }
     observerStates.set(this, state)
   }
@@ -317,7 +316,7 @@ hostContext: compositionRoot(ctx),
       )
       return () => false
     }
-    const scope = typeof options?.scope === 'string' ? options.scope : ''
+    const scope = typeof options.scope === 'string' ? options.scope : ''
     if (scope === '' || scope.length > OBSERVE_SCOPE_MAX_CHARS) {
       observerStateFor(this).hostContext.logger.warn(
         `dsh-tui: messages.observe subscription from plugin "${plugin}" refused — options.scope must be a ` +
@@ -391,7 +390,7 @@ hostContext: compositionRoot(ctx),
     if (kind === undefined) return
     if (typeof record.seq !== 'number' || !Number.isInteger(record.seq) || record.seq < 0) return
 
-    const sessionId = (session as { id?: unknown })?.id
+    const sessionId = (session as { id?: unknown }).id
     if (typeof sessionId !== 'string' || sessionId === '') {
       observerStateFor(this).hostContext.logger.warn('dsh-tui: messages.observe publish skipped — the session carries no string id')
       return
@@ -469,7 +468,7 @@ hostContext: compositionRoot(ctx),
       }
       try {
         state.validateEnvelope(envelope)
-      } catch (error) {
+      } catch {
         observerStateFor(this).hostContext.logger.warn(
           'dsh-tui: messages.observe envelope failed the standard validator and was dropped',
         )
@@ -533,11 +532,11 @@ hostContext: compositionRoot(ctx),
             )
           }
         })
-        subscription.chain = run.catch(error => {
+        subscription.chain = run.catch(() => {
           observerStateFor(this).hostContext.logger.warn('dsh-tui: messages.observe delivery failed')
         }).finally(() => { subscription.pendingCallbacks -= 1 })
       }
-    } catch (error) {
+    } catch {
       observerStateFor(this).hostContext.logger.warn(
         'dsh-tui: messages.observe publish failed (event dropped)',
       )
@@ -652,8 +651,8 @@ hostContext: compositionRoot(ctx),
       // truncation mark) — one corrupt attachment must not nuke the message.
       let timer: ReturnType<typeof setTimeout> | undefined
       const read = Promise.resolve().then(() => reader.readImage(attachment))
-      const timeout = new Promise<undefined>(resolve => {
-        timer = setTimeout(() => resolve(undefined), OBSERVE_IMAGE_READ_TIMEOUT_MS)
+      const timeout = new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => { resolve(undefined) }, OBSERVE_IMAGE_READ_TIMEOUT_MS)
       })
       const stored = await Promise.race([read, timeout])
       if (timer !== undefined) clearTimeout(timer)

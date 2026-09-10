@@ -77,7 +77,7 @@ const NAMED_KEYS: Record<string, keyof ComboKeyFlags> = {
  * combos — the same grammar the plugin shortcut registry enforces).
  */
 export function parseCombo(raw: string): ParsedCombo | undefined {
-  const parts = String(raw ?? '')
+  const parts = raw
     .toLowerCase()
     .split('+')
     .map(part => part.trim())
@@ -104,7 +104,7 @@ export function parseCombo(raw: string): ParsedCombo | undefined {
     } else if (part in NAMED_KEYS) {
       if (char !== undefined || named !== undefined) return undefined
       named = NAMED_KEYS[part]
-    } else if ([...part].length === 1) {
+    } else if (Array.from(part).length === 1) {
       if (char !== undefined || named !== undefined) return undefined
       char = part
     } else {
@@ -125,7 +125,7 @@ export function canonicalCombo(combo: ParsedCombo): string {
   const mods = [combo.ctrl ? 'ctrl' : '', combo.meta ? 'alt' : '', combo.shift ? 'shift' : '']
     .filter(part => part !== '')
     .sort()
-  return [...mods, combo.named === undefined ? (combo.char ?? '') : String(combo.named)].join('+')
+  return [...mods, combo.named === undefined ? (combo.char ?? '') : combo.named].join('+')
 }
 
 /** Canonicalize a user-spelled combo string (`ctrl+c`); unparseable input
@@ -133,7 +133,7 @@ export function canonicalCombo(combo: ParsedCombo): string {
  *  grammar itself refuses (bare escape, tab…). */
 export function canonicalComboString(raw: string): string {
   const combo = parseCombo(raw)
-  return combo === undefined ? String(raw ?? '').toLowerCase() : canonicalCombo(combo)
+  return combo === undefined ? raw.toLowerCase() : canonicalCombo(combo)
 }
 
 /**
@@ -259,7 +259,7 @@ export function effectiveComboString(action: ShortcutActionId): string {
 export function actionMatches(action: ShortcutActionId, input: string, key: ComboKeyFlags): boolean {
   const combos = effectiveCombos(action)
   for (let index = 0; index < combos.length; index += 1) {
-    if (comboMatchesBuiltin(combos[index]!, input, key)) return true
+    if (comboMatchesBuiltin(combos[index], input, key)) return true
   }
   return false
 }
@@ -271,7 +271,7 @@ export function actionMatches(action: ShortcutActionId, input: string, key: Comb
  * the whole draft undefined (invalid — the settings screen blocks the save).
  */
 export function parseComboDraft(text: string): { combos: string[] } | undefined {
-  const trimmed = String(text ?? '').trim()
+  const trimmed = text.trim()
   if (trimmed === '') return { combos: [] }
   const tokens = trimmed
     .split(/[,;]/)
@@ -348,7 +348,7 @@ export function draftComboConflicts(action: ShortcutActionId, combos: readonly s
     }
     for (const combo of effectiveCombos(spec.id)) others.add(canonicalCombo(combo))
   }
-  return combos.some(combo => {
+  return combos.some((combo) => {
     if (own.has(canonicalComboString(combo))) return false
     return isFixedReserved(combo) || others.has(canonicalComboString(combo))
   })

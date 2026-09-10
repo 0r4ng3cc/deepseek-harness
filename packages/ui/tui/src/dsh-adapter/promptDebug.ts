@@ -10,7 +10,6 @@
 import { join, resolve } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { CommandRuntime } from '@deepseek-ai/dsh-commands'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { isAgentLoopRequest, type GenerateOptions } from '@deepseek-ai/dsh-llm'
 import { snapshotLiveSessionEvents } from './compat/liveSession.js'
@@ -55,7 +54,7 @@ function latestPosition(agent: Agent): { turn: number; step: number } | undefine
   const events = snapshotLiveSessionEvents(agent.session)
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
-    if (event?.type === 'step/start') return event.data
+    if (event.type === 'step/start') return event.data
   }
   return undefined
 }
@@ -64,7 +63,7 @@ function latestRequestHeaderReason(agent: Agent): string | undefined {
   const events = snapshotLiveSessionEvents(agent.session)
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
-    if (event?.type === 'request/header') return event.data.reason
+    if (event.type === 'request/header') return event.data.reason
   }
   return undefined
 }
@@ -118,7 +117,7 @@ function captureRequest(
 const DEBUG_PROMPT_MAX_REQUESTS = 8
 
 export function registerPromptDebug(ctx: Context): void {
-  const commands = ctx.get('commands') as CommandRuntime | undefined
+  const commands = ctx.get('commands')
   const agents = ctx.get('agents') as AgentRegistryLike | undefined
   if (commands === undefined || agents === undefined || ctx.get('llm') === undefined) return
 
@@ -169,7 +168,13 @@ export function registerPromptDebug(ctx: Context): void {
           text: 'No final LLM request is available for this session. Send one prompt, wait for it to finish, then run /debug-prompt.',
         }
       }
-      const latest = capture.requests.at(-1)!
+      const latest = capture.requests.at(-1)
+      if (latest === undefined) {
+        return {
+          kind: 'error',
+          text: 'No final LLM request is available for this session. Send one prompt, wait for it to finish, then run /debug-prompt.',
+        }
+      }
       if (!turnCompleted(agent, latest.turn)) {
         return { kind: 'error', text: 'The latest model turn is still running. Wait for it to finish, then run /debug-prompt.' }
       }

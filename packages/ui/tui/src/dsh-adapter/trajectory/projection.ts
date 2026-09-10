@@ -265,7 +265,7 @@ function push(state: FoldState, nodes: TrajNode[], node: TrajNode): void {
       // Replace the run's rows with one synthetic burst node. The head's
       // position is reused so surrounding order is untouched; rows after it
       // cannot exist, because a run is by definition the ledger's tail.
-      const head = state.runMembers[0]!
+      const head = state.runMembers[0]
       nodes.length = state.runStart
       nodes.push({
         seq: head.seq,
@@ -415,8 +415,8 @@ function consume(state: FoldState, nodes: TrajNode[], timing: Map<string, StepTi
           const record = block as Record<string, unknown>
           const text = typeof record.text === 'string' ? record.text : ''
           if (text.trim() === '') continue
-          const kind: TrajKind = record.type === 'reasoning' ? 'thinking' : record.type === 'text' ? 'assistant' : 'assistant'
           if (record.type !== 'reasoning' && record.type !== 'text') continue
+          const kind: TrajKind = record.type === 'reasoning' ? 'thinking' : 'assistant'
           push(state, nodes, {
             ...base,
             kind,
@@ -604,7 +604,7 @@ function consume(state: FoldState, nodes: TrajNode[], timing: Map<string, StepTi
       const open = payload?.id === undefined ? undefined : state.hooks.get(payload.id)
       if (open === undefined) return
       close(state, open, event, 'ok')
-      state.hooks.delete(payload!.id!)
+      if (payload?.id !== undefined) state.hooks.delete(payload.id)
       return
     }
 
@@ -747,7 +747,7 @@ export function extendTrajectory(
     const timing = previous.timing
     const state = cloneState(previous.state)
     for (let index = previous.source.length; index < raw.length; index++) {
-      consume(state, nodes, timing, raw[index]!)
+      consume(state, nodes, timing, raw[index])
     }
     syncRowCount(state, nodes)
     return { source: raw, nodes, timing, counts: state.counts, state }

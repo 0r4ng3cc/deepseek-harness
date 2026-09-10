@@ -51,7 +51,7 @@ export function useExternalVersion(
     // Catch up on any store change between the first render and this
     // effect's mount — the subscription alone would miss it.
     setVersion(latest.current.getVersion())
-    return latest.current.subscribe(() => setVersion(latest.current.getVersion()))
+    return latest.current.subscribe(() => { setVersion(latest.current.getVersion()) })
   }, [enabled])
   return version
 }

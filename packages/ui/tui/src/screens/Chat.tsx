@@ -461,7 +461,9 @@ export function Chat({
    *  `?.()` fallbacks keep pre-agent-view test stubs (channel facades in
    *  scripts/*) rendering — the real channel always provides the seams. */
   const EMPTY_AGENT_VIEW_ROWS: readonly never[] = []
-  const agentViewRows = React.useSyncExternalStore(
+  // Subscribe so agent-view rows stay current; the snapshot is consumed by
+  // the prompt footer via the channel cache, not this binding.
+  React.useSyncExternalStore(
     listener => channel.subscribeAgentView?.(listener) ?? (() => {}),
     () => channel.agentViewRows?.() ?? EMPTY_AGENT_VIEW_ROWS,
   )
@@ -575,7 +577,7 @@ export function Chat({
     setRecap({ raw: '', summary: '', error: undefined, done: false, titleApplied: false, auto: true, expanded: false, rowsAtTrigger: lastUserId })
     void channel.recapRecent({
       signal: controller.signal,
-      onText: delta => setRecap(prev => (prev ? { ...prev, raw: prev.raw + delta } : prev)),
+      onText: (delta) => { setRecap(prev => (prev ? { ...prev, raw: prev.raw + delta } : prev)) },
     }).then((result) => {
       if (controller.signal.aborted) return
       setRecap((prev) => {
@@ -585,7 +587,7 @@ export function Chat({
         return { ...prev, summary: result.summary, title: result.title, error: result.error, done: true }
       })
     })
-    return () => controller.abort()
+    return () => { controller.abort() }
   }, [autoRecapSessionId])
   // The user starts a new message → the auto recap has served its purpose
   // (catching them up) and bows out. A newer user row is the signal; the
@@ -640,7 +642,7 @@ export function Chat({
     setSearchCurrent(0)
     closeBtw()
     repaintTranscript()
-  }, [channel.agentId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [channel.agentId])
   /** The session attached when the agent view opened; a close on a
    *  DIFFERENT session means a switch happened inside the view, and the
    *  transcript repaint cannot be skipped. */
@@ -801,7 +803,7 @@ export function Chat({
       setUnseenCount(0)
     } else if (lastSeenRowIdRef.current === null) {
       lastSeenRowIdRef.current = channel.rows.length
-        ? channel.rows[channel.rows.length - 1]!.id
+        ? channel.rows[channel.rows.length - 1].id
         : -1
     }
   }, [isSticky, channel.rows])
@@ -901,7 +903,7 @@ export function Chat({
     const interval = setInterval(() => {
       setTitleFrame(f => (f + 1) % TITLE_ANIMATION_FRAMES.length)
     }, 960)
-    return () =>{  clearInterval(interval) }
+    return () => { clearInterval(interval) }
   }, [channel.working, terminalFocused])
   const titlePrefix = channel.working
     ? (TITLE_ANIMATION_FRAMES[titleFrame] ?? '✦')
@@ -1327,7 +1329,7 @@ export function Chat({
           channel.notify(t('color-reset'))
           return true
         }
-        const colorName = parts[0]!.toLowerCase()
+        const colorName = parts[0].toLowerCase()
         if (!isValidSessionColor(colorName)) {
           channel.notify(
             t('color-unknown', { name: colorName, list: SESSION_COLOR_NAMES.join(' · ') }),
@@ -1404,7 +1406,7 @@ export function Chat({
         const parts = rawInput.trim().split(/\s+/).filter(Boolean)
         if (parts.length > 0) {
           setHelpOpen(false)
-          const spec = parts[0]!
+          const spec = parts[0]
           const slash = spec.indexOf('/')
           const provider = slash >= 0 ? spec.slice(0, slash) : undefined
           const id = slash >= 0 ? spec.slice(slash + 1) : spec
@@ -1453,7 +1455,7 @@ export function Chat({
           setModelPickerDirect(landing.group !== undefined)
           dispatchOverlay({ type: 'set-index', kind: 'model', index: landing.index })
         })
-        void channel.listProviders().then(setProviderInfos).catch(() => setProviderInfos([]))
+        void channel.listProviders().then(setProviderInfos).catch(() => { setProviderInfos([]) })
         return true
       }
       case 'skills': {
@@ -1506,7 +1508,7 @@ export function Chat({
           host,
           ask: (request, options) => questionStore.ask(request, options),
           notify: (text, options) => channel.notify(text, options),
-          pushLocal: (title, lines) => channel.pushLocal(title, lines),
+          pushLocal: (title, lines) => { channel.pushLocal(title, lines) },
           working: () => channel.working,
           switchModel: (provider, model) => switchModelRecorded(provider, model),
         }).then((outcome) => {
@@ -1520,7 +1522,7 @@ export function Chat({
             || outcome === 'deleted' || outcome === 'signed-out') {
             channel.invalidateModelCompletion()
             void channel.listModels().then(setModels)
-            void channel.listProviders().then(setProviderInfos).catch(() => setProviderInfos([]))
+            void channel.listProviders().then(setProviderInfos).catch(() => { setProviderInfos([]) })
           }
         }).catch(() => {
           // The wizard notifies on every handled failure; this only swallows
@@ -1660,8 +1662,8 @@ export function Chat({
             : Math.max(0, Math.min(100, Math.round((channel.tokens.input / channel.contextWindow) * 100)))
         const lines: string[] = [
           `${t('status-model', { model: channel.model })}${channel.reasoningEffort ? ` · ${capitalize(channel.reasoningEffort)} effort` : ''}`,
-          `${t('status-state', { state: channel.working ? t('status-working') : t('status-idle') })}`,
-          `${t('status-session', { id: channel.agentId })}`,
+          t('status-state', { state: channel.working ? t('status-working') : t('status-idle') }),
+          t('status-session', { id: channel.agentId }),
           `${t('status-dir', { cwd: channel.displayCwd })}${channel.gitBranch ? ` · ${channel.gitBranch}` : ''}`,
           `Tokens ${formatTokens(channel.tokens.input)} in → ${formatTokens(channel.tokens.output)} out`,
         ]
@@ -2051,7 +2053,7 @@ export function Chat({
         setRecap({ raw: '', summary: '', error: undefined, done: false, titleApplied: false, auto: false, expanded: true })
         void channel.recapRecent({
           signal: controller.signal,
-          onText: delta => setRecap(prev => (prev ? { ...prev, raw: prev.raw + delta } : prev)),
+          onText: (delta) => { setRecap(prev => (prev ? { ...prev, raw: prev.raw + delta } : prev)) },
         }).then((result) => {
           if (controller.signal.aborted) return
           setRecap(prev => (prev
@@ -2081,7 +2083,7 @@ export function Chat({
         setBtw({ question, answer: '', done: false })
         void channel.sideQuestion(question, {
           signal: controller.signal,
-          onText: delta => setBtw(prev => (prev ? { ...prev, answer: prev.answer + delta } : prev)),
+          onText: (delta) => { setBtw(prev => (prev ? { ...prev, answer: prev.answer + delta } : prev)) },
         }).then((result) => {
           if (controller.signal.aborted) return
           setBtw(prev => (prev ? { ...prev, answer: result.answer ?? prev.answer, error: result.error, done: true } : prev))
@@ -2218,7 +2220,6 @@ export function Chat({
   const trajectoryRef = React.useRef<TrajBuild | null>(null)
   trajectoryRef.current = extendTrajectory(
     trajectoryRef.current,
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: headless hosts render Chat with a partial channel
     channel.traceEvents?.() ?? NO_EVENTS,
   )
   const trajectory = trajectoryRef.current
@@ -2247,7 +2248,6 @@ export function Chat({
         : projectWave(trajectory.nodes, Math.min(wakeWidth, trajectory.nodes.length), 'sequence'),
     // The node array is mutated in place by the incremental fold, so its
     // length is the honest dependency; its identity never changes.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
     [trajectory.nodes, trajectory.counts.rows, wakeWidth],
   )
   const [wakeTickRef, wakeTime] = useAnimationFrame(channel.working ? 120 : null)
@@ -2271,10 +2271,9 @@ export function Chat({
     if (unreadFailures === 0) return null
     for (let index = channel.rows.length - 1; index >= 0; index--) {
       const row = channel.rows[index]
-      if (row?.kind === 'tool' && row.tool?.status === 'error') return row.id
+      if (row.kind === 'tool' && row.tool.status === 'error') return row.id
     }
     return null
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [channel.rows, channel.version, unreadFailures])
 
   // Row seeking under layout virtualization: a mounted row seeks directly;
@@ -2311,7 +2310,7 @@ export function Chat({
       // the row BEFORE the renderer's deferred pass reads its Yoga top
       // (scrollAnchor processing runs in a microtask) — the seek would
       // silently no-op (detached anchor element).
-      setTimeout(() => setForceMountRowId(null), 0)
+      setTimeout(() => { setForceMountRowId(null) }, 0)
     }
   })
 
@@ -2336,7 +2335,6 @@ export function Chat({
     const current = Math.min(searchCurrent, Math.max(0, count - 1))
     setSearchCurrent(current)
     const target = searchMatches[current]
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index on an empty/filtered list
     if (target) {
       seekRow(target.row.id)
     }
@@ -2346,7 +2344,6 @@ export function Chat({
   React.useEffect(() => {
     if (!searchActive) return
     const target = searchMatches[searchCurrent]
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index on an empty/filtered list
     if (target) {
       seekRow(target.row.id)
     }
@@ -2355,7 +2352,6 @@ export function Chat({
   const enterSelection = () => {
     setSelectionActive(true)
     const last = selectableRows[selectableRows.length - 1]
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: empty selectable list
     setSelectedId(last ? last.id : null)
   }
   const moveSelection = (delta: 1 | -1) => {
@@ -2363,7 +2359,6 @@ export function Chat({
     const index = selectableRows.findIndex(row => row.id === selectedId)
     if (index < 0) return
     const next = selectableRows[index + delta]
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index
     if (next) setSelectedId(next.id)
   }
   // useCallback: these feed MessageList → MemoRow's shallow compare; fresh
@@ -2592,7 +2587,7 @@ export function Chat({
         dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: flow.choices.length })
       } else if (key.tab && !key.shift) {
         const choice = flow.choices[overlay.index]
-        if (choice?.input !== undefined) {
+        if (choice.input !== undefined) {
           const value = choice.input.initialValue ?? ''
           const flowInputNext: WorkspaceFlowInput = {
             choiceId: choice.id,
@@ -2666,7 +2661,6 @@ export function Chat({
           return
         }
         const model = groupModels[overlay.index]
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index on an empty list
         if (model) {
           // Enter switches the live model right away: the conversation is
           // forked at its end and continued with an agent routed to the new
@@ -2697,8 +2691,7 @@ export function Chat({
         dispatchOverlay({ type: 'close' })
         // 可直调技能 Enter 填入 `/name `——与 / 菜单选中技能同一条
         // completion-only 分发路径；模型专用技能（userInvocable=false）只关闭。
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index on an empty list
-        if (skill?.userInvocable) setHistoryFill(`/${skill.name} `)
+        if (skill.userInvocable) setHistoryFill(`/${skill.name} `)
       } else if (key.escape) {
         dispatchOverlay({ type: 'close' })
       }
@@ -2834,7 +2827,6 @@ export function Chat({
         dispatchOverlay({ type: 'close' })
       } else if (plainReturn) {
         const entry = historyMatches[focus]
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index on an empty match list
         if (entry) {
           setHistoryFill(entry.text)
           dispatchOverlay({ type: 'close' })
@@ -2870,12 +2862,14 @@ export function Chat({
         // Step by code point, not UTF-16 unit: an emoji is two units, and
         // a mid-pair caret offset would split it in the SearchBox render.
         if (cursor > 0) {
-          const ch = [...query.slice(0, cursor)].pop()!
-          dispatchOverlay({ type: 'history-edit', cursor: cursor - ch.length })
+          const ch = Array.from(query.slice(0, cursor)).at(-1)
+          if (ch !== undefined) {
+            dispatchOverlay({ type: 'history-edit', cursor: cursor - ch.length })
+          }
         }
       } else if (key.rightArrow) {
         if (cursor < query.length) {
-          const ch = [...query.slice(cursor)][0]!
+          const ch = Array.from(query.slice(cursor))[0]
           dispatchOverlay({ type: 'history-edit', cursor: cursor + ch.length })
         }
       } else if (key.home) {
@@ -2930,7 +2924,6 @@ export function Chat({
         dispatchOverlay({ type: 'move', delta: key.upArrow ? -1 : 1, count: rewindRows.length })
       } else if (plainReturn) {
         const row = rewindRows[overlay.index]
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: out-of-range index on an empty list
         if (row) void requestRewindConfirm(row)
       } else if (key.escape) {
         dispatchOverlay({ type: 'close' })
@@ -3130,7 +3123,7 @@ export function Chat({
       key={approvalSnapshot.key}
       approval={approvalSnapshot}
       background={approvalSnapshot.agentId !== channel.agentId}
-      onDecide={outcome => approvals.decide(outcome)}
+      onDecide={(outcome) => { approvals.decide(outcome) }}
     />
   ) : null
   const questionPanelNode = questionSnapshot !== null ? (
@@ -3141,10 +3134,10 @@ export function Chat({
       total={questionSnapshot.total}
       answered={questionSnapshot.answered}
       initialDraft={questionSnapshot.draft}
-      onAnswer={selection => questionStore.answerCurrent(selection)}
-      onCancel={() => questionStore.cancelCurrent()}
+      onAnswer={(selection) => { questionStore.answerCurrent(selection) }}
+      onCancel={() => { questionStore.cancelCurrent() }}
       onBack={questionSnapshot.canGoBack
-        ? draft => questionStore.backCurrent(draft)
+        ? (draft) => { questionStore.backCurrent(draft) }
         : undefined}
     />
   ) : null
@@ -3187,7 +3180,7 @@ export function Chat({
           React,
           ui: tuiKit,
           channel,
-          close: () => channel.closePluginScene(),
+          close: () => { channel.closePluginScene() },
         })}
       </PluginSceneBoundary>
     )
@@ -3203,7 +3196,7 @@ export function Chat({
         channel={channel}
         home={homeDir()}
         approval={approvalSnapshot}
-        onApprove={outcome => approvals.decide(outcome)}
+        onApprove={(outcome) => { approvals.decide(outcome) }}
         returnSessionId={agentViewReturnId}
         onClose={() => {
           // The transcript tree remounts on close: never replay the whale
@@ -3253,7 +3246,7 @@ export function Chat({
       <SessionTree
         channel={channel}
         currentSessionId={channel.agentId}
-        onClose={() => setTreeOpen(false)}
+        onClose={() => { setTreeOpen(false) }}
         onRestoreText={(text) => {
           setHistoryFill(text)
         }}
@@ -3266,7 +3259,7 @@ export function Chat({
   // conversation (an early return after every hook above has run), so there
   // is no transcript underneath to be repainted or bled through.
   if (settingsOpen) {
-    const screen = <Settings channel={channel} onClose={() => setSettingsOpen(false)} />
+    const screen = <Settings channel={channel} onClose={() => { setSettingsOpen(false) }} />
     return fullscreen ? screen : <AlternateScreen>{screen}</AlternateScreen>
   }
 
@@ -3299,11 +3292,11 @@ export function Chat({
     const panel = (
       <JobsPanel
         jobs={channel.backgroundJobs ?? []}
-        onClose={() => setJobsPanelOpen(false)}
+        onClose={() => { setJobsPanelOpen(false) }}
         onKill={(id) => {
           // Stub channels (verify harnesses) have no jobControl — surface
           // the same failure toast as a refused kill instead of throwing.
-          if (channel.jobControl?.kill(id) !== true) {
+          if (!channel.jobControl.kill(id)) {
             channel.notify(t('jobs-kill-failed', { id }), { color: 'error' })
           }
         }}
@@ -3322,7 +3315,7 @@ export function Chat({
           setSubagentDashboardOpen(false)
           setSubagentDetailId(id)
         }}
-        onClose={() => setSubagentDashboardOpen(false)}
+        onClose={() => { setSubagentDashboardOpen(false) }}
       />
     )
     return fullscreen ? dashboard : <AlternateScreen>{dashboard}</AlternateScreen>
@@ -3435,7 +3428,7 @@ export function Chat({
             showAll={showAllMessages}
             thinkingVisible={thinkingVisible}
             historyPaintEnabled={!fullscreen}
-            onToggleAll={() =>{  setShowAllMessages(previous => !previous) }}
+            onToggleAll={() => { setShowAllMessages(previous => !previous) }}
             onLoadOlder={() => channel.loadOlder()}
             registerRowRef={registerRowRef}
             scrollHandle={handle}
@@ -3443,8 +3436,8 @@ export function Chat({
             newSinceRowId={isSticky ? null : lastSeenRowIdRef.current}
             onUnseenCount={setUnseenCount}
             onTimeline={setTimeline}
-            onOpenSubagent={agentId => setSubagentDetailId(agentId)}
-            onOpenJobs={() => setJobsPanelOpen(true)}
+            onOpenSubagent={(agentId) => { setSubagentDetailId(agentId) }}
+            onOpenJobs={() => { setJobsPanelOpen(true) }}
             onOpenFile={openFileActions}
           />
         </ScrollBox>
@@ -3528,14 +3521,14 @@ export function Chat({
         <GoalTodoPanel
           channel={channel}
           collapsed={todoCollapsed}
-          onToggle={() => setTodoCollapsed(previous => !previous)}
+          onToggle={() => { setTodoCollapsed(previous => !previous) }}
         />
         {recap !== null && recap.auto && !recap.expanded && (
           <AutoRecapRow
             summary={recap.summary}
             streaming={!recap.done}
-            onExpand={() => setRecap(prev => (prev ? { ...prev, expanded: true } : prev))}
-            onDismiss={() => closeRecap()}
+            onExpand={() => { setRecap(prev => (prev ? { ...prev, expanded: true } : prev)) }}
+            onDismiss={() => { closeRecap() }}
           />
         )}
         {balance !== null && (
@@ -3545,7 +3538,7 @@ export function Chat({
             tokens={channel.tokens}
             model={channel.model}
             onRefresh={runBalance}
-            onDismiss={() => setBalance(null)}
+            onDismiss={() => { setBalance(null) }}
           />
         )}
         {statusEntries.length > 0 && (
@@ -3562,12 +3555,12 @@ export function Chat({
           <ExtensionDialog
             key={dialogSnapshot.key}
             dialog={dialogSnapshot}
-            onDecide={value => dialogs.decide(dialogSnapshot.key, value)}
-            onCancel={() => dialogs.cancel(dialogSnapshot.key)}
+            onDecide={(value) => { dialogs.decide(dialogSnapshot.key, value) }}
+            onCancel={() => { dialogs.cancel(dialogSnapshot.key) }}
           />
         ) : overlay.kind === 'tips' ? (
           <Box flexDirection="column" marginTop={1}>
-            <TipsPanel onClose={() => dispatchOverlay({ type: 'close-if', kind: 'tips' })} />
+            <TipsPanel onClose={() => { dispatchOverlay({ type: 'close-if', kind: 'tips' }) }} />
           </Box>
         ) : recap !== null && (!recap.auto || recap.expanded) ? (
           <Box flexDirection="column" marginTop={1}>
@@ -3618,11 +3611,11 @@ export function Chat({
           <PromptInput
             channel={channel}
             helpOpen={helpOpen}
-            onToggleHelp={() =>{  setHelpOpen(previous => !previous) }}
+            onToggleHelp={() => { setHelpOpen(previous => !previous) }}
             onRunCommand={runCommand}
             selectionActive={promptSelectionActive}
             fillText={historyFill}
-            onFillConsumed={() =>{  setHistoryFill(null) }}
+            onFillConsumed={() => { setHistoryFill(null) }}
             onRewindRequest={openRewind}
             controllerRef={promptControllerRef}
           />
@@ -3986,7 +3979,7 @@ export function Chat({
             if (!ok) channel.notify(t('system-save-failed'), { color: 'error' })
             else channel.notify(text.trim() === '' ? t('system-cleared') : t('system-saved'))
           }}
-          onCancel={() => setSystemPromptOpen(false)}
+          onCancel={() => { setSystemPromptOpen(false) }}
         />
       )}
     </Box>
@@ -4051,8 +4044,8 @@ function NewMessagesPill({
       <Box
         backgroundColor={hover ? 'userMessageBackgroundHover' : 'background'}
         onClick={onClick}
-        onMouseEnter={() =>{  setHover(true) }}
-        onMouseLeave={() =>{  setHover(false) }}
+        onMouseEnter={() => { setHover(true) }}
+        onMouseLeave={() => { setHover(false) }}
       >
         <Text color="inverseText" bold>
           {' '}

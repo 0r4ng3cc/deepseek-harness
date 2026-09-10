@@ -50,11 +50,11 @@ export function ApprovalPanel({ approval, background = false, onDecide }: Approv
       return
     }
     if (input === '1' || input === '2') {
-      onDecide(OUTCOMES[Number(input) - 1]!)
+      onDecide(OUTCOMES[Number(input) - 1])
       return
     }
     if (isPlainReturnInput(input, key)) {
-      onDecide(OUTCOMES[focusIndex]!)
+      onDecide(OUTCOMES[focusIndex])
     }
   }, { isActive: true })
 
@@ -95,9 +95,9 @@ export function ApprovalPanel({ approval, background = false, onDecide }: Approv
               key={label}
               flexDirection="row"
               marginTop={focused ? 1 : 0}
-              onClick={() => onDecide(OUTCOMES[index]!)}
-              onMouseEnter={() => setHoverIndex(index)}
-              onMouseLeave={() => setHoverIndex(current => (current === index ? -1 : current))}
+              onClick={() => { onDecide(OUTCOMES[index]) }}
+              onMouseEnter={() => { setHoverIndex(index) }}
+              onMouseLeave={() => { setHoverIndex(current => (current === index ? -1 : current)) }}
               backgroundColor={hovered && !focused ? 'userMessageBackgroundHover' : undefined}
             >
               <Box width={1} flexShrink={0}>

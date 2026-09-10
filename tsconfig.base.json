@@ -228,6 +228,16 @@
       // so these aliases stay hand-written like dsh-util-crypto above.
       "@deepseek-ai/dsh-util-time": ["./packages/util/time/src"],
       "@deepseek-ai/dsh-auth": ["./packages/ui/dsh-auth/src"],
+      // dsh-std is workspace-vendored but publishes types at lib/index.d.ts,
+      // which is absent on a clean source tree. Point at src so type-aware
+      // gates resolve the same graph the TUI runtime imports.
+      "@dsh-std/core": ["./vendor/dsh-std/packages/core/src/index.ts"],
+      "@dsh-std/manifest": ["./vendor/dsh-std/packages/manifest/src/index.ts"],
+      "@dsh-std/command": ["./vendor/dsh-std/packages/command/src/index.ts"],
+      "@dsh-std/storage": ["./vendor/dsh-std/packages/storage/src/index.ts"],
+      "@dsh-std/messages": ["./vendor/dsh-std/packages/messages/src/index.ts"],
+      "@dsh-std/presentation": ["./vendor/dsh-std/packages/presentation/src/index.ts"],
+      "@dsh-std/connection": ["./vendor/dsh-std/packages/connection/src/index.ts"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],

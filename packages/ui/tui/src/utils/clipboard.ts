@@ -146,7 +146,7 @@ export function pickTextMime(targets: readonly string[]): string | null {
       return targets[lowered.indexOf(want)].trim()
     }
   }
-  const anyText = targets.find(t => {
+  const anyText = targets.find((t) => {
     const mime = t.trim().toLowerCase()
     return /^text\//.test(mime) && mime !== 'text/uri-list'
   })
@@ -233,12 +233,12 @@ function spawnForBuffer(
   file: string,
   args: readonly string[],
 ): Promise<{ code: number | null; stdout: Buffer }> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const child = spawn(file, [...args], { timeout: CLIPBOARD_TIMEOUT })
     const chunks: Buffer[] = []
     child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk))
-    child.on('error', () => resolve({ code: 1, stdout: Buffer.concat(chunks) }))
-    child.on('close', code => resolve({ code, stdout: Buffer.concat(chunks) }))
+    child.on('error', () => { resolve({ code: 1, stdout: Buffer.concat(chunks) }) })
+    child.on('close', (code) => { resolve({ code, stdout: Buffer.concat(chunks) }) })
     child.stdin.end()
   })
 }
@@ -517,11 +517,11 @@ function buildPsScript(imagePath: string | null): string {
  * @returns The clipboard content, or null when empty/blocked.
  */
 function readClipboardWindows(): Promise<ClipboardRead> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let attempts = 0
     const attempt = (): void => {
       attempts += 1
-      void imageTempPath('image/png').then(imagePath => {
+      void imageTempPath('image/png').then((imagePath) => {
         const child = execFile(
           'powershell',
           ['-NoProfile', '-NonInteractive', '-Command', buildPsScript(imagePath)],
@@ -599,7 +599,7 @@ export function _resetLinuxPasteCache(): void {
 export function formatClipboardInsert(content: ClipboardContent): string {
   if (content.kind === 'files') {
     return content.paths
-      .map(path => {
+      .map((path) => {
         const rendered = /\s/.test(path) ? `"${path}"` : path
         return /\.(?:png|jpe?g|webp|gif)$/iu.test(path) ? `@${rendered}` : rendered
       })

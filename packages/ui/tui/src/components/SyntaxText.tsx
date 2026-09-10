@@ -22,7 +22,7 @@ export function SyntaxText({ text, language, sourceText = text, lineIndex = 0, c
   const [themeName] = useTheme()
   React.useEffect(() => {
     let mounted = true
-    void getCliHighlightPromise().then(value => { if (mounted) setHighlighter(value) })
+    void getCliHighlightPromise().then((value) => { if (mounted) setHighlighter(value) })
     return () => { mounted = false }
   }, [])
   const theme = React.useMemo(() => getTheme(themeName), [themeName])
@@ -36,7 +36,7 @@ export function SyntaxText({ text, language, sourceText = text, lineIndex = 0, c
     return <Text color={color} dimColor={dimColor}>{text === '' ? ' ' : text}</Text>
   }
   let remaining = text.length
-  const visibleRuns = runs.flatMap(run => {
+  const visibleRuns = runs.flatMap((run) => {
     if (remaining <= 0) return []
     const visible = run.text.slice(0, remaining)
     remaining -= visible.length

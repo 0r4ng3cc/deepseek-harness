@@ -105,10 +105,10 @@ export function parseRGB(colorStr: string): RGBColor | null {
   const parts = colorStr.match(RGB_STRING_PATTERN)
   const parsed = parts
     ? {
-        r: parseInt(parts[1]!, 10),
-        g: parseInt(parts[2]!, 10),
-        b: parseInt(parts[3]!, 10),
-      }
+      r: parseInt(parts[1], 10),
+      g: parseInt(parts[2], 10),
+      b: parseInt(parts[3], 10),
+    }
     : null
   rgbParseCache.set(colorStr, parsed)
   return parsed

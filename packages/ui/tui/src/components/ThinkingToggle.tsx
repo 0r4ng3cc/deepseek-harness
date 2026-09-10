@@ -49,7 +49,7 @@ export function ThinkingToggle({
             focusIndex={focusIndex}
             selectedValue={currentValue ? 'true' : 'false'}
             visibleOptionCount={2}
-            onPick={onPick === undefined ? undefined : (index) => onPick(index)}
+            onPick={onPick === undefined ? undefined : (index) => { onPick(index) }}
           />
         </Box>
       </Box>

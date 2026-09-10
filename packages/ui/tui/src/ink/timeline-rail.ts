@@ -198,7 +198,7 @@ export function clipPreview(text: string, maxChars = PREVIEW_MAX_CHARS): string 
   // Keep the cap INCLUDING the ellipsis marker, like grok's preview. Slice
   // by CODE POINTS, not UTF-16 units — a surrogate pair split mid-pair
   // would emit a lone surrogate to the terminal.
-  return `${[...line].slice(0, maxChars - 1).join('')}…`
+  return `${Array.from(line).slice(0, maxChars - 1).join('')}…`
 }
 
 /**
@@ -223,7 +223,7 @@ export function wrapPreviewLines(preview: string, maxWidth: number): string[] {
     if (currentW + w > maxWidth) {
       if (lines.length === 1) {
         // Second line full → ellipsize in place and stop.
-        return [lines[0]!, ellipsize(current, maxWidth)]
+        return [lines[0], ellipsize(current, maxWidth)]
       }
       lines.push(current)
       current = ch
@@ -236,7 +236,7 @@ export function wrapPreviewLines(preview: string, maxWidth: number): string[] {
   if (current.length > 0 || lines.length === 0) lines.push(current)
   if (lines.length > 2) {
     // Cannot happen (we stop after the second), kept for exhaustiveness.
-    return [lines[0]!, ellipsize(lines[1]!, maxWidth)]
+    return [lines[0], ellipsize(lines[1], maxWidth)]
   }
   return lines.slice(0, 2)
 }

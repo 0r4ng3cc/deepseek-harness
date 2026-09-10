@@ -33,11 +33,10 @@ export class TuiCommandTreeRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiCommandTrees')
     compositionRoot(ctx)
-    const runtime = this
     const state: CommandTreeState = { providers: new Map(), owners: new Map(), host: undefined }
     state.host = Object.freeze({
-      children: path => childrenFor(runtime, path),
-      descriptions: root => descriptionsFor(runtime, root),
+      children: (path: readonly string[]) => childrenFor(this, path),
+      descriptions: (root: string) => descriptionsFor(this, root),
     })
     commandTreeStates.set(this, state)
   }

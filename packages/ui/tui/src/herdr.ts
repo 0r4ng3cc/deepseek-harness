@@ -13,7 +13,7 @@ interface HerdrChannel {
 
 interface BlockingStore {
   subscribe(listener: () => void): () => void
-  getSnapshot(): unknown | null
+  getSnapshot(): unknown
 }
 
 type RunCommand = (file: string, args: readonly string[]) => Promise<ExecFileNoThrowResult>
@@ -35,10 +35,10 @@ export interface HerdrIntegrationOptions {
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | undefined> {
-  return new Promise(resolve => {
-    const timer = setTimeout(() => resolve(undefined), timeoutMs)
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { resolve(undefined) }, timeoutMs)
     void promise.then(
-      value => {
+      (value) => {
         clearTimeout(timer)
         resolve(value)
       },
@@ -82,7 +82,7 @@ export function attachHerdrIntegration(
     return { state: blocked ? 'blocked' : options.channel.working ? 'working' : 'idle', blocked }
   }
 
-  const waitForRetry = (delayMs: number): Promise<void> => new Promise(resolve => {
+  const waitForRetry = (delayMs: number): Promise<void> => new Promise((resolve) => {
     const timer = setTimeout(() => {
       wakeDelay = undefined
       resolve()

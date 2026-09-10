@@ -208,7 +208,7 @@ export function parseCustomTheme(
       )
       continue
     }
-    colors[key as keyof Theme] = value
+    colors[key] = value
   }
   return { name, displayName, base, colors, file: fileKey }
 }

@@ -54,13 +54,13 @@ export type NegotiationDecision =
   | { decision: 'compatible_degraded'; missingOptional: string[] }
   | { decision: 'waiting_authorization'; reasonCode: string; deniedPermissions: string[] }
   | {
-      decision: 'rejected'
-      reasonCode: string
-      missingRequired?: string[]
-      facetApiVersion?: string
-      hostFacetApiVersions?: string[]
-      issues?: readonly unknown[]
-    }
+    decision: 'rejected'
+    reasonCode: string
+    missingRequired?: string[]
+    facetApiVersion?: string
+    hostFacetApiVersions?: string[]
+    issues?: readonly unknown[]
+  }
   | { decision: 'unknown'; reasonCode: string; unknownContracts: string[] }
 
 export const NEGOTIATION_ERROR_CODES = [

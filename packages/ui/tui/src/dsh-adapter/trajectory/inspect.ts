@@ -39,7 +39,7 @@ function findBySeq(events: readonly RawTrajEvent[], seq: number): RawTrajEvent |
   let high = events.length - 1
   while (low <= high) {
     const mid = (low + high) >> 1
-    const candidate = events[mid]!
+    const candidate = events[mid]
     if (candidate.seq === seq) return candidate
     if (candidate.seq < seq) low = mid + 1
     else high = mid - 1

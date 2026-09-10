@@ -77,12 +77,12 @@ export function deriveModelGroups(
       order.push(model.provider)
       counts.set(model.provider, 0)
     }
-    counts.set(model.provider, counts.get(model.provider)! + 1)
+    counts.set(model.provider, (counts.get(model.provider) ?? 0) + 1)
   }
   const groups: ModelGroupRow[] = order.map(provider => ({
     provider,
     label: providerInfos.find(info => info.id === provider)?.name ?? provider,
-    count: counts.get(provider)!,
+    count: counts.get(provider) ?? 0,
   }))
   if (recents !== undefined) {
     const recentCount = recentCatalogModels(recents, models).length
@@ -129,7 +129,7 @@ export function modelPickerLanding(
   if (providers.length === 0) return { group: undefined, index: 0 }
   const recentCount = recents === undefined ? 0 : recentCatalogModels(recents, models).length
   if (providers.length === 1 && recentCount <= 1) {
-    const only = providers[0]!
+    const only = providers[0]
     const index = models.findIndex(
       model => model.provider === currentProvider && model.id === currentModel,
     )

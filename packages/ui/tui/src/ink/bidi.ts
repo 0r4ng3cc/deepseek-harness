@@ -23,7 +23,11 @@ type ClusteredChar = {
   hyperlink: string | undefined
 }
 
-let bidiInstance: ReturnType<typeof bidiFactory> | undefined
+type BidiEngine = {
+  getEmbeddingLevels: (text: string, implicit?: string) => { levels: number[] }
+}
+
+let bidiInstance: BidiEngine | undefined
 let needsSoftwareBidi: boolean | undefined
 
 function needsBidi(): boolean {
@@ -73,8 +77,8 @@ export function reorderBidi(characters: ClusteredChar[]): ClusteredChar[] {
   const charLevels: number[] = []
   let offset = 0
   for (let i = 0; i < characters.length; i++) {
-    charLevels.push(levels[offset]!)
-    offset += characters[i]!.value.length
+    charLevels.push(levels[offset])
+    offset += characters[i].value.length
   }
 
   // Get reorder segments from bidi-js, but we need to work at the
@@ -87,15 +91,15 @@ export function reorderBidi(characters: ClusteredChar[]): ClusteredChar[] {
   for (let level = maxLevel; level >= 1; level--) {
     let i = 0
     while (i < reordered.length) {
-      if (charLevels[i]! >= level) {
+      if (charLevels[i] >= level) {
         // Find the end of this run
         let j = i + 1
-        while (j < reordered.length && charLevels[j]! >= level) {
+        while (j < reordered.length && charLevels[j] >= level) {
           j++
         }
         // Reverse the run in both arrays
         reverseRange(reordered, i, j - 1)
-        reverseRangeNumbers(charLevels, i, j - 1)
+        reverseRange(charLevels, i, j - 1)
         i = j
       } else {
         i++
@@ -106,20 +110,10 @@ export function reorderBidi(characters: ClusteredChar[]): ClusteredChar[] {
   return reordered
 }
 
-function reverseRange<T>(arr: T[], start: number, end: number): void {
+function reverseRange(arr: ClusteredChar[] | number[], start: number, end: number): void {
   while (start < end) {
-    const temp = arr[start]!
-    arr[start] = arr[end]!
-    arr[end] = temp
-    start++
-    end--
-  }
-}
-
-function reverseRangeNumbers(arr: number[], start: number, end: number): void {
-  while (start < end) {
-    const temp = arr[start]!
-    arr[start] = arr[end]!
+    const temp = arr[start]
+    arr[start] = arr[end]
     arr[end] = temp
     start++
     end--

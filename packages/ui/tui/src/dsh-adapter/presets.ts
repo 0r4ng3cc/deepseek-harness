@@ -85,11 +85,11 @@ export async function composePreset(ctx: Context, requested?: string): Promise<P
 export async function resolvePersistedPreset(ctx: Context, sessionId: SessionId): Promise<string | undefined> {
   const persistence = ctx.get('sessionPersistence') as
     | {
-        load(id: SessionId): Promise<{
-          meta: { agentPreset?: string }
-          events: readonly { type: string; data: unknown }[]
-        }>
-      }
+      load(id: SessionId): Promise<{
+        meta: { agentPreset?: string }
+        events: readonly { type: string; data: unknown }[]
+      }>
+    }
     | undefined
   if (persistence === undefined) return undefined
   try {
@@ -134,11 +134,11 @@ export function runningPresetOf(session: unknown): string | undefined {
 export async function resolvePersistedRoute(ctx: Context, sessionId: SessionId): Promise<ModelRoute | undefined> {
   const persistence = ctx.get('sessionPersistence') as
     | {
-        load(id: SessionId): Promise<{
-          meta: unknown
-          events: readonly { type: string; data?: unknown }[]
-        }>
-      }
+      load(id: SessionId): Promise<{
+        meta: unknown
+        events: readonly { type: string; data?: unknown }[]
+      }>
+    }
     | undefined
   if (persistence === undefined) return undefined
   try {
@@ -184,9 +184,9 @@ export function filterMinimalPresetTools(assembly: PromptAssembly, presetId: str
  * @param key - The cordis service key.
  * @returns The service instance, or undefined when neither layer provides it.
  */
-export function serviceForAgent<T>(ctx: Context, agent: { ctx: Context }, key: string): T | undefined {
+export function serviceForAgent(ctx: Context, agent: { ctx: Context }, key: string): unknown {
   const presets = rosterOf(ctx)
   const scoped = presets?.serviceFor?.(agent, key)
-  if (scoped !== undefined) return scoped as T
-  return ctx.get(key) as T | undefined
+  if (scoped !== undefined) return scoped
+  return ctx.get(key)
 }

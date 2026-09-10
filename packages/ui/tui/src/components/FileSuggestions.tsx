@@ -134,11 +134,11 @@ export function FileSuggestions({
   const footer =
     above > 0 || below > 0
       ? [
-          above > 0 ? t('sugg-more-above', { n: above }) : null,
-          below > 0 ? t('sugg-more-below', { n: below }) : null,
-        ]
-          .filter((part): part is string => part !== null)
-          .join(' · ')
+        above > 0 ? t('sugg-more-above', { n: above }) : null,
+        below > 0 ? t('sugg-more-below', { n: below }) : null,
+      ]
+        .filter((part): part is string => part !== null)
+        .join(' · ')
       : null
 
   return (
@@ -147,7 +147,7 @@ export function FileSuggestions({
       columns={columns}
       accent={accent}
       footer={footer}
-      onRowPick={onPick ? index => onPick(startIndex + index) : undefined}
+      onRowPick={onPick ? (index) => { onPick(startIndex + index) } : undefined}
       onWheelStep={onWheelStep}
       rows={visible.map(file => (
         <FileSuggestionRow

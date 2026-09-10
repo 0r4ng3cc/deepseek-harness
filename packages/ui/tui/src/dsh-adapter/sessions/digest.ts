@@ -287,15 +287,15 @@ async function recoverLatestTitle(
       const page = await reversePage(handle, end, signal)
       if (page === undefined) return { title: undefined, complete: false }
       for (let frameIndex = page.frames.length - 1; frameIndex >= 0; frameIndex--) {
-        const frame = page.frames[frameIndex]!
+        const frame = page.frames[frameIndex]
         const lines = decodeFrame(page.buffer, frame)
         if (lines === undefined) return { title: undefined, complete: false }
         for (let lineIndex = lines.length - 1; lineIndex >= 0; lineIndex--) {
-          const title = titleOf(lines[lineIndex]!)
+          const title = titleOf(lines[lineIndex])
           if (title !== undefined) return { title, complete: true }
         }
       }
-      const nextEnd = page.start + page.frames[0]!.start
+      const nextEnd = page.start + page.frames[0].start
       if (nextEnd >= end) return { title: undefined, complete: false }
       end = nextEnd
       await scheduler.yield()
@@ -335,7 +335,7 @@ export async function recoverAppendedTitle(
           latest = titleOf(line) ?? latest
         }
       }
-      const consumed = page.frames[page.frames.length - 1]!.end
+      const consumed = page.frames[page.frames.length - 1].end
       if (consumed <= 0) return { title: latest, complete: false }
       position += consumed
       await scheduler.yield()
@@ -374,7 +374,7 @@ async function recoverFirstPrompt(
           if (prompt !== undefined) return { prompt, complete: true }
         }
       }
-      const consumed = page.frames[page.frames.length - 1]!.end
+      const consumed = page.frames[page.frames.length - 1].end
       if (consumed <= 0) return { prompt: undefined, complete: false }
       position += consumed
       await scheduler.yield()

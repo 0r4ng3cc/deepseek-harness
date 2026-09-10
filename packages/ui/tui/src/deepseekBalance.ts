@@ -69,7 +69,7 @@ export async function fetchBalance(
     : `${options.baseUrl.replace(/\/+$/, '')}/user/balance`
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const timer = setTimeout(() => { controller.abort() }, timeoutMs)
   try {
     const response = await fetchImpl(endpoint, {
       headers: { authorization: `Bearer ${apiKey}` },

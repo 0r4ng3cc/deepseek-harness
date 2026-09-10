@@ -36,7 +36,6 @@ import {
 } from './grants.js'
 import {
   componentIdentityOf,
-  requireComponentIdentity,
   requiresDecisionEvents,
   type VerifiedComponentIdentity,
 } from './component-identity.js'
@@ -93,7 +92,9 @@ export interface DecisionHandlerMetadata {
   event: string
   order: string
 }
-const handlerMetadata = new WeakMap<Function, DecisionHandlerMetadata>()
+type DecisionListener = (payload: Record<string, unknown>) => unknown
+
+const handlerMetadata = new WeakMap<DecisionListener, DecisionHandlerMetadata>()
 
 /** A host-mediated DecisionEvents registration.  The registry is deliberately
  * separate from Cordis' private `_hooks`: admission and dispatch must not
@@ -127,7 +128,7 @@ export interface DecisionRegistry {
 const registries = new WeakMap<object, DecisionRegistry>()
 
 function rootKey(ctx: Context): object {
-  return compositionRoot(ctx) as unknown as object
+  return compositionRoot(ctx)
 }
 
 function registryFor(ctx: Context, grants?: GrantStore): DecisionRegistry {
@@ -159,7 +160,7 @@ export function decisionHandlersOf(
     ? normalizePermissionScope(scopePermission, payloadScope, 'host')
     : undefined
   return rows
-    .filter(row => {
+    .filter((row) => {
       const declared = normalizeDecisionScope(event, row.scope, 'host')
       // A session-scoped handler cannot be safely applied when the host did
       // not provide a session scope. Treat the missing scope as an
@@ -208,7 +209,7 @@ function defaultDecisionScope(identity: VerifiedComponentIdentity, event: string
   const expectedEvent = INTERCEPT_EVENT_SCOPE_BY_PERMISSION[permission]
   const requests = identity.manifest.permissions.filter(request => request.name === permission)
   if (requests.some(request => request.scope === expectedEvent)) return expectedEvent
-  if (requests.some(request => {
+  if (requests.some((request) => {
     const normalized = normalizePermissionScope(permission, request.scope, identity.componentId)
     return normalized?.kind === 'session' && normalized.value === 'session:*'
   })) return 'session:*'
@@ -246,7 +247,7 @@ export function registerDecisionHandler(
   const permission = eventPermission(event)
   const staticallyDeclared = permission === undefined
     ? normalizedScope.kind === 'event' && normalizedScope.value === event
-    : identity.manifest.permissions.some(request => {
+    : identity.manifest.permissions.some((request) => {
       if (request.name !== permission) return false
       const declared = normalizePermissionScope(permission, request.scope, identity.componentId)
       return declared !== undefined && permissionScopeCovers(permission, declared, normalizedScope)
@@ -345,7 +346,7 @@ export function withDecisionRegistration<T>(ctx: Context, callback: () => T): T 
   return callback()
 }
 
-export function decisionHandlerMetadataOf(listener: Function): DecisionHandlerMetadata | undefined {
+export function decisionHandlerMetadataOf(listener: DecisionListener): DecisionHandlerMetadata | undefined {
   return handlerMetadata.get(listener)
 }
 
@@ -372,7 +373,7 @@ export function installDecisionGuard(ctx: Context, grants: GrantStore): void {
     // authorization always comes from the verified Component identity.
     let pluginName = 'root'
     try {
-      const resolved: unknown = this.fiber?.name
+      const resolved: unknown = this.fiber.name
       if (typeof resolved === 'string' && resolved !== '') pluginName = resolved
     } catch {
       // A degraded context without fiber access: fall back to 'root'.
@@ -397,7 +398,7 @@ export function installDecisionGuard(ctx: Context, grants: GrantStore): void {
         try {
           this.logger.warn(
             `dsh-tui: ${name} subscription from Component "${identity.componentId}" denied — ` +
-            `${error instanceof Error ? error.message : String(error)}`,
+            (error instanceof Error ? error.message : typeof error === 'string' ? error : 'unknown'),
           )
         } catch { /* best effort */ }
         return () => false

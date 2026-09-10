@@ -72,18 +72,21 @@ export function useSelection(): {
     return {
       copySelection: () => ink.copySelection(),
       copySelectionNoClear: () => ink.copySelectionNoClear(),
-      clearSelection: () => ink.clearTextSelection(),
+      clearSelection: () => { ink.clearTextSelection() },
       hasSelection: () => ink.hasTextSelection(),
       getState: () => ink.selection,
       subscribe: (cb: () => void) => ink.subscribeToSelectionChange(cb),
-      shiftAnchor: (dRow: number, minRow: number, maxRow: number) =>
-        shiftAnchor(ink.selection, dRow, minRow, maxRow),
-      shiftSelection: (dRow, minRow, maxRow) =>
-        ink.shiftSelectionForScroll(dRow, minRow, maxRow),
-      moveFocus: (move: FocusMove) => ink.moveSelectionFocus(move),
-      captureScrolledRows: (firstRow, lastRow, side) =>
-        ink.captureScrolledRows(firstRow, lastRow, side),
-      setSelectionBgColor: (color: string) => ink.setSelectionBgColor(color),
+      shiftAnchor: (dRow: number, minRow: number, maxRow: number) => {
+        shiftAnchor(ink.selection, dRow, minRow, maxRow)
+      },
+      shiftSelection: (dRow, minRow, maxRow) => {
+        ink.shiftSelectionForScroll(dRow, minRow, maxRow)
+      },
+      moveFocus: (move: FocusMove) => { ink.moveSelectionFocus(move) },
+      captureScrolledRows: (firstRow, lastRow, side) => {
+        ink.captureScrolledRows(firstRow, lastRow, side)
+      },
+      setSelectionBgColor: (color: string) => { ink.setSelectionBgColor(color) },
     }
   }, [ink])
 }
@@ -102,7 +105,7 @@ export function useHasSelection(): boolean {
   useContext(StdinContext)
   const ink = instances.get(process.stdout)
   return useSyncExternalStore(
-    ink ? ink.subscribeToSelectionChange : NO_SUBSCRIBE,
-    ink ? ink.hasTextSelection : ALWAYS_FALSE,
+    ink ? ink.subscribeToSelectionChange.bind(ink) : NO_SUBSCRIBE,
+    ink ? ink.hasTextSelection.bind(ink) : ALWAYS_FALSE,
   )
 }

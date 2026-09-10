@@ -63,7 +63,7 @@ export function Select({
             }
             onClick={
               onPick
-                ? (event) => onPick(absoluteIndex, option.value, event)
+                ? (event) => { onPick(absoluteIndex, option.value, event) }
                 : undefined
             }
           >

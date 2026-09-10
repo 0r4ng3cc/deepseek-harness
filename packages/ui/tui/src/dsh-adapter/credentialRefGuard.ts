@@ -46,7 +46,7 @@ export function vetSectionSecretRefs<S extends { fields: readonly FieldWithSecre
   section: S,
 ): { section: S; rejected: SecretRefRejection[] } {
   const rejected: SecretRefRejection[] = []
-  const fields = section.fields.filter(field => {
+  const fields = section.fields.filter((field) => {
     const ref = field.secret?.ref
     if (ref === undefined || !isReservedCredentialRef(ref)) return true
     rejected.push({ path: field.path, ref })
@@ -55,5 +55,5 @@ export function vetSectionSecretRefs<S extends { fields: readonly FieldWithSecre
   // The spread keeps every other property of the caller's section type; the
   // fields array is the same element type minus nothing structural (only
   // fewer elements), so the cast is a pure narrowing of the same value.
-  return { section: { ...section, fields: fields as S['fields'] }, rejected }
+  return { section: { ...section, fields }, rejected }
 }

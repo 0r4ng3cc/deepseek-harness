@@ -234,8 +234,8 @@ export function AgentView({
 
   // One clock per render pass: every relative time on screen must agree.
   React.useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
+    const timer = setInterval(() => { setNow(Date.now()) }, 1000)
+    return () => { clearInterval(timer) }
   }, [])
 
   // CC parity: working rows animate their glyph (the `·✢*✶✻✽` cycle). The
@@ -255,7 +255,7 @@ export function AgentView({
       stopArmRef.current = null
       setMode('list')
     }, Math.max(0, remaining))
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer) }
   }, [mode])
 
   /**

@@ -1,4 +1,5 @@
 import React from 'react'
+import type { WheelEvent } from '../ink/events/wheel-event.js'
 import { Box, Text, NoSelect, type ScrollBoxHandle } from '../ui.js'
 import { stringWidth } from '../ink/stringWidth.js'
 import {
@@ -189,9 +190,9 @@ export function TimelineRail({
         key={kind}
         height={1}
         flexShrink={0}
-        onClick={() => jumpToId(kind === 'up' ? upId : downId)}
-        onMouseEnter={() => setHover({ kind })}
-        onMouseLeave={() => setHover(null)}
+        onClick={() => { jumpToId(kind === 'up' ? upId : downId) }}
+        onMouseEnter={() => { setHover({ kind }) }}
+        onMouseLeave={() => { setHover(null) }}
       >
         <Text color={color}>{glyph}</Text>
       </Box>
@@ -201,7 +202,7 @@ export function TimelineRail({
   const tickRows: React.ReactNode[] = []
   for (let k = 0; k < shown; k++) {
     const index = geo.windowStart + k
-    const turn = turns[index]!
+    const turn = turns[index]
     const isActive = index === activeIndex
     const isHovered = hover?.kind === 'tick' && hover.index === index
     const glyph = isActive ? TICK_ACTIVE : isHovered ? TICK_HOVER : TICK_IDLE
@@ -211,7 +212,7 @@ export function TimelineRail({
         key={turn.id}
         height={1}
         flexShrink={0}
-        onClick={() => jumpToIndex(index)}
+        onClick={() => { jumpToIndex(index) }}
         onMouseEnter={() => {
           setHover({ kind: 'tick', index })
           armDwell(index)
@@ -290,7 +291,7 @@ export function TimelineRail({
           extends past the page margin (Chat), so this gutter naturally
           lands at the terminal's right edge. */}
       <ink-box
-        onWheel={e => {
+        onWheel={(e: WheelEvent) => {
           if (e.deltaY !== 0) handle.scrollBy(e.deltaY)
         }}
         style={{ flexDirection: 'column', flexShrink: 0, width: RAIL_WIDTH }}

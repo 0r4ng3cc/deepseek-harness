@@ -199,38 +199,38 @@ export function SpinnerAnimationRow({
   const parts = [
     ...(spinnerSuffix
       ? [
-          <Text dimColor key="suffix">
-            {spinnerSuffix}
-          </Text>,
-        ]
+        <Text dimColor key="suffix">
+          {spinnerSuffix}
+        </Text>,
+      ]
       : []),
     ...(showTimer
       ? [
-          <Text dimColor key="elapsedTime">
-            {timerText}
-          </Text>,
-        ]
+        <Text dimColor key="elapsedTime">
+          {timerText}
+        </Text>,
+      ]
       : []),
     ...(showTokens
       ? [
-          <Box flexDirection="row" key="tokens">
-            <SpinnerModeGlyph mode={mode} />
-            <Text dimColor>{tokensLabel}</Text>
-          </Box>,
-        ]
+        <Box flexDirection="row" key="tokens">
+          <SpinnerModeGlyph mode={mode} />
+          <Text dimColor>{tokensLabel}</Text>
+        </Box>,
+      ]
       : []),
     ...(showThinking && thinkingText
       ? [
-          thinkingStatus === 'thinking' && !reducedMotion ? (
-            <Text key="thinking" color={thinkingShimmerColor}>
-              {thinkingOnly ? `(${thinkingText})` : thinkingText}
-            </Text>
-          ) : (
-            <Text dimColor key="thinking">
-              {thinkingText}
-            </Text>
-          ),
-        ]
+        thinkingStatus === 'thinking' && !reducedMotion ? (
+          <Text key="thinking" color={thinkingShimmerColor}>
+            {thinkingOnly ? `(${thinkingText})` : thinkingText}
+          </Text>
+        ) : (
+          <Text dimColor key="thinking">
+            {thinkingText}
+          </Text>
+        ),
+      ]
       : []),
   ]
 

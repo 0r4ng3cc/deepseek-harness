@@ -125,7 +125,7 @@ function SelectDialog({
               showScrollUp={absoluteIndex === start && start > 0}
               showScrollDown={absoluteIndex === end - 1 && end < dialog.options.length}
               // Click = decide this option (same as Enter on it).
-              onClick={() => onDecide(option.id)}
+              onClick={() => { onDecide(option.id) }}
             >
               {option.label}
             </ListItem>
@@ -196,7 +196,7 @@ function ConfirmDialog({
             key={label}
             isFocused={index === focusIndex}
             // Click = decide this row (same as Enter on it).
-            onClick={() => onDecide(index === 0)}
+            onClick={() => { onDecide(index === 0) }}
           >
             {label}
           </ListItem>
@@ -219,13 +219,13 @@ function InputDialog({
   onCancel: () => void
 }): React.ReactNode {
   const [value, setValue] = React.useState(dialog.initial)
-  const [cursor, setCursor] = React.useState<number>(() => [...dialog.initial].length)
+  const [cursor, setCursor] = React.useState<number>(() => Array.from(dialog.initial).length)
   // Synchronous source of truth for the handlers (see the module header):
   // two Backspaces in one stdin chunk must BOTH delete, each seeing the
   // other's result. The cursor counts CODE POINTS, not UTF-16 units — an
   // emoji is one step and can never be split into a lone surrogate.
   const valueRef = React.useRef(dialog.initial)
-  const cursorRef = React.useRef([...dialog.initial].length)
+  const cursorRef = React.useRef(Array.from(dialog.initial).length)
   const applyEdit = (nextValue: string, nextCursor: number): void => {
     valueRef.current = nextValue
     cursorRef.current = nextCursor
@@ -244,7 +244,7 @@ function InputDialog({
       onDecide(valueRef.current)
       return
     }
-    const points = [...valueRef.current]
+    const points = Array.from(valueRef.current)
     const at = cursorRef.current
     // Single-line editing, same key set as the transcript search bar.
     if (key.backspace) {
@@ -284,19 +284,19 @@ function InputDialog({
       // keeps the documented bound: typing past the cap is ignored, an
       // oversized paste is truncated (never silently unbounded).
       const chunk = event.isPasted ? flattenInline(input) : input
-      const chunkPoints = [...chunk].length
+      const chunkPoints = Array.from(chunk).length
       const candidate = points.slice(0, at).join('') + chunk + points.slice(at).join('')
       if (stringWidth(candidate) <= INPUT_CELLS) {
         applyEdit(candidate, at + chunkPoints)
       } else if (event.isPasted) {
         const capped = capCells(candidate, INPUT_CELLS)
-        applyEdit(capped, Math.min(at + chunkPoints, [...capped].length))
+        applyEdit(capped, Math.min(at + chunkPoints, Array.from(capped).length))
       }
     }
   }, { isActive: true })
 
   const shown = value === '' && dialog.placeholder !== undefined ? dialog.placeholder : value
-  const shownPoints = [...shown]
+  const shownPoints = Array.from(shown)
   return (
     <Pane color="permission">
       <Box flexDirection="column">

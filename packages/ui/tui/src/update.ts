@@ -1,6 +1,6 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { appendFileSync, chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, type Dirent, type Stats } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -212,7 +212,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** Fetch `latest` from a registry; undefined on any failure. */
 async function fetchLatestVersion(registryBase: string): Promise<string | undefined> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), UPDATE_CHECK_TIMEOUT_MS)
+  const timeout = setTimeout(() => { controller.abort() }, UPDATE_CHECK_TIMEOUT_MS)
   try {
     const response = await fetch(`${registryBase}/${PACKAGE_NAME}/latest`, {
       headers: { accept: 'application/json' },
@@ -326,7 +326,7 @@ export function releaseChecksumUrl(version: string): string {
  */
 async function probeChecksumManifestUrl(url: string): Promise<string | undefined> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), UPDATE_CHECK_TIMEOUT_MS)
+  const timeout = setTimeout(() => { controller.abort() }, UPDATE_CHECK_TIMEOUT_MS)
   try {
     const response = await fetch(url, {
       headers: { 'user-agent': 'dsh-tui-updater' },
@@ -349,10 +349,12 @@ async function probeChecksumManifestUrl(url: string): Promise<string | undefined
  *   SHA256SUMS manifest URL when the release ships one, or `undefined` on any
  *   failure.
  */
-export async function fetchGithubLatestRelease(options: GithubReleaseQuery = {}): Promise<{ version: string; downloadUrl?: string; checksumUrl?: string } | undefined> {
+export async function fetchGithubLatestRelease(
+  options: GithubReleaseQuery = {},
+): Promise<{ version: string; downloadUrl?: string; checksumUrl?: string } | undefined> {
   const doFetch = options.fetchImpl ?? fetch
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), UPDATE_CHECK_TIMEOUT_MS)
+  const timeout = setTimeout(() => { controller.abort() }, UPDATE_CHECK_TIMEOUT_MS)
   try {
     const response = await doFetch(`${options.apiBaseUrl ?? 'https://api.github.com'}/repos/${GITHUB_REPO}/releases/latest`, {
       headers: { accept: 'application/vnd.github.v3+json', 'user-agent': 'dsh-tui-updater' },
@@ -518,7 +520,7 @@ export interface ExtractedTreeCheck {
 export function validateExtractedTree(extractDir: string): ExtractedTreeCheck {
   const root = resolve(extractDir)
   const walk = (dir: string): ExtractedTreeCheck => {
-    let entries
+    let entries: Dirent[]
     try {
       entries = readdirSync(dir, { withFileTypes: true })
     } catch (error) {
@@ -576,7 +578,7 @@ async function fetchChecksumManifest(
   maxManifestBytes: number = MAX_CHECKSUM_MANIFEST_BYTES,
 ): Promise<string> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), STANDALONE_DOWNLOAD_TIMEOUT_MS)
+  const timeout = setTimeout(() => { controller.abort() }, STANDALONE_DOWNLOAD_TIMEOUT_MS)
   try {
     const response = await fetch(checksumUrl, {
       headers: { 'user-agent': 'dsh-tui-updater' },
@@ -598,7 +600,7 @@ async function fetchChecksumManifest(
     let received = 0
     for (;;) {
       const { done, value } = await reader.read()
-      if (done === true) break
+      if (done) break
       received += value.byteLength
       if (received > maxManifestBytes) {
         controller.abort()
@@ -668,7 +670,7 @@ export async function downloadAndReplaceStandaloneBinary(
 
     onProgress?.(`downloading: ${downloadUrl}`)
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), STANDALONE_DOWNLOAD_TIMEOUT_MS)
+    const timeout = setTimeout(() => { controller.abort() }, STANDALONE_DOWNLOAD_TIMEOUT_MS)
     let response: Response
     try {
       response = await fetch(downloadUrl, {
@@ -703,7 +705,7 @@ export async function downloadAndReplaceStandaloneBinary(
     let received = 0
     for (;;) {
       const { done, value } = await reader.read()
-      if (done === true) break
+      if (done) break
       received += value.byteLength
       if (received > maxAssetBytes) {
         controller.abort()
@@ -769,7 +771,7 @@ export async function downloadAndReplaceStandaloneBinary(
     // The replacement source itself must be a plain regular file — a symlink
     // or device at exactly the expected name is the sharpest zip-slip probe
     // (copyFileSync would follow it).
-    let newBinaryStat
+    let newBinaryStat: Stats
     try {
       newBinaryStat = lstatSync(newBinaryPath)
     } catch {
@@ -869,12 +871,12 @@ export async function checkForTuiUpdate(): Promise<TuiUpdateInfo | undefined> {
   const target = await resolveTuiUpdateTarget()
   return target.kind === 'update'
     ? {
-        current: target.current,
-        latest: target.latest,
-        isStandalone: target.isStandalone,
-        downloadUrl: target.downloadUrl,
-        checksumUrl: target.checksumUrl,
-      }
+      current: target.current,
+      latest: target.latest,
+      isStandalone: target.isStandalone,
+      downloadUrl: target.downloadUrl,
+      checksumUrl: target.checksumUrl,
+    }
     : undefined
 }
 
@@ -900,7 +902,7 @@ function runProcess(
   args: readonly string[],
   options: ProcessOptions = {},
 ): Promise<number> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let settled = false
     const useShell = options.shell === true && process.platform === 'win32'
     // DEP0190 (issue #148): Node ≥22 warns on `shell: true` with a non-empty
@@ -929,11 +931,11 @@ function runProcess(
       settled = true
       resolve(code)
     }
-    child.once('error', error => {
+    child.once('error', (error) => {
       process.stderr.write(`dsh-tui: failed to run ${command}: ${error.message}\n`)
       finish(127)
     })
-    child.once('close', code => finish(code ?? 1))
+    child.once('close', (code) => { finish(code ?? 1) })
   })
 }
 
@@ -1342,7 +1344,7 @@ export async function updateTui(
     }
 
     process.stderr.write(`dsh-tui: 正在更新便携包 (${updatedFrom || 'current'} → ${latestVersion})…\n`)
-    const result = await downloadAndReplaceStandaloneBinary(downloadUrl, msg => {
+    const result = await downloadAndReplaceStandaloneBinary(downloadUrl, (msg) => {
       process.stderr.write(`dsh-tui: ${msg}\n`)
     }, checksumUrl)
     if (!result.success) {
@@ -1419,9 +1421,9 @@ export async function updateTui(
   if (installedNow !== undefined && installedNow !== updatedFrom && isBootDeadlockTarget(installedNow)) {
     process.stderr.write(
       `dsh-tui: update landed on ${installedNow}, which can permanently deadlock boot under older launcher patches ` +
-        `(#183/#307) — NOT restarting into it. Repair with:\n` +
+        '(#183/#307) — NOT restarting into it. Repair with:\n' +
         `  dsh plugin --profile ${profile} add ${PACKAGE_NAME}@latest\n` +
-        `(if the mirror has not synced the latest release yet, retry later)\n`,
+        '(if the mirror has not synced the latest release yet, retry later)\n',
     )
     return { code: 1, updatedFrom, installed: installedNow }
   }
@@ -1535,7 +1537,7 @@ export async function cliUpdate(profile: string): Promise<number> {
       process.stderr.write(
         `dsh-tui: refusing to update onto ${target.latest} — that range can permanently deadlock boot ` +
           `(#183/#307). Latest on the official registry: ${target.authoritative ?? target.latest}. ` +
-          `If you use a mirror, retry after it syncs.\n`,
+          'If you use a mirror, retry after it syncs.\n',
       )
       return 1
     }
@@ -1626,14 +1628,14 @@ export async function restartTui(sessionId: string, options: TuiRestartOptions =
     node: process.execPath,
     argv,
     cwd: process.cwd(),
-    stdinTty: process.stdin.isTTY === true,
-    stdoutTty: process.stdout.isTTY === true,
-    stderrTty: process.stderr.isTTY === true,
+    stdinTty: process.stdin.isTTY,
+    stdoutTty: process.stdout.isTTY,
+    stderrTty: process.stderr.isTTY,
     nodeOptions: process.env.NODE_OPTIONS ?? null,
     dshHome: process.env.DSH_HOME ?? null,
   })
   const startedAt = Date.now()
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const child = spawn(process.execPath, argv, {
       env: {
         ...process.env,
@@ -1670,8 +1672,8 @@ export async function restartTui(sessionId: string, options: TuiRestartOptions =
         tick: watchdogTicks,
         readableListeners: stdin.listenerCount('readable'),
         dataListeners: stdin.listenerCount('data'),
-        paused: stdin.isPaused,
-        raw: stdin.isRaw === true,
+        paused: stdin.isPaused(),
+        raw: stdin.isRaw,
         buffered: stdin.readableLength,
       })
       try {
@@ -1697,7 +1699,7 @@ export async function restartTui(sessionId: string, options: TuiRestartOptions =
     watchdog.unref()
     let childStderr = ''
     let loggedStderrBytes = 0
-    child.stderr?.on('data', (chunk: Buffer) => {
+    child.stderr.on('data', (chunk: Buffer) => {
       childStderr += chunk.toString('utf8')
       // Mirror chunks to the log capped: the full text still reaches the
       // terminal report below, and unbounded output must not grow the file.
@@ -1713,7 +1715,7 @@ export async function restartTui(sessionId: string, options: TuiRestartOptions =
       logRestartEvent(`${tag}: survival window passed, following the replacement until it exits`)
     }, 4000)
     timer.unref()
-    child.once('error', error => {
+    child.once('error', (error) => {
       clearTimeout(timer)
       logRestartEvent(`${tag}: spawn error`, { message: error.message })
       writeHandoffNotice(`dsh-tui: failed to spawn the restart: ${error.message}\n`)

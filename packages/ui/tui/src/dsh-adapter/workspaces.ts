@@ -8,6 +8,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { basename, isAbsolute, resolve } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-workspace'
 import { activationFiber, bindCallerEffect, compositionRoot, concreteService, requirePluginCaller } from './host-access.js'
 
 export type TuiWorkspaceKind = 'local' | 'provider'
@@ -126,8 +127,8 @@ async function providerWithBudget<T>(
   signal?.throwIfAborted()
   let timer: ReturnType<typeof setTimeout> | undefined
   const work = Promise.resolve().then(task)
-  const timeout = new Promise<undefined>(resolveTimeout => {
-    timer = setTimeout(() => resolveTimeout(undefined), timeoutMs)
+  const timeout = new Promise<undefined>((resolveTimeout) => {
+    timer = setTimeout(() => { resolveTimeout(undefined) }, timeoutMs)
   })
   try {
     return await Promise.race([work, timeout])
@@ -140,7 +141,6 @@ async function providerWithBudget<T>(
 export class TuiWorkspaceRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiWorkspaces')
-    const runtime = this
     const state: WorkspaceState = {
       hostContext: compositionRoot(ctx),
       providers: new Set(),
@@ -149,15 +149,15 @@ export class TuiWorkspaceRuntime extends Service {
       host: undefined,
     }
     state.host = Object.freeze({
-      list: (currentCwd: string, signal?: AbortSignal) => listWorkspaces(runtime, currentCwd, signal, undefined),
+      list: (currentCwd: string, signal?: AbortSignal) => listWorkspaces(this, currentCwd, signal, undefined),
       resolve: (reference: string, currentCwd?: string, signal?: AbortSignal) =>
-        resolveWorkspace(runtime, reference, currentCwd ?? process.cwd(), signal, undefined),
-      describe: (cwd: string) => describeWorkspace(runtime, cwd, undefined),
-      commandShell: (cwd: string) => commandShellFor(runtime, cwd, undefined),
-      rename: (cwd: string, title: string) => renameWorkspace(runtime, cwd, title, undefined),
-      commands: () => workspaceCommands(runtime, undefined),
+        resolveWorkspace(this, reference, currentCwd ?? process.cwd(), signal, undefined),
+      describe: (cwd: string) => describeWorkspace(this, cwd, undefined),
+      commandShell: (cwd: string) => commandShellFor(this, cwd, undefined),
+      rename: (cwd: string, title: string) => renameWorkspace(this, cwd, title, undefined),
+      commands: () => workspaceCommands(this, undefined),
       runCommand: (name: string, input: string, cwd: string, signal?: AbortSignal) =>
-        runWorkspaceCommand(runtime, name, input, cwd, signal, undefined),
+        runWorkspaceCommand(this, name, input, cwd, signal, undefined),
     })
     workspaceStates.set(this, state)
   }
@@ -316,7 +316,7 @@ async function resolveWorkspace(
   const deadline = Date.now() + 5000
   const scheme = uriScheme(reference)
   if (scheme === undefined) {
-    const provider = providers().find(candidate => {
+    const provider = providers().find((candidate) => {
       try {
         return candidate.describe(currentCwd) !== undefined
       } catch {
@@ -324,9 +324,10 @@ async function resolveWorkspace(
       }
     })
     if (provider !== undefined) {
-      return provider.resolvePath === undefined
+      const resolvePath = provider.resolvePath?.bind(provider)
+      return resolvePath === undefined
         ? undefined
-        : providerWithBudget(() => provider.resolvePath!(reference, currentCwd, signal), signal)
+        : providerWithBudget(() => resolvePath(reference, currentCwd, signal), signal)
     }
     return localWorkspaceTarget(resolve(currentCwd, reference))
   }
@@ -443,7 +444,7 @@ async function runWorkspaceCommand(
 }
 
 function workspaceRegistry(runtime: TuiWorkspaceRuntime): WorkspaceRegistryLike | undefined {
-  return workspaceStateFor(runtime).hostContext.get('workspaceRegistry') as WorkspaceRegistryLike | undefined
+  return workspaceStateFor(runtime).hostContext.get('workspaceRegistry')
 }
 
 function withStoredTitle(runtime: TuiWorkspaceRuntime, target: TuiWorkspaceTarget): TuiWorkspaceTarget {
@@ -483,30 +484,30 @@ export function createLocalWorkspaceRuntime(): Pick<
   'list' | 'resolve' | 'describe' | 'commandShell' | 'rename' | 'commands' | 'runCommand'
 > {
   return {
-    async list(currentCwd) {
-      return [localWorkspaceTarget(currentCwd)]
+    list(currentCwd) {
+      return Promise.resolve([localWorkspaceTarget(currentCwd)])
     },
-    async resolve(reference, currentCwd = process.cwd()) {
-      if (isAbsolute(reference)) return localWorkspaceTarget(reference)
+    resolve(reference, currentCwd = process.cwd()) {
+      if (isAbsolute(reference)) return Promise.resolve(localWorkspaceTarget(reference))
       const local = parseLocalWorkspaceReference(reference)
-      if (local !== undefined) return local
-      if (uriScheme(reference) !== undefined) return undefined
-      return localWorkspaceTarget(resolve(currentCwd, reference))
+      if (local !== undefined) return Promise.resolve(local)
+      if (uriScheme(reference) !== undefined) return Promise.resolve(undefined)
+      return Promise.resolve(localWorkspaceTarget(resolve(currentCwd, reference)))
     },
     describe(cwd) {
       return localWorkspaceTarget(cwd)
     },
-    async commandShell() {
-      return undefined
+    commandShell() {
+      return Promise.resolve(undefined)
     },
-    async rename() {
-      throw new Error('workspace registry is unavailable')
+    rename() {
+      return Promise.reject(new Error('workspace registry is unavailable'))
     },
     commands() {
       return []
     },
-    async runCommand() {
-      return undefined
+    runCommand() {
+      return Promise.resolve(undefined)
     },
   }
 }

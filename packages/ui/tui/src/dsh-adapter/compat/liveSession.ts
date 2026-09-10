@@ -36,7 +36,7 @@ function liveOf(session: unknown): LiveSessionShape {
   if (session === null || typeof session !== 'object') {
     throw new Error('live Session contract violation: session is not an object')
   }
-  return session as LiveSessionShape
+  return session
 }
 
 function brandCtor(name: 'SessionSeq' | 'SessionLogOffset'): ((value: number) => number) | undefined {
@@ -72,7 +72,7 @@ export function snapshotLiveSessionEvents(session: unknown): readonly SessionEve
     }
     return snap as readonly SessionEvent[]
   }
-  if (Array.isArray(live.events)) return live.events
+  if (Array.isArray(live.events)) return live.events as readonly SessionEvent[]
   throw new Error('live Session contract violation: neither snapshotEvents() nor events is available')
 }
 
@@ -101,7 +101,7 @@ export function liveSessionPhysicalSeedLength(session: unknown): number | undefi
   const live = liveOf(session)
   const header = live.header
   if (header !== undefined && typeof header['isSeeded'] === 'boolean') {
-    if (header['isSeeded'] !== true) return undefined
+    if (!header['isSeeded']) return undefined
     return asNonNegativeInt(live.inheritedEventCount)
   }
   return asNonNegativeInt(header?.['seedLength'])

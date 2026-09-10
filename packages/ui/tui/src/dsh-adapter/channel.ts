@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { assembleContextFor, installModelSelection, type Agent, type AgentHandle, type AgentStatus, type CreateAgentOptions, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
-import type { CommandExecution, CommandRuntime } from '@deepseek-ai/dsh-commands'
+import type { CommandRuntime } from '@deepseek-ai/dsh-commands'
 import { isModelInvocable, isUserInvocable, renderSkillContent, type SkillSummary } from '@deepseek-ai/dsh-skill'
 import type { LlmConfigurableProvider, LlmDiscoveredModel, LlmModelInfo, LlmProviderInfo } from '@deepseek-ai/dsh-llm'
 import {
@@ -109,12 +109,12 @@ import { readActivityConfig } from '../activityPrefs.js'
 import { attachSessionToWorkspace } from './workspace.js'
 import { createLocalWorkspaceRuntime, getHostWorkspaceRuntime, type TuiWorkspaceCommand, type TuiWorkspaceCommandResult, type TuiWorkspaceTarget } from './workspaces.js'
 import { getHostCommandTrees } from './command-trees.js'
-import { getHostSettingsSections, getLocalSettingsSectionsHost, type TuiSettingsSection, type TuiSettingsSectionsRuntime } from './settings-sections.js'
+import { getHostSettingsSections, getLocalSettingsSectionsHost, type TuiSettingsSection } from './settings-sections.js'
 import type { SettingsHost } from './settingsEditor.js'
-import { getHostSceneRuntime, type TuiSceneDescriptor, type TuiSceneRuntime } from './scenes.js'
-import { getHostRenderers, type TuiRendererRuntime } from './renderers.js'
-import { getHostThemes, type TuiThemeRuntime } from './themes.js'
-import { getHostMessageObserver, type TuiMessageObserverRuntime } from './message-observer.js'
+import { getHostSceneRuntime, type TuiSceneDescriptor } from './scenes.js'
+import { getHostRenderers } from './renderers.js'
+import { getHostThemes } from './themes.js'
+import { getHostMessageObserver } from './message-observer.js'
 import { dispatchTuiDecision, dispatchTuiNotification, normalizeCancelDecision } from './extension-events.js'
 import { installDecisionGuard } from './decision-guard.js'
 import { commandOwner } from './command-attribution.js'
@@ -289,13 +289,14 @@ function permissionPresetSnapshotFromService(
     if (!Array.isArray(capturedNames) || capturedNames.length === 0) return unavailablePermissionPresetSnapshot()
     if (typeof current !== 'function' || typeof optionOf !== 'function') return unavailablePermissionPresetSnapshot()
 
-    const names = [...capturedNames]
+    const names: string[] = []
     const seen = new Set<string>()
-    for (const name of names) {
+    for (const name of capturedNames) {
       if (typeof name !== 'string' || name.trim() === '' || name === PERMISSION_PRESET_CUSTOM || seen.has(name)) {
         return unavailablePermissionPresetSnapshot()
       }
       seen.add(name)
+      names.push(name)
     }
 
     const options: PermissionPresetOption[] = []
@@ -407,7 +408,10 @@ export type ToolResultView =
     readonly card: 'search'
     readonly shape: 'matches'
     readonly title?: string
-    readonly files: ReadonlyArray<{ readonly path: string; readonly matches: ReadonlyArray<{ readonly lineNumber: number; readonly line: string }> }>
+    readonly files: ReadonlyArray<{
+      readonly path: string
+      readonly matches: ReadonlyArray<{ readonly lineNumber: number; readonly line: string }>
+    }>
     readonly truncated: boolean
     readonly total: number
   }
@@ -2097,7 +2101,7 @@ export function createChannel(
 ): ChannelState {
   let agent = initialAgent
   let currentHandle: AgentHandle | undefined = options.handle
-  const themeHost = getHostThemes(ctx.get('tuiThemes') as TuiThemeRuntime | undefined)
+  const themeHost = getHostThemes(ctx.get('tuiThemes'))
 
   // ── agent view (CC's `claude agents`) internal state ──────────────────────
   // Handles of background sessions this channel dispatched or backgrounded.
@@ -2170,17 +2174,17 @@ export function createChannel(
   // One process-lifetime set of agent-lifecycle listeners (the TUI and the
   // channel share the process): any agent's status/creation/disposal moves
   // rows in the view, not only the attached session's.
-  ctx.on('agent/status', () => scheduleAgentViewRefresh())
-  ctx.on('agent/created', () => notifyAgentView())
+  ctx.on('agent/status', () => { scheduleAgentViewRefresh() })
+  ctx.on('agent/created', () => { notifyAgentView() })
   ctx.on('agent/disposed', ({ agent: subject }: { agent: { id?: unknown } }) => {
-    dropFold(String(subject.id ?? ''))
+    dropFold(typeof subject.id === 'string' ? subject.id : '')
     notifyAgentView()
   })
   const subagentControl: SubagentControl = {
     interrupt(agentId) {
       const child = subagentStore.get(agentId)
       const target = child?.sessionId ?? agentId
-      const runtime = (ctx as any).subagents
+      const runtime = ctx.get('subagents') as { interrupt?: (target: string, options: { kind: string; agent: unknown }) => void } | undefined
       if (!runtime?.interrupt || !target) return false
       try {
         runtime.interrupt(target, { kind: 'ancestor', agent })
@@ -2391,7 +2395,7 @@ export function createChannel(
   // dsh-tui-plugin-host row; absent the row, publish is a no-op and nothing
   // else changes (soft degradation, #183).
   const messageObserver = getHostMessageObserver(
-    ctx.get('tuiMessageObserver') as TuiMessageObserverRuntime | undefined,
+    ctx.get('tuiMessageObserver'),
   )
   // Workspace registry runtime (optional service, issue #183): mounted by
   // the bundle patch's dsh-tui-workspaces row; absent the row (stale patch
@@ -2409,17 +2413,17 @@ export function createChannel(
   // Plugin scene runtime (optional service, same degradation rule as
   // tuiWorkspaces/tuiCommandTrees): mounted by the bundle patch's
   // dsh-tui-scenes row; absent the row, `pluginScene` simply stays undefined.
-  const sceneRuntime = getHostSceneRuntime(ctx.get('tuiScenes') as TuiSceneRuntime | undefined)
+  const sceneRuntime = getHostSceneRuntime(ctx.get('tuiScenes'))
   // Falls back to the in-package local host when the composition's service
   // row is unavailable (issue #557: the row can be disposed right after
   // load in real compositions); the TUI's own section registers there.
   const settingsSectionsRuntime = getHostSettingsSections(
-    ctx.get('tuiSettingsSections') as TuiSettingsSectionsRuntime | undefined,
+    ctx.get('tuiSettingsSections'),
   ) ?? getLocalSettingsSectionsHost()
   // Custom-entry text renderers (optional service, dsh-tui-extensions row):
   // absent the row, unknown plugin event types stay invisible in the
   // transcript, exactly as before the seam existed.
-  const rendererRuntime = getHostRenderers(ctx.get('tuiRenderers') as TuiRendererRuntime | undefined)
+  const rendererRuntime = getHostRenderers(ctx.get('tuiRenderers'))
   // Shift+Tab session-mode cycle: cordis.yml `modes` wins; absent/empty/
   // atom-less → the built-in default/plan/full cycle (sessionModes.ts).
   const { modes: sessionModes, dropped: droppedModeIds } = resolveSessionModes(options.modes)
@@ -2756,7 +2760,7 @@ export function createChannel(
     state.goal = undefined
     state.sessionTitle = ''
     state.sessionColor = ''
-    state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+    state.tokens = emptyTokenUsage()
     state.responseChars = 0
     state.activeToolCount = 0
     state.lastUserText = ''
@@ -2937,7 +2941,7 @@ export function createChannel(
     if (resolved.efforts.length === 0) {
       state.notify(t('effort-unsupported'), { color: 'warning' })
     } else if (resolved.efforts.length === 1) {
-      state.notify(t('effort-single-tier', { name: resolved.efforts[0]!.name }), { color: 'warning' })
+      state.notify(t('effort-single-tier', { name: resolved.efforts[0].name }), { color: 'warning' })
     }
     return resolved
   }
@@ -2976,16 +2980,6 @@ export function createChannel(
     data: string
     name?: string
   }
-  /** Legacy command-service execute (rc.7 and older): (agent, line, signal). */
-  type CommandExecuteLegacy = (agent: Agent, line: string, signal: AbortSignal) => Promise<CommandExecution | undefined>
-  /** rc.8 command-service execute: composer images precede the signal. */
-  type CommandExecuteWithImages = (
-    agent: Agent,
-    line: string,
-    images: readonly RegistryCommandImage[],
-    signal: AbortSignal,
-  ) => Promise<CommandExecution | undefined>
-
   /** Whether the installed command service takes composer images: version
    *  gate (composer images arrived on 0.1.0-rc.8 and every later family —
    *  0.1.1 included — keeps the 4-param shape) with a structural fallback,
@@ -3064,8 +3058,8 @@ export function createChannel(
       // rc.8 moved the signal to the 4th parameter and added composer
       // images; older lines (rc.7/rc.6) take (agent, line, signal).
       const execution = images === undefined
-        ? await (commandService.execute as unknown as CommandExecuteLegacy)(agent, line, signal)
-        : await (commandService.execute as unknown as CommandExecuteWithImages)(agent, line, images.images, signal)
+        ? await commandService.execute(agent, line, signal)
+        : await commandService.execute(agent, line, images.images, signal)
       if (images !== undefined && images.dropped.length > 0) {
         // Loud-drop policy mirrors the submit pipeline (mentions-missing):
         // a referenced image that never reached the command must be visible.
@@ -3111,7 +3105,7 @@ export function createChannel(
       if (!line.includes(token)) continue
       try {
         const stored = await store.readImage(attachment, signal)
-        if (stored?.data instanceof Uint8Array && stored.data.byteLength > 0) {
+        if (stored.data instanceof Uint8Array && stored.data.byteLength > 0) {
           images.push({
             mediaType: attachment.mediaType,
             data: Buffer.from(stored.data).toString('base64'),
@@ -3182,7 +3176,7 @@ export function createChannel(
    *  agent re-bind, and after mode-affecting session events). */
   const refreshMode = (): void => {
     state.modeIndex = deriveModeIndex(snapshotLiveSessionEvents(agent.session))
-    state.mode = sessionModes[state.modeIndex]!
+    state.mode = sessionModes[state.modeIndex]
   }
 
   // Session.append rejects observer reentry; restore after publication unwinds.
@@ -3209,7 +3203,7 @@ export function createChannel(
     let start = -1
     let command: { index: number; id: unknown } | undefined
     for (let index = 0; index < log.length - 1; index += 1) {
-      const event = log[index]!
+      const event = log[index]
       const type = (event as { type: string }).type
       const data = event.data as unknown as Record<string, unknown>
       if (!active && type === 'command/run' && data.name === 'plan' && typeof data.args === 'string') {
@@ -3314,7 +3308,7 @@ export function createChannel(
    *  manual `/plan` use can never desync the cycle. */
   const cycleMode = async (): Promise<void> => {
     const index = deriveModeIndex(snapshotLiveSessionEvents(agent.session))
-    await applyMode(sessionModes[(index + 1) % sessionModes.length]!)
+    await applyMode(sessionModes[(index + 1) % sessionModes.length])
   }
 
   // Session-lifetime candidate pool for non-path queries. The load promise is
@@ -3460,7 +3454,7 @@ export function createChannel(
    * NOT disposed when it still has something to run or say: it keeps living
    * as a background session (backgroundHandles), and an empty one is freed.
    */
-  const adoptLiveAgent = async (target: Agent): Promise<ResumeResult> => {
+  const adoptLiveAgent = (target: Agent): ResumeResult => {
     const previousHandle = currentHandle
     const previousSessionId = String(agent.session.id)
     // Same reset shape as resumeTo (no history replay sources differ — the
@@ -3477,7 +3471,7 @@ export function createChannel(
     state.goal = undefined
     state.sessionTitle = ''
     state.sessionColor = ''
-    state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+    state.tokens = emptyTokenUsage()
     state.responseChars = 0
     state.activeToolCount = 0
     state.lastUserText = ''
@@ -3637,7 +3631,7 @@ export function createChannel(
     state.goal = undefined
     state.sessionTitle = ''
     state.sessionColor = ''
-    state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+    state.tokens = emptyTokenUsage()
     state.responseChars = 0
     state.activeToolCount = 0
     state.lastUserText = ''
@@ -3726,7 +3720,7 @@ export function createChannel(
     agentBindingGeneration: 0,
     model: options.model,
     provider: options.provider,
-    tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } },
+    tokens: emptyTokenUsage(),
     cwd: options.cwd,
     displayCwd: workspaceService.describe(options.cwd).description ?? options.cwd,
     gitBranch: undefined,
@@ -3744,7 +3738,7 @@ export function createChannel(
     reasoningEffort: options.effort ?? readEffortPref(),
     // Session-mode seed; the first refreshMode() (bindAgent) re-derives it
     // from the session log, so a resumed session lands on its recorded mode.
-    mode: sessionModes[0]!,
+    mode: sessionModes[0],
     modeIndex: 0,
     workingActivity: undefined,
     activityFrames: options.activityFrames,
@@ -4028,7 +4022,7 @@ export function createChannel(
       // References are content-addressed and durable. This map only connects
       // editable prompt placeholders to them; cap it to bound a long TUI run.
       while (stagedImages.size > 128) {
-        const oldest = stagedImages.keys().next().value as string | undefined
+        const oldest = stagedImages.keys().next().value
         if (oldest === undefined) break
         stagedImages.delete(oldest)
       }
@@ -4051,7 +4045,7 @@ export function createChannel(
       // The current session is being used — move it to the MRU front
       // (/resume sorts by last-used).
       touchSession(state.agentId)
-      void dispatchUserText(trimmed, 'followup')
+      dispatchUserText(trimmed, 'followup')
     },
     /** Steer a message into the RUNNING turn (Codex/pi semantics): it is
      *  injected at the next step boundary of the current turn and the agent
@@ -4066,7 +4060,7 @@ export function createChannel(
       // rejected step leaves it parked for the next wake, and the inbox
       // events retire the preview (claimed → turn boundary, discarded →
       // cancel).
-      void dispatchUserText(trimmed, 'steer')
+      dispatchUserText(trimmed, 'steer')
     },
     /** Pull a pending message back out of the inbox (Alt+Up): it returns to
      *  the input for editing instead of being delivered. */
@@ -4200,7 +4194,6 @@ export function createChannel(
       let boundary = row.seq
       for (let i = row.seq; i >= 0; i--) {
         const event = events[i]
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: seq may exceed events
         if (event === undefined) break
         if (event.type === 'turn/start') {
           boundary = event.seq - 1
@@ -4406,7 +4399,8 @@ export function createChannel(
         const scanned = new Set<string>()
         const queue = [ancestorIds.at(-1) ?? currentId]
         while (queue.length > 0) {
-          const id = queue.shift()!
+          const id = queue.shift()
+          if (id === undefined) break
           if (scanned.has(id)) continue
           scanned.add(id)
           family.add(id)
@@ -4447,13 +4441,14 @@ export function createChannel(
         const seen = new Set<string>()
         const stack = [...familyRoots].reverse()
         while (stack.length > 0) {
-          const id = stack.pop()!
+          const id = stack.pop()
+          if (id === undefined) break
           if (seen.has(id)) continue
           seen.add(id)
           ordered.push(id)
           const kids = kidsOf.get(id)
           if (kids !== undefined) {
-            for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i]!)
+            for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i])
           }
         }
         // Cycle-broken leftovers (corrupt parent headers) — never drop one.
@@ -4510,7 +4505,7 @@ export function createChannel(
         const entry = headerById.get(id)
         if (id === currentId) {
           const liveParentId = liveHeader?.header.parentSession ?? liveListed.parentSession
-          const liveParent = liveParentId !== undefined ? String(liveParentId) : undefined
+          const liveParent = liveParentId
           const liveEvents = snapshotLiveSessionEvents(liveSession)
           const remaining = Math.max(0, MAX_TREE_EVENTS - eventBudget)
           // The live session's in-memory log is SELF-CONTAINED: a fork's
@@ -4564,8 +4559,8 @@ export function createChannel(
           // A kept tail cut off the front connects to nothing — coverage
           // stays at the parent's (a fork of the live session re-reads the
           // hidden prefix from its own log).
-          const firstKept = events.length > 0 ? events[0]!.seq : Number.POSITIVE_INFINITY
-          const lastKept = events.length > 0 ? events[events.length - 1]!.seq : -1
+          const firstKept = events.length > 0 ? events[0].seq : Number.POSITIVE_INFINITY
+          const lastKept = events.length > 0 ? events[events.length - 1].seq : -1
           coveredThrough.set(
             id,
             firstKept <= parentCovered + 1 ? Math.max(parentCovered, lastKept) : parentCovered,
@@ -4741,7 +4736,7 @@ export function createChannel(
         // warning: a budget-sliced read lost the tail, and a tip computed
         // from it would fork mid-branch while claiming to keep everything.
         familySessions.push({ ...facts, events, live: false, ...(complete ? { tailComplete: true } : {}) })
-        const lastRead = events.length > 0 ? events[events.length - 1]!.seq : -1
+        const lastRead = events.length > 0 ? events[events.length - 1].seq : -1
         coveredThrough.set(
           id,
           readFrom <= parentCovered + 1 ? Math.max(parentCovered, lastRead) : parentCovered,
@@ -5142,7 +5137,7 @@ export function createChannel(
       state.goal = undefined
       state.sessionTitle = ''
       state.sessionColor = ''
-      state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+      state.tokens = emptyTokenUsage()
       state.responseChars = 0
       state.activeToolCount = 0
       state.lastUserText = ''
@@ -5336,7 +5331,7 @@ export function createChannel(
       state.goal = undefined
       state.sessionTitle = ''
       state.sessionColor = ''
-      state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+      state.tokens = emptyTokenUsage()
       state.responseChars = 0
       state.activeToolCount = 0
       state.lastUserText = ''
@@ -5527,7 +5522,7 @@ export function createChannel(
       state.goal = undefined
       state.sessionTitle = ''
       state.sessionColor = ''
-      state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+      state.tokens = emptyTokenUsage()
       state.responseChars = 0
       state.activeToolCount = 0
       state.lastUserText = ''
@@ -5570,7 +5565,7 @@ export function createChannel(
       currentHandle = handle
       bindAgent()
       // Model-switch quip rides the fresh tracker (pi parity).
-      updateWorkingActivity('model switch', () => activityTracker.onModelSwitch(model))
+      updateWorkingActivity('model switch', () => { activityTracker.onModelSwitch(model) })
       refreshCommandList()
       void refreshLoadedContext()
       void refreshSkillCommands()
@@ -6181,7 +6176,7 @@ export function createChannel(
             // One retry on a stale-revision conflict (a concurrent write
             // landed between describe and mutate); anything else propagates
             // so the wizard can report and roll back the credential.
-            const code = (error as { code?: unknown })?.code
+            const code = (error as { code?: unknown }).code
             if (code !== 'SETTINGS_CONFLICT') throw error
             await settings.mutate('llm-pi-ai', ops, revision())
           }
@@ -6197,7 +6192,7 @@ export function createChannel(
             await settings.mutate('llm-pi-ai', full, revision())
           } catch (error) {
             // Same stale-revision retry as writeProfile.
-            const code = (error as { code?: unknown })?.code
+            const code = (error as { code?: unknown }).code
             if (code !== 'SETTINGS_CONFLICT') throw error
             await settings.mutate('llm-pi-ai', full, revision())
           }
@@ -6209,7 +6204,7 @@ export function createChannel(
           } catch (error) {
             // Same stale-revision retry as writeProfile: the wizard reports
             // any real failure so the credential deletion can be skipped.
-            const code = (error as { code?: unknown })?.code
+            const code = (error as { code?: unknown }).code
             if (code !== 'SETTINGS_CONFLICT') throw error
             await settings.mutate('llm-pi-ai', ops, revision())
           }
@@ -6518,25 +6513,25 @@ export function createChannel(
       const path = await locateSession(persistence, sessionId)
       return path === undefined ? [] : previewSession(path, PREVIEW_ENTRIES)
     },
-    async replyToAgent(sessionId, text) {
+    replyToAgent(sessionId, text) {
       const trimmed = text.trim()
       if (trimmed.length === 0) {
         state.notify(t('agentview-reply-empty'), { color: 'warning' })
-        return false
+        return Promise.resolve(false)
       }
       const live = (ctx.get('agents') as { get(id: SessionId): Agent | undefined } | undefined)?.get(SessionId(sessionId))
       if (live === undefined) {
         // A stopped session takes a reply only through a restarted agent:
         // attach into it and send from the conversation instead.
         state.notify(t('agentview-reply-stopped'), { color: 'warning' })
-        return false
+        return Promise.resolve(false)
       }
       live.followup(createUserMessage({
         content: [{ type: 'text', text: trimmed }],
         source: { kind: 'user' },
       }))
       notifyAgentView()
-      return true
+      return Promise.resolve(true)
     },
     async backgroundCurrent() {
       // `/bg` — the attached session moves to the background (it keeps
@@ -6602,7 +6597,7 @@ export function createChannel(
       state.goal = undefined
       state.sessionTitle = ''
       state.sessionColor = ''
-      state.tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, peak: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, idle: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }
+      state.tokens = emptyTokenUsage()
       state.responseChars = 0
       state.activeToolCount = 0
       state.lastUserText = ''
@@ -6708,35 +6703,35 @@ export function createChannel(
         ? { summary: parsed.summary }
         : { summary: parsed.summary, title: parsed.title }
     },
-    async deleteSession(sessionId) {
+    deleteSession(sessionId) {
       // The live session's log is still being appended by this process —
       // deleting it from under the writer is never offered in the picker
       // (the current session is filtered out), so refuse it here too.
-      if (sessionId === agent.session.id) return false
-      if (deleteSessionLog(sessionId) !== 'deleted') return false
+      if (sessionId === agent.session.id) return Promise.resolve(false)
+      if (deleteSessionLog(sessionId) !== 'deleted') return Promise.resolve(false)
       forgetSession(sessionId)
       forgetAgentViewSession(sessionId)
       // A resume marker naming the deleted session would make the next
       // `dsh-tui --resume` launch target a log that no longer exists.
       if (readResumeTarget() === sessionId) clearResumeTarget()
-      return true
+      return Promise.resolve(true)
     },
-    async renameSessionTo(sessionId, title) {
+    renameSessionTo(sessionId, title) {
       if (sessionId === agent.session.id) {
         // The live session renames through session.append so the firehose
         // updates the status line right away (same as /rename).
         agent.session.append('session/title', { title })
         state.sessionTitle = title
         state.emit()
-        return true
+        return Promise.resolve(true)
       }
-      if (appendSessionTitle(sessionId, title) !== 'appended') return false
+      if (appendSessionTitle(sessionId, title) !== 'appended') return Promise.resolve(false)
       // The append changed the log, so the next listing sees a new revision,
       // re-derives, and reads back the very title event just written — no
       // second path to the same answer. Touching it is about ordering, not
       // titles: a rename is user interaction, so the row belongs at the top.
       touchSession(sessionId)
-      return true
+      return Promise.resolve(true)
     },
     compact() {
       // DSH compaction service key: `ctx.compaction` (dsh-compaction's
@@ -6744,7 +6739,7 @@ export function createChannel(
       // leaf). Under agent presets the engine lives in the preset's isolate
       // realm, invisible from the root context — resolve through the agent's
       // scope chain first (minimal composes NO compaction: stays unavailable).
-      const compactService = serviceForAgent<{
+      const compactService = serviceForAgent(ctx, agent, 'compaction') as {
         // rc.6 signature: compactNow(agent: ManualCompactAgentContext,
         // signal, sourceCommandId?) — an Agent satisfies the context
         // (session/options/runMaintenance). The result shape is only used
@@ -6753,7 +6748,7 @@ export function createChannel(
           agent: unknown,
           signal: AbortSignal,
         ): Promise<unknown>
-      }>(ctx, agent, 'compaction')
+      } | undefined
       if (!compactService) {
         state.notify(t('compact-unavailable'), {
           color: 'warning',
@@ -6807,7 +6802,7 @@ export function createChannel(
             const result = await compactService.compactNow(agent, controller.signal)
             state.notify(result ? t('compact-done') : t('compact-nothing'))
             // Compaction quip rides the next thinking rotation (pi parity).
-            if (result) updateWorkingActivity('compaction', () => activityTracker.onCompact('done'))
+            if (result) updateWorkingActivity('compaction', () => { activityTracker.onCompact('done') })
           } catch (error: unknown) {
             // ManualCompactionError('persistence'): the replacement checkpoint
             // is ALREADY committed — only the durability flush failed. The
@@ -6936,7 +6931,6 @@ export function createChannel(
           }
           case 'tool/result': {
             const block = event.data.message.content[0]
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable session data may not match type
             if (block.type === 'tool-result') {
               const text = textOf(block.content)
               if (text) parts.push(`${t('export-result-section')}\n\n\`\`\`\n${text}\n\`\`\`\n`)
@@ -6982,7 +6976,7 @@ export function createChannel(
     doctorInfo() {
       const lines: string[] = []
       lines.push(`Node ${process.version} · ${process.platform} ${process.arch}`)
-      lines.push(`${t('doctor-api-key', { state: process.env.DEEPSEEK_API_KEY ? t('doctor-key-configured') : t('doctor-key-missing') })}`)
+      lines.push(t('doctor-api-key', { state: process.env.DEEPSEEK_API_KEY ? t('doctor-key-configured') : t('doctor-key-missing') }))
       lines.push(t('doctor-model', { model: state.model, provider: options.provider }))
       lines.push(t('doctor-cwd', { cwd: state.cwd }))
       lines.push(t('doctor-context-window', { window: state.contextWindow ?? t('doctor-unknown') }))
@@ -6993,14 +6987,14 @@ export function createChannel(
         join(userHome, '.dsh/profiles/dsh-tui/cordis.patch.yml'),
       ]
       for (const candidate of configCandidates) {
-        lines.push(`${t('doctor-config', { candidate, state: existsSync(candidate) ? '✓' : t('doctor-config-missing') })}`)
+        lines.push(t('doctor-config', { candidate, state: existsSync(candidate) ? '✓' : t('doctor-config-missing') }))
       }
       // Session store candidates mirror the compat layer (sessionsRoots):
       // the active root depends on the composition (bare cordis.yml →
       // legacy ~/.dsh-tui/sessions, profile → $DSH_HOME/sessions), so list every
       // candidate with its own state instead of hardcoding one.
       for (const dir of sessionsRoots()) {
-        lines.push(`${t('doctor-storage', { dir, state: existsSync(dir) ? '✓' : t('doctor-storage-uninit') })}`)
+        lines.push(t('doctor-storage', { dir, state: existsSync(dir) ? '✓' : t('doctor-storage-uninit') }))
       }
       if (existsSync(LEGACY_DATA_DIR)) {
         lines.push(t('doctor-legacy-dir'))
@@ -7048,7 +7042,7 @@ export function createChannel(
             typeof child.id === 'string' ? child.id : (child.id.value ?? '')
           const label = child.label ? `「${child.label}」` : ''
           const mode = child.mode === 'continuable' ? t('subagent-resumable') : t('subagent-oneshot')
-          return `${t('subagent-row', { mode, label, activity: child.activity === 'running' ? t('subagent-running') : t('subagent-archived'), id: id.slice(0, 8) })}`
+          return t('subagent-row', { mode, label, activity: child.activity === 'running' ? t('subagent-running') : t('subagent-archived'), id: id.slice(0, 8) })
         })
       } catch (error) {
         return [t('subagent-query-failed', { err: error instanceof Error ? error.message : String(error) })]
@@ -7196,12 +7190,12 @@ export function createChannel(
     // an agent swap supersedes this run (token/identity check, same rule as
     // refreshLoadedContext). Locals and registry commands win name
     // collisions — a skill named `plan` must not shadow the registry's.
-    const skillsService = serviceForAgent<{
+    const skillsService = serviceForAgent(ctx, target, 'skills') as {
       snapshot(options?: { scope?: unknown; cwd?: string }): Promise<{
         skills: readonly SkillSummary[]
         complete: boolean
       }>
-    }>(ctx, target, 'skills')
+    } | undefined
     if (skillsService === undefined) return
     /** Last-good restore shared by the failed-read and incomplete-read
      *  paths; the caller holds the staleness check. */
@@ -7277,13 +7271,13 @@ export function createChannel(
    *  mounts none. `serviceForAgent` resolves through the agent's mount and
    *  falls back to the host context. */
   const skillRegistryFor = (target: Agent) =>
-    serviceForAgent<{
+    serviceForAgent(ctx, target, 'skills') as {
       snapshot(options?: { scope?: unknown; cwd?: string }): Promise<{
         skills: readonly SkillSummary[]
         complete: boolean
       }>
       get(name: string, options?: { scope?: unknown; cwd?: string; signal?: AbortSignal }): Promise<unknown>
-    }>(ctx, target, 'skills')
+    } | undefined
 
   /**
    * Skill commands this channel owns, by skill name. The value keeps the
@@ -7319,7 +7313,7 @@ export function createChannel(
     const target = agent
     const registry = skillRegistryFor(target)
     if (registry === undefined) return
-    let observation
+    let observation: { skills: readonly SkillSummary[]; complete: boolean }
     try {
       observation = await registry.snapshot(skillViewOptions(target))
     } catch (error) {
@@ -7632,11 +7626,10 @@ ${output}
       const tool = toolsRegistry?.get(name, agent)
       if (tool?.presentResult === undefined) return undefined
       const block = data.message.content[0]
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable session data may not match type
       const content = block !== undefined && block.type === 'tool-result' ? block.content : []
       return tool.presentResult(JSON.parse(rawArgs), {
         content,
-        isError: block?.isError === true,
+        isError: block.isError === true,
         ...(data.meta !== undefined ? { meta: data.meta } : {}),
       }) as ToolResultView | undefined
     } catch {
@@ -7819,7 +7812,6 @@ ${output}
       return
     }
     const change = source.change
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may not match the static type
     if (change === undefined || change.kind !== 'goal/change') return
     applyGoalChange(change)
   }
@@ -8080,9 +8072,7 @@ ${output}
         updateSpinnerMode()
         const usage = event.data.usage
         if (usage !== undefined) {
-          // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may lack tokens
           state.tokens.input += usage.inputTokens ?? 0
-          // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may lack tokens
           state.tokens.output += usage.outputTokens ?? 0
           // Cache split totals feed the session cost estimate (hit-priced
           // input vs. uncached input) — the durable replay may lack them.
@@ -8105,9 +8095,7 @@ ${output}
           // input (uncached) + cache hits all occupy the window. Cache hits
           // also drive the status-line `cache N` readout.
           state.lastUsage = {
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may lack tokens
             input: usage.inputTokens ?? 0,
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may lack tokens
             output: usage.outputTokens ?? 0,
             cacheRead: usage.cacheReadTokens ?? 0,
             cacheWrite: usage.cacheWriteTokens ?? 0,
@@ -8256,7 +8244,6 @@ ${output}
           } else {
             card.tool.status = 'ok'
             const block = event.data.message.content[0]
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable session data may not match type
             const result = block !== undefined && block.type === 'tool-result' ? textOf(block.content) : ''
             card.tool.resultFull = result || undefined
             card.tool.resultText = result ? preview(result, RESULT_PREVIEW_LIMIT) : undefined
@@ -8404,8 +8391,7 @@ ${output}
         // Reasoning effort readout (status line): the header carries the
         // conversation's call config (provider/model/effort/sampling). The
         // system prompt text seeds the context bar's system segment.
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable session data may lack header config
-        const effort = event.data.header.config?.reasoningEffort
+        const effort = event.data.header.config.reasoningEffort
         if (typeof effort === 'string') {
           state.reasoningEffort = effort
         }
@@ -8473,7 +8459,7 @@ ${output}
               state.rows.push({
                 id: nextRowId,
                 kind: 'local-output',
-                text: preview(String(line), LOCAL_OUTPUT_LIMIT),
+                text: preview(line, LOCAL_OUTPUT_LIMIT),
               })
               nextRowId += 1
             }
@@ -8602,7 +8588,7 @@ ${output}
     const prefs = activityPrefsSnapshot()
     activityTracker = new ActivityTracker(prefs.config, Date.now, prefs.customActions)
     activityFailureReported = false
-    updateWorkingActivity('agent bind', () => activityTracker.onAgentStatus(agent.status))
+    updateWorkingActivity('agent bind', () => { activityTracker.onAgentStatus(agent.status) })
     activityTickTimer = setInterval(() => {
       const previous = state.workingActivity
       const rendered = updateWorkingActivity('activity tick')
@@ -8639,7 +8625,7 @@ ${output}
     // provider/default behavior, so seeding never pins an effort the route
     // did not ask for; applyPreferredEffort below still upgrades the seed
     // when the user has a persisted preference the route offers.
-    if (agent.options?.model === undefined && state.provider !== '' && state.model !== '') {
+    if (agent.options.model === undefined && state.provider !== '' && state.model !== '') {
       selection.current = { provider: state.provider, model: state.model }
     }
     void applyPreferredEffort()
@@ -8649,7 +8635,7 @@ ${output}
       ctx.on('agent/status', ({ agent: subject, status }) => {
         if (subject !== agent) return
         state.status = status
-        updateWorkingActivity(`agent/status:${status}`, () => activityTracker.onAgentStatus(status))
+        updateWorkingActivity(`agent/status:${status}`, () => { activityTracker.onAgentStatus(status) })
         if (status === 'idle') reconcileRetiredProjection('idle')
         state.emit()
       }),
@@ -8670,7 +8656,7 @@ ${output}
       (() => {
         const retirePending = (payload: { agent: unknown; message: { id?: unknown } }): void => {
           if (payload.agent !== agent) return
-          const messageId = payload.message?.id
+          const messageId = payload.message.id
           if (typeof messageId !== 'string') return
           const before = state.pending.length
           state.pending = state.pending.filter(item => item.id !== messageId)
@@ -8749,7 +8735,7 @@ ${output}
               pendingPlanExitRestores.delete(session)
               // Rebinding, reentry, or an explicit switch supersedes this restore.
               if (restore === undefined || session !== agent.session || foldPlanActive(snapshotLiveSessionEvents(session))) return
-              applyMode(restore).catch((error) => {
+              applyMode(restore).catch((error: unknown) => {
                 ctx.logger.warn(
                   `dsh-tui: plan-exit mode restore failed: ${error instanceof Error ? error.message : String(error)}`,
                 )
@@ -8767,8 +8753,8 @@ ${output}
       // observe-only events as `subagent/start` and `subagent/end`; the parent
       // Agent is carried by Cordis scope dispatch, not included in the payload.
       (() => {
-        const disposeStart = ctx.on('subagent/start' as any, (info: { id: string; runId?: string; provider: string; local?: boolean }) => {
-          if (!info?.id) return
+        const disposeStart = (ctx.on as (event: string, listener: (info: { id: string; runId?: string; provider: string; local?: boolean }) => void) => () => void)('subagent/start', (info) => {
+          if (!info.id) return
           subagentStore.onSpawned(info.id, info.provider || 'subagent', info.provider, {
             runId: info.runId ?? info.id,
             local: info.local,
@@ -8794,11 +8780,15 @@ ${output}
           syncSubagentsNow()
           state.emit()
         })
-        const disposeEnd = ctx.on('subagent/end' as any, (info: { id: string; stopReason: string; lastAssistantMessage?: unknown[] }) => {
-          if (!info?.id) return
+        const disposeEnd = (ctx.on as (event: string, listener: (info: { id: string; stopReason: string; lastAssistantMessage?: unknown[] }) => void) => () => void)('subagent/end', (info) => {
+          if (!info.id) return
           const output = Array.isArray(info.lastAssistantMessage)
             ? info.lastAssistantMessage
-              .map(block => typeof block === 'object' && block !== null && 'text' in block ? String((block as { text?: unknown }).text ?? '') : '')
+              .map((block) => {
+                if (typeof block !== 'object' || block === null || !('text' in block)) return ''
+                const text = (block as { text?: unknown }).text
+                return typeof text === 'string' ? text : ''
+              })
               .filter(Boolean)
               .join('\n')
             : ''
@@ -8844,7 +8834,7 @@ ${output}
   const effect = (ctx as Context & {
     effect?: (setup: () => () => void, label?: string) => void
   }).effect
-  effect?.call(ctx, () => () => { stopActivityTick() }, 'dsh-tui activity timer')
+  effect.call(ctx, () => () => { stopActivityTick() }, 'dsh-tui activity timer')
   // Statusline breadcrumb: current git branch of the session cwd (best-effort).
   // Re-run when an agent swap adopts a different persisted cwd (/resume,
   // issue #96) so the breadcrumb never shows the previous workspace's branch.
@@ -8874,7 +8864,7 @@ ${output}
           // is exactly what the column claims.
           noteBranch(agent.session.id, branch)
           // Feed the working line so git tools can show ` · git <branch>`.
-          updateWorkingActivity('git branch', () => activityTracker.onGitBranch(branch))
+          updateWorkingActivity('git branch', () => { activityTracker.onGitBranch(branch) })
           state.emit()
         }
       })
@@ -8997,7 +8987,13 @@ type FileSuggestionFs = {
   listDir(target: { displayPath: string }): Promise<Array<{ name: string; type: 'file' | 'directory' | 'other'; target?: { displayPath: string } }>>
 }
 
-async function listPathCandidates(fs: FileSuggestionFs, cwd: string, query: string, signal: AbortSignal | undefined, topK: number): Promise<FileCandidate[]> {
+async function listPathCandidates(
+  fs: FileSuggestionFs,
+  cwd: string,
+  query: string,
+  signal: AbortSignal | undefined,
+  topK: number,
+): Promise<FileCandidate[]> {
   const normalized = query.replaceAll('\\', '/')
   const slash = normalized.lastIndexOf('/')
   // `.` / `..` without a trailing separator are whole-directory queries too.
@@ -9043,7 +9039,8 @@ async function listFilesDeepCandidates(fs: FileSuggestionFs | undefined, root: s
   // contract pinned by scripts/verify-file-completion.mjs.
   while (queue.length && fileCount < maxFiles && dirCount < maxDirectories) {
     if (signal?.aborted) return []
-    const current = queue.shift()!
+    const current = queue.shift()
+    if (current === undefined) break
     if (!current.entries) {
       try {
         const target = await fs.resolve(current.dir)
@@ -9054,7 +9051,7 @@ async function listFilesDeepCandidates(fs: FileSuggestionFs | undefined, root: s
     }
     let entry: Entry | undefined
     while (current.index < current.entries.length) {
-      const candidate = current.entries[current.index++]!
+      const candidate = current.entries[current.index++]
       if (SKIP.has(candidate.name) || BUILD_DIR.test(candidate.name)) continue
       entry = candidate
       break
@@ -9098,7 +9095,7 @@ export interface MentionFs {
 /** The leaf's fs service in the shape mention expansion needs; undefined
  *  when the plugin is not mounted (mentions then stay literal text). */
 function mentionFs(ctx: Context): MentionFs | undefined {
-  return ctx.get('fs') as MentionFs | undefined
+  return ctx.get('fs')
 }
 
 type MentionImageBlock = ChannelImageBlock
@@ -9116,7 +9113,7 @@ export interface MentionAttachments {
 }
 
 function mentionAttachments(ctx: Context): MentionAttachments | undefined {
-  return ctx.get('attachments') as MentionAttachments | undefined
+  return ctx.get('attachments')
 }
 
 const MENTION_IMAGE_MEDIA_TYPES: Readonly<Record<string, MentionImageMediaType>> = {
@@ -9211,7 +9208,7 @@ export async function expandMentions(
       const imageType = literalFallback && mention.literal !== undefined
         ? mentionImageMediaType(mention.literal)
         : imageMediaType
-      if (info?.type === 'file') {
+      if (info.type === 'file') {
         if (imageType !== undefined && attachments !== undefined && fs.readBytes !== undefined) {
           const limits = attachments.imageLimits
           if (!limits.mediaTypes.includes(imageType) || imageCount >= limits.maxImagesPerMessage) {
@@ -9275,7 +9272,7 @@ export async function expandMentions(
         }
         continue
       }
-      if (info?.type === 'directory') {
+      if (info.type === 'directory') {
         try {
           const entries = await fs.listDir(target)
           const listing = entries

@@ -76,7 +76,7 @@ function shift(rows: readonly string[], dx: number): string[] {
 function withDot(rows: readonly string[], x: number, y: number): string[] {
   const next = rows.map(row => row.split(''))
   if (y >= 0 && y < next.length && x >= 0 && x < (next[0]?.length ?? 0)) {
-    next[y]![x] = '1'
+    next[y][x] = '1'
   }
   return next.map(row => row.join(''))
 }

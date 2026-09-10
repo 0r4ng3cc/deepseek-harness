@@ -48,9 +48,9 @@ export function useSearchHighlight(): {
       }
     }
     return {
-      setQuery: (query: string) => ink.setSearchHighlight(query),
+      setQuery: (query: string) => { ink.setSearchHighlight(query) },
       scanElement: (el: DOMElement) => ink.scanElementSubtree(el),
-      setPositions: state => ink.setSearchPositions(state),
+      setPositions: (state) => { ink.setSearchPositions(state) },
     }
   }, [ink])
 }

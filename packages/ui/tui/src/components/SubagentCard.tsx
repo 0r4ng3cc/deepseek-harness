@@ -10,7 +10,7 @@ function formatDuration(ms: number): string {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`
 }
 
-export interface SubagentCardProps { subagent: SubagentState; focused?: boolean; onClick?(event: ClickEvent): void }
+export interface SubagentCardProps { subagent: SubagentState; focused?: boolean; onClick?: (event: ClickEvent) => void }
 
 export function SubagentCard({ subagent, focused, onClick }: SubagentCardProps): React.ReactNode {
   const running = subagent.status === 'running' || subagent.status === 'starting'
@@ -28,19 +28,19 @@ export function SubagentCard({ subagent, focused, onClick }: SubagentCardProps):
   const minimal = isMinimalMode()
   const glyph = running ? (minimal ? '·' : '🟡')
     : subagent.status === 'failed' || subagent.status === 'cancelled' ? (minimal ? '×' : '🔴')
-    : (minimal ? '✓' : '🟢')
+      : (minimal ? '✓' : '🟢')
   const glyphColor = minimal ? undefined
     : running ? 'warning' as const
-    : subagent.status === 'failed' || subagent.status === 'cancelled' ? 'error' as const
-    : 'success' as const
+      : subagent.status === 'failed' || subagent.status === 'cancelled' ? 'error' as const
+        : 'success' as const
   const hoverTint = onClick !== undefined && hovered && !focused
   return <Box
     flexDirection="column"
     paddingLeft={1}
     marginBottom={1}
     onClick={onClick}
-    onMouseEnter={onClick !== undefined ? () => setHovered(true) : undefined}
-    onMouseLeave={onClick !== undefined ? () => setHovered(false) : undefined}
+    onMouseEnter={onClick !== undefined ? () => { setHovered(true) } : undefined}
+    onMouseLeave={onClick !== undefined ? () => { setHovered(false) } : undefined}
     backgroundColor={hoverTint ? 'userMessageBackgroundHover' : undefined}
   >
     <Box flexDirection="row" gap={1}>

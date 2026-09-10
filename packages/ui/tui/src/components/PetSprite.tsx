@@ -23,23 +23,24 @@ function cellText(
   upperOffset: number,
   lowerOffset: number | undefined,
 ): string {
-  const upperVisible = rgba[upperOffset + 3]! >= ALPHA_THRESHOLD
-  const lowerVisible = lowerOffset !== undefined && rgba[lowerOffset + 3]! >= ALPHA_THRESHOLD
+  const upperVisible = rgba[upperOffset + 3] >= ALPHA_THRESHOLD
+  const lowerVisible = lowerOffset !== undefined && rgba[lowerOffset + 3] >= ALPHA_THRESHOLD
   // RawAnsi 直接写入终端屏幕缓冲；透明单元也必须清掉上一个单元的
   // SGR，否则普通空格会继承前景/背景色，形成右侧拖影。
   const reset = '\x1b[0m'
   if (!upperVisible && !lowerVisible) return `${reset} `
 
   const upper = upperVisible
-    ? colorCode(38, rgba[upperOffset]!, rgba[upperOffset + 1]!, rgba[upperOffset + 2]!)
+    ? colorCode(38, rgba[upperOffset], rgba[upperOffset + 1], rgba[upperOffset + 2])
     : ''
   // 下半块单独可见时使用前景色；只有上下半块同时存在时才使用背景色。
   // 这样不会把上一列的背景色带到透明区域，也和 terminal-pet-cli 一致。
   if (!upperVisible) {
-    return `${reset}${colorCode(38, rgba[lowerOffset!]!, rgba[lowerOffset! + 1]!, rgba[lowerOffset! + 2]!)}▄`
+    if (lowerOffset === undefined) return `${reset} `
+    return `${reset}${colorCode(38, rgba[lowerOffset], rgba[lowerOffset + 1], rgba[lowerOffset + 2])}▄`
   }
-  const lower = lowerVisible
-    ? colorCode(48, rgba[lowerOffset!]!, rgba[lowerOffset! + 1]!, rgba[lowerOffset! + 2]!)
+  const lower = lowerVisible && lowerOffset !== undefined
+    ? colorCode(48, rgba[lowerOffset], rgba[lowerOffset + 1], rgba[lowerOffset + 2])
     : ''
   return `${reset}${upper}${lower}▀`
 }
@@ -82,7 +83,7 @@ function frameAt(frames: readonly PetFrame[], elapsed: number): PetFrame {
     if (offset < frameDuration) return frame
     offset -= frameDuration
   }
-  return frames[frames.length - 1]!
+  return frames[frames.length - 1]
 }
 
 export type PetAnimationName = keyof typeof PET_ANIMATIONS

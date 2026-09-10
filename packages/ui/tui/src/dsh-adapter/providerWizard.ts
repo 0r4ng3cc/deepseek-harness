@@ -427,7 +427,7 @@ async function runAddFlow(
     ...(baseURL !== undefined && baseURL !== '' ? { baseURL } : {}),
     ...(api !== undefined ? { api } : {}),
     apiKey: apiKey ?? '',
-  }).catch(() => [])
+  }).catch((): readonly LlmDiscoveredModel[] => [])
 
   // ── 6. model selection ─────────────────────────────────────────────
   let models: string[] = []
@@ -528,7 +528,7 @@ async function runAddFlow(
   notify(t('provider-success', { route }), { color: 'success' })
 
   if (!deps.working() && models.length > 0) {
-    const target = models[0]!
+    const target = models[0]
     const switchAnswer = await ask({
       questions: [optionQuestion('switch', t('provider-q-switch'), [
         { label: t('provider-opt-switch-now', { model: target }) },
@@ -789,7 +789,7 @@ async function editModelList(
     ...(provider.baseURL !== undefined && provider.baseURL !== '' ? { baseURL: provider.baseURL } : {}),
     ...(provider.api !== undefined ? { api: provider.api } : {}),
     apiKey: key ?? '',
-  }).catch(() => [])
+  }).catch((): readonly LlmDiscoveredModel[] => [])
 
   let models: string[]
   let discoveredById = new Map<string, LlmDiscoveredModel>()
@@ -850,7 +850,7 @@ async function editModelList(
   // catalog route, where the catalog itself carries the capabilities).
   const storedById = new Map((provider.modelEntries ?? [])
     .flatMap(entry => typeof entry['id'] === 'string' ? [[entry['id'], entry] as const] : []))
-  const modelsValue = models.map(id => {
+  const modelsValue = models.map((id) => {
     const stored = storedById.get(id)
     if (stored !== undefined) return stored
     const discovered = discoveredById.get(id)
@@ -1180,7 +1180,7 @@ function buildProfile(input: {
     return profile
   }
   profile['api'] = input.api
-  profile['models'] = input.models.map(id => {
+  profile['models'] = input.models.map((id) => {
     const discovered = input.discoveredById.get(id)
     return {
       id,

@@ -111,7 +111,7 @@ export function SystemPromptEditor({
           label={t('system-editor-save')}
           hint="Ctrl+Enter"
           primary
-          onClick={() => onSave(value)}
+          onClick={() => { onSave(value) }}
         />
         <EditorButton
           label={t('system-editor-cancel')}

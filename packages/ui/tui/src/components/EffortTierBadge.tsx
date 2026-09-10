@@ -65,7 +65,7 @@ export function EffortTierBadge({
     overlay === null ? Infinity : Math.max(0, (clock?.now() ?? Date.now()) - overlay.startedAtMs)
   useEffect(() => {
     if (overlay === null || clock === null) return
-    return clock.subscribe(() => forceRender(), /* keepAlive */ true)
+    return clock.subscribe(() => { forceRender() }, /* keepAlive */ true)
   }, [overlay, clock])
   useEffect(() => {
     if (overlay !== null && elapsedMs >= IGNITION_TIMELINE.fadeEndMs) setOverlay(null)
@@ -115,7 +115,7 @@ export function EffortTierBadge({
       off >= 0
         ? Math.round(C + off)
         : 2 * C - Math.round(C - off)
-    spaced += ' '.repeat(Math.max(0, at - column)) + overlay.label[i]!
+    spaced += ' '.repeat(Math.max(0, at - column)) + overlay.label[i]
     column = at + 1
   }
   return (

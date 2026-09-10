@@ -101,7 +101,7 @@ export function getPath(value: unknown, path: readonly string[]): unknown {
 export function hasPath(value: unknown, path: readonly string[]): boolean {
   if (path.length === 0) return value !== undefined
   const parent = getPath(value, path.slice(0, -1))
-  const key = path[path.length - 1] as string
+  const key = path[path.length - 1]
   if (Array.isArray(parent)) return Number(key) < parent.length
   if (typeof parent !== 'object' || parent === null) return false
   return key in parent
@@ -117,7 +117,11 @@ function defaultFormat(field: TuiSettingsField, value: unknown): string {
     case 'boolean':
       return value === true ? 'true' : 'false'
     default:
-      return typeof value === 'string' ? value : String(value)
+      return typeof value === 'string'
+        ? value
+        : typeof value === 'number' || typeof value === 'boolean'
+          ? String(value)
+          : ''
   }
 }
 
@@ -292,7 +296,7 @@ export class SettingsForm {
         } catch (error) {
           // One retry on a stale-revision conflict (a concurrent write landed
           // between seed and save); anything else propagates.
-          if ((error as { code?: unknown })?.code !== 'SETTINGS_CONFLICT') throw error
+          if ((error as { code?: unknown }).code !== 'SETTINGS_CONFLICT') throw error
           const fresh = this.host.listNamespaces().find(entry => entry.ns === ns)
           await this.host.write(ns, ops, fresh?.revision)
         }

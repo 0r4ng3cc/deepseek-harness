@@ -1,5 +1,3 @@
-/* eslint-disable custom-rules/no-top-level-side-effects */
-
 import { appendFileSync } from 'fs'
 import createReconciler from 'react-reconciler'
 import { getYogaCounters } from '../native-ts/yoga-layout/index.js'
@@ -32,11 +30,9 @@ import applyStyles, { type Styles, type TextStyles } from './styles.js'
 // See https://github.com/vadimdemedes/ink/issues/384
 if (process.env.NODE_ENV === 'development') {
   try {
-    // eslint-disable-next-line custom-rules/no-top-level-dynamic-import -- dev-only; NODE_ENV check is DCE'd in production
     void import('./devtools.js')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    if (error.code === 'ERR_MODULE_NOT_FOUND') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && error.code === 'ERR_MODULE_NOT_FOUND') {
       // biome-ignore lint/suspicious/noConsole: intentional warning
       console.warn(
         `
@@ -49,7 +45,6 @@ $ npm install --save-dev react-devtools-core
 				`.trim() + '\n',
       )
     } else {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw error
     }
   }
@@ -198,7 +193,6 @@ export function isDebugRepaintsEnabled(): boolean {
 export const dispatcher = new Dispatcher()
 
 // --- COMMIT INSTRUMENTATION (temp debugging) ---
-// eslint-disable-next-line custom-rules/no-process-env-top-level -- debug instrumentation, read-once is fine
 const COMMIT_LOG = process.env.CLAUDE_CODE_COMMIT_LOG
 let _commits = 0
 let _lastLog = 0
@@ -284,7 +278,6 @@ const reconciler = createReconciler<
       _lastCommitAt = now
       const reconcileMs = _prepareAt > 0 ? now - _prepareAt : 0
       if (gap > 30 || reconcileMs > 20 || _createCount > 50) {
-        // eslint-disable-next-line custom-rules/no-sync-fs -- debug instrumentation
         appendFileSync(
           COMMIT_LOG,
           `${now.toFixed(1)} gap=${gap.toFixed(1)}ms reconcile=${reconcileMs.toFixed(1)}ms creates=${_createCount}\n`,
@@ -292,7 +285,6 @@ const reconciler = createReconciler<
       }
       _createCount = 0
       if (now - _lastLog > 1000) {
-        // eslint-disable-next-line custom-rules/no-sync-fs -- debug instrumentation
         appendFileSync(
           COMMIT_LOG,
           `${now.toFixed(1)} commits=${_commits}/s maxGap=${_maxGapMs.toFixed(1)}ms\n`,
@@ -310,7 +302,6 @@ const reconciler = createReconciler<
       const layoutMs = performance.now() - _t0
       if (layoutMs > 20) {
         const c = getYogaCounters()
-        // eslint-disable-next-line custom-rules/no-sync-fs -- debug instrumentation
         appendFileSync(
           COMMIT_LOG,
           `${_t0.toFixed(1)} SLOW_YOGA ${layoutMs.toFixed(1)}ms visited=${c.visited} measured=${c.measured} hits=${c.cacheHits} live=${c.live}\n`,
@@ -334,7 +325,6 @@ const reconciler = createReconciler<
     if (COMMIT_LOG) {
       const renderMs = performance.now() - _tr
       if (renderMs > 10) {
-        // eslint-disable-next-line custom-rules/no-sync-fs -- debug instrumentation
         appendFileSync(
           COMMIT_LOG,
           `${_tr.toFixed(1)} SLOW_PAINT ${renderMs.toFixed(1)}ms\n`,
@@ -365,7 +355,7 @@ const reconciler = createReconciler<
     internalHandle?: unknown,
   ): DOMElement {
     if (hostContext.isInsideText && originalType === 'ink-box') {
-      throw new Error(`<Box> can't be nested inside <Text> component`)
+      throw new Error('<Box> can\'t be nested inside <Text> component')
     }
 
     const type =
@@ -494,7 +484,10 @@ const reconciler = createReconciler<
     cleanupYogaNode(removeNode)
     if (removeNode.nodeName !== '#text') {
       const root = getRootNode(node)
-      root.focusManager!.handleNodeRemoved(removeNode, root)
+      const focusManager = root.focusManager
+      if (focusManager !== undefined) {
+        focusManager.handleNodeRemoved(removeNode, root)
+      }
     }
   },
   // React 19 required methods

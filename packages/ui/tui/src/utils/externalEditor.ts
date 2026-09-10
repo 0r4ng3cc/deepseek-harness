@@ -34,7 +34,7 @@
  * spaces (a stock VS Code install path has them).
  */
 
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -180,17 +180,17 @@ export function buildCmdExeSpawn(
  * otherwise reject the promise and skip every cleanup step.
  */
 function runEditor(argv: readonly string[], file: string): Promise<number> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let settled = false
     const finish = (code: number): void => {
       if (settled) return
       settled = true
       resolve(code)
     }
-    let child
+    let child: ChildProcess
     try {
       if (process.platform === 'win32') {
-        const shim = resolveWindowsShim(argv[0]!)
+        const shim = resolveWindowsShim(argv[0])
         if (shim.viaCmd) {
           const cmd = buildCmdExeSpawn(shim.command, [...argv.slice(1), file])
           child = spawn(cmd.file, cmd.args, {
@@ -201,14 +201,14 @@ function runEditor(argv: readonly string[], file: string): Promise<number> {
           child = spawn(shim.command, [...argv.slice(1), file], { stdio: 'inherit' })
         }
       } else {
-        child = spawn(argv[0]!, [...argv.slice(1), file], { stdio: 'inherit' })
+        child = spawn(argv[0], [...argv.slice(1), file], { stdio: 'inherit' })
       }
     } catch {
       finish(-1)
       return
     }
-    child.once('error', () => finish(-1))
-    child.once('close', code => finish(code ?? 1))
+    child.once('error', () => { finish(-1) })
+    child.once('close', (code) => { finish(code ?? 1) })
   })
 }
 
@@ -262,7 +262,7 @@ export async function editInExternalEditor(draft: string): Promise<EditorOutcome
     // moment the editor exits must not race the prompt adopting the result.
     const saved = await readFile(file, 'utf8').catch(() => null)
 
-    if (code === -1) return { kind: 'failed', message: argv[0]! }
+    if (code === -1) return { kind: 'failed', message: argv[0] }
     if (code !== 0 || saved === null) return { kind: 'unchanged' }
     const normalized = saved.replace(/\r\n/g, '\n')
     const draftNormalized = draft.replace(/\r\n/g, '\n')

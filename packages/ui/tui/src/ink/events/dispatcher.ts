@@ -127,13 +127,13 @@ function getEventPriority(eventType: string): number {
     case 'focus':
     case 'blur':
     case 'paste':
-      return DiscreteEventPriority as number
+      return DiscreteEventPriority
     case 'resize':
     case 'scroll':
     case 'mousemove':
-      return ContinuousEventPriority as number
+      return ContinuousEventPriority
     default:
-      return DefaultEventPriority as number
+      return DefaultEventPriority
   }
 }
 
@@ -168,7 +168,7 @@ export class Dispatcher {
    * The update priority currently applied to updates triggered by dispatch,
    * or the default priority when none is set.
    */
-  currentUpdatePriority: number = DefaultEventPriority as number
+  currentUpdatePriority: number = DefaultEventPriority
 
   /**
    * The reconciler's `discreteUpdates` helper, injected after construction to
@@ -184,13 +184,13 @@ export class Dispatcher {
    *   priority, or the default priority.
    */
   resolveEventPriority(): number {
-    if (this.currentUpdatePriority !== (NoEventPriority as number)) {
+    if (this.currentUpdatePriority !== NoEventPriority) {
       return this.currentUpdatePriority
     }
     if (this.currentEvent) {
       return getEventPriority(this.currentEvent.type)
     }
-    return DefaultEventPriority as number
+    return DefaultEventPriority
   }
 
   /**
@@ -248,7 +248,7 @@ export class Dispatcher {
   dispatchContinuous(target: EventTarget, event: TerminalEvent): boolean {
     const previousPriority = this.currentUpdatePriority
     try {
-      this.currentUpdatePriority = ContinuousEventPriority as number
+      this.currentUpdatePriority = ContinuousEventPriority
       return this.dispatch(target, event)
     } finally {
       this.currentUpdatePriority = previousPriority

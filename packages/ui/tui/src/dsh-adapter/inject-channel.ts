@@ -279,7 +279,7 @@ export function openInjectChannel(
     startedAt: Date.now(),
   }
   const others = readServers().filter(
-    (entry) => entry.sessionId !== sessionId && pidAlive(entry.pid),
+    entry => entry.sessionId !== sessionId && pidAlive(entry.pid),
   )
   writeServers([...others, record])
 
@@ -292,7 +292,7 @@ export function openInjectChannel(
         // Already closed or never fully listened; nothing to undo.
       }
       const remaining = readServers().filter(
-        (entry) => entry.sessionId !== sessionId && pidAlive(entry.pid),
+        entry => entry.sessionId !== sessionId && pidAlive(entry.pid),
       )
       writeServers(remaining)
       if (process.platform !== 'win32') {

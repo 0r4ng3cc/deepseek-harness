@@ -149,22 +149,22 @@ export class TuiEffectLedgerRuntime extends Service {
         runtimeGenerationId: this.generation(),
         operation: entry.operation,
         resource: {
-          kind: cleanField(entry.resource?.kind, 64, 'unknown'),
-          id: cleanField(entry.resource?.id, 128, 'unknown'),
+          kind: cleanField(entry.resource.kind, 64, 'unknown'),
+          id: cleanField(entry.resource.id, 128, 'unknown'),
         },
         result: entry.result,
         ...(entry.errorCode !== undefined ? { errorCode: cleanField(entry.errorCode, 64, 'UNKNOWN') } : {}),
         ...(entry.replaces !== undefined
           ? {
-              replaces: {
-                ...(entry.replaces.resourceId !== undefined
-                  ? { resourceId: cleanField(entry.replaces.resourceId, 128, 'unknown') }
-                  : {}),
-                ...(entry.replaces.activationInstance !== undefined
-                  ? { activationInstance: cleanField(entry.replaces.activationInstance, 128, 'unknown') }
-                  : {}),
-              },
-            }
+            replaces: {
+              ...(entry.replaces.resourceId !== undefined
+                ? { resourceId: cleanField(entry.replaces.resourceId, 128, 'unknown') }
+                : {}),
+              ...(entry.replaces.activationInstance !== undefined
+                ? { activationInstance: cleanField(entry.replaces.activationInstance, 128, 'unknown') }
+                : {}),
+            },
+          }
           : {}),
         ...(entry.valueDigest !== undefined ? { valueDigest: entry.valueDigest } : {}),
       }
@@ -182,7 +182,7 @@ export class TuiEffectLedgerRuntime extends Service {
       mkdirSync(dirname(state.file), { recursive: true, mode: 0o700 })
       appendFileSync(state.file, `${JSON.stringify(record)}\n`, { mode: 0o600 })
       state.sequence += 1
-    } catch (error) {
+    } catch {
       ;(state?.hostContext ?? this.ctx).logger.warn('dsh-tui: effect ledger write failed')
     }
   }
@@ -195,11 +195,6 @@ export class TuiEffectLedgerRuntime extends Service {
     if (state.optionsGenerationId !== undefined) return state.optionsGenerationId
     state.generationId ??= state.hostContext.get('tuiPluginHost')?.generationId ?? 'unknown-generation'
     return state.generationId
-  }
-
-  /** Continue numbering after the existing file's max sequence (restart-safe). */
-  private resumeSequence(): number {
-    return resumeSequence(ledgerStateFor(this).file)
   }
 
   private fiberOf(identity: Context | undefined): object | undefined {
@@ -217,7 +212,7 @@ export class TuiEffectLedgerRuntime extends Service {
     if (verifiedComponentId !== undefined) return cleanField(verifiedComponentId, 128, 'undeclared')
     let name = ''
     try {
-      name = typeof identity.fiber?.name === 'string' ? identity.fiber.name : ''
+      name = typeof identity.fiber.name === 'string' ? identity.fiber.name : ''
     } catch {
       name = ''
     }

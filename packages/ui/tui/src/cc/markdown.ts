@@ -119,8 +119,8 @@ function renderCodeSpan(token: Tokens.Codespan): string {
 function linkifyText(text: string): string {
   const withFiles = supportsHyperlinks()
     ? linkifyFilePaths(text, (path, display) =>
-        createHyperlink(fileLinkUrl(path), display),
-      )
+      createHyperlink(fileLinkUrl(path), display),
+    )
     : text
   return linkifyIssueReferences(withFiles)
 }
@@ -441,12 +441,11 @@ function linkifyIssueReferences(text: string): string {
   }
   return text.replace(
     ISSUE_REFERENCE_PATTERN,
-    (_match, prefix, repo, issueNumber) =>
-      prefix +
-      createHyperlink(
+    (_match, prefix: string, repo: string, issueNumber: string) =>
+      `${prefix}${createHyperlink(
         `https://github.com/${repo}/issues/${issueNumber}`,
         `${repo}#${issueNumber}`,
-      ),
+      )}`,
   )
 }
 

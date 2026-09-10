@@ -18,18 +18,17 @@ export function parseAnsiRuns(text: string): SyntaxRun[] {
   const runs: SyntaxRun[] = []
   let color: string | undefined
   let rest = text
-  // eslint-disable-next-line no-control-regex -- parsing SGR is intentional
   const sgr = /\x1b\[([0-9;]+)m/
   while (rest.length > 0) {
     const match = sgr.exec(rest)
     const chunk = match === null ? rest : rest.slice(0, match.index)
     if (chunk !== '') runs.push(color === undefined ? { text: chunk } : { text: chunk, color })
     if (match === null) break
-    const codes = match[1]!.split(';').map(Number)
+    const codes = match[1].split(';').map(Number)
     if (codes.includes(0) || codes.includes(39)) color = undefined
     else if (codes[0] === 38 && codes[1] === 2 && codes.length >= 5) color = `rgb(${codes[2]},${codes[3]},${codes[4]})`
     else if (codes[0] === 38 && codes[1] === 5 && codes.length >= 3) color = `ansi256(${codes[2]})`
-    else if (codes.length === 1 && ANSI16[codes[0]!] !== undefined) color = ANSI16[codes[0]!]
+    else if (codes.length === 1 && ANSI16[codes[0]] !== undefined) color = ANSI16[codes[0]]
     rest = rest.slice(match.index + match[0].length)
   }
   return runs
@@ -41,7 +40,7 @@ export function splitRunsToLines(runs: readonly SyntaxRun[]): SyntaxLines {
     const parts = run.text.split('\n')
     for (let i = 0; i < parts.length; i++) {
       if (i > 0) lines.push([])
-      if (parts[i] !== '') lines[lines.length - 1]!.push(run.color === undefined ? { text: parts[i]! } : { text: parts[i]!, color: run.color })
+      if (parts[i] !== '') lines[lines.length - 1].push(run.color === undefined ? { text: parts[i] } : { text: parts[i], color: run.color })
     }
   }
   return lines

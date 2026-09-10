@@ -55,7 +55,7 @@ export interface RawTrajEvent {
  * @returns The same array, typed for guard-mediated access.
  */
 export function asRawEvents(events: readonly SessionEvent[]): readonly RawTrajEvent[] {
-  return events as readonly RawTrajEvent[]
+  return events
 }
 
 /** True for a non-null object — the precondition of every guard below. */

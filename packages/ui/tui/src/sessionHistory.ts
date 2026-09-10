@@ -151,11 +151,12 @@ export function touchSession(sessionId: string): void {
  */
 export function forgetSession(sessionId: string): void {
   try {
-    const lastUsed: Record<string, number> = { ...readLastUsed() }
+    const lastUsed = readLastUsed()
     if (!(sessionId in lastUsed)) return
-    delete lastUsed[sessionId]
+    const next: Record<string, number> = { ...lastUsed }
+    const { [sessionId]: _removed, ...rest } = next
     ensureDir()
-    writeFileSync(LAST_USED_FILE, JSON.stringify(lastUsed))
+    writeFileSync(LAST_USED_FILE, JSON.stringify(rest))
   } catch {
     // Best effort — a stale entry only skews sort order.
   }
@@ -207,11 +208,12 @@ export function touchAgentViewSession(sessionId: string): void {
  */
 export function forgetAgentViewSession(sessionId: string): void {
   try {
-    const sessions: Record<string, number> = { ...readAgentViewSessions() }
+    const sessions = readAgentViewSessions()
     if (!(sessionId in sessions)) return
-    delete sessions[sessionId]
+    const next: Record<string, number> = { ...sessions }
+    const { [sessionId]: _removed, ...rest } = next
     ensureDir()
-    writeFileSync(AGENT_VIEW_SESSIONS_FILE, JSON.stringify(sessions))
+    writeFileSync(AGENT_VIEW_SESSIONS_FILE, JSON.stringify(rest))
   } catch {
     // Best effort — a stale entry only lists one extra stopped row.
   }

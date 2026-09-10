@@ -150,10 +150,10 @@ export type CursorAction =
   | { type: 'show' }
   | { type: 'hide' }
   | {
-      type: 'style'
-      style: 'block' | 'underline' | 'bar'
-      blinking: boolean
-    }
+    type: 'style'
+    style: 'block' | 'underline' | 'bar'
+    blinking: boolean
+  }
   | { type: 'nextLine'; count: number }
   | { type: 'prevLine'; count: number }
 

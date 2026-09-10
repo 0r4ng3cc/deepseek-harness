@@ -90,23 +90,23 @@ export function parseQuery(raw: string): TrajQuery {
     if (lower === 'run:' || lower === 'running:') { terms.push({ kind: 'running' }); continue }
 
     const tool = /^tool:(.+)$/.exec(lower)
-    if (tool !== null) { terms.push({ kind: 'tool', value: tool[1]! }); continue }
+    if (tool !== null) { terms.push({ kind: 'tool', value: tool[1] }); continue }
 
     const rowKind = /^kind:(.+)$/.exec(lower)
-    if (rowKind !== null) { terms.push({ kind: 'rowKind', value: rowKind[1]! }); continue }
+    if (rowKind !== null) { terms.push({ kind: 'rowKind', value: rowKind[1] }); continue }
 
     const turn = /^turn:(\d+)$/.exec(lower)
     if (turn !== null) { terms.push({ kind: 'turn', value: Number(turn[1]) }); continue }
 
     const tokens = /^tok([<>])(.+)$/.exec(lower)
     if (tokens !== null) {
-      const count = parseCount(tokens[2]!)
+      const count = parseCount(tokens[2])
       if (count !== undefined) { terms.push({ kind: 'tokens', op: tokens[1] as '>' | '<', count }); continue }
     }
 
     const duration = /^([<>])(.+)$/.exec(lower)
     if (duration !== null) {
-      const ms = parseDuration(duration[2]!)
+      const ms = parseDuration(duration[2])
       if (ms !== undefined) { terms.push({ kind: 'duration', op: duration[1] as '>' | '<', ms }); continue }
     }
 
@@ -182,7 +182,7 @@ export function applyQuery(
   const rows: TrajNode[] = []
   const indexes: number[] = []
   for (let index = 0; index < nodes.length; index++) {
-    const node = nodes[index]!
+    const node = nodes[index]
     if (matchesQuery(node, query)) {
       rows.push(node)
       indexes.push(index)

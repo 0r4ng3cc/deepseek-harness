@@ -38,7 +38,7 @@ export function WorkspacePicker({
             description={target.description ?? target.uri}
             showScrollUp={index === 0 && start > 0}
             showScrollDown={index === visible.length - 1 && start + visible.length < targets.length}
-            onClick={onPick === undefined ? undefined : () => onPick(start + index)}
+            onClick={onPick === undefined ? undefined : () => { onPick(start + index) }}
           >
             {target.badge} · {target.label}
           </ListItem>

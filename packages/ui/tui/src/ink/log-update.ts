@@ -10,11 +10,9 @@ import {
   type Cell,
   CellWidth,
   cellAt,
-  charInCellAt,
   diffEach,
   type Hyperlink,
   isEmptyCellAt,
-  type Screen,
   type StylePool,
   shiftRows,
   visibleCellAtIndex,
@@ -22,7 +20,6 @@ import {
 import {
   CURSOR_HOME,
   cursorDown,
-  cursorUp,
   eraseToEndOfScreen,
   scrollDown as csiScrollDown,
   scrollUp as csiScrollUp,
@@ -290,7 +287,6 @@ export class LogUpdate {
     // For growing, the viewportY calculation below (with cursorRestoreScroll)
     // catches unreachable scrollback rows in the diff loop instead.
     const cursorAtBottom = prev.cursor.y >= prev.screen.height
-    const isGrowing = next.screen.height > prev.screen.height
     // When content fills the viewport exactly (height == viewport) and the
     // cursor is at the bottom, the cursor-restore LF at the end of the
     // previous frame scrolled 1 row into scrollback. Use >= to catch this.
@@ -473,9 +469,9 @@ export class LogUpdate {
       this.state.anchoredPad,
       growing
         ? Math.max(
-            0,
-            prev.screen.height - prev.viewport.height + cursorRestoreScroll,
-          )
+          0,
+          prev.screen.height - prev.viewport.height + cursorRestoreScroll,
+        )
         : Math.max(prev.screen.height, next.screen.height) -
           next.viewport.height +
           cursorRestoreScroll,
@@ -621,7 +617,7 @@ export class LogUpdate {
       // no-op; next frame's CSI H anchors cursor
     } else if (next.cursor.y >= next.screen.height) {
       // Move to column 0 of current line, then emit newlines to reach target row
-      screen.txn(prev => {
+      screen.txn((prev) => {
         const rowsToCreate = next.cursor.y - prev.y
         if (rowsToCreate > 0) {
           // Use CR to resolve pending wrap (if any) without advancing
@@ -738,14 +734,6 @@ function transitionStyle(
     diff.push({ type: 'styleStr', str })
   }
   return targetId
-}
-
-function readLine(screen: Screen, y: number): string {
-  let line = ''
-  for (let x = 0; x < screen.width; x++) {
-    line += charInCellAt(screen, x, y) ?? ' '
-  }
-  return line.trimEnd()
 }
 
 function fullResetSequence_CAUSES_FLICKER(
@@ -920,7 +908,7 @@ function viewportRepaintPatches(
   next: Frame,
   stylePool: StylePool,
   resetPrefix: boolean,
-  origin: 'viewport-bottom' | 'frame-end',
+  _origin: 'viewport-bottom' | 'frame-end',
 ): Diff {
   const viewportHeight = prev.viewport.height
   const height = next.screen.height
@@ -992,7 +980,7 @@ function renderFrameSlice(
     if (screen.cursor.y < y) {
       const rowsToAdvance = y - screen.cursor.y
       if (allowScroll) {
-        screen.txn(prev => {
+        screen.txn((prev) => {
           const patches: Diff = new Array<Diff[number]>(1 + rowsToAdvance)
           patches[0] = CARRIAGE_RETURN
           for (let i = 0; i < rowsToAdvance; i++) {
@@ -1148,7 +1136,7 @@ function writeCellWithStyleStr(
 }
 
 function moveCursorTo(screen: VirtualScreen, targetX: number, targetY: number) {
-  screen.txn(prev => {
+  screen.txn((prev) => {
     const dx = targetX - prev.x
     const dy = targetY - prev.y
     const inPendingWrap = prev.x >= screen.viewportWidth

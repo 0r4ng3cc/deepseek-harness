@@ -37,10 +37,12 @@ export interface CommandOwner {
   commandId: string
 }
 
-const ownerMaps = new WeakMap<object, WeakMap<Function, CommandOwner>>()
+type CommandHandler = (...args: never[]) => unknown
+
+const ownerMaps = new WeakMap<object, WeakMap<CommandHandler, CommandOwner>>()
 
 function rootKeyOf(ctx: Context): object | undefined {
-  return compositionRoot(ctx) as unknown as object
+  return compositionRoot(ctx)
 }
 
 /** The registrant's display name for diagnostics only: the passed context's
@@ -48,7 +50,7 @@ function rootKeyOf(ctx: Context): object | undefined {
  * contexts. Authorization never uses this display value. */
 export function fiberNameOf(ctx: Context): string {
   try {
-    const resolved: unknown = ctx.fiber?.name
+    const resolved: unknown = ctx.fiber.name
     if (typeof resolved === 'string' && resolved !== '') return resolved
   } catch {
     // Degraded context without fiber access: 'root'.
@@ -56,10 +58,10 @@ export function fiberNameOf(ctx: Context): string {
   return 'root'
 }
 
-function handlerOf(definition: unknown): Function | undefined {
+function handlerOf(definition: unknown): CommandHandler | undefined {
   try {
     const handler = (definition as { handler?: unknown } | undefined)?.handler
-    return typeof handler === 'function' ? handler : undefined
+    return typeof handler === 'function' ? handler as CommandHandler : undefined
   } catch {
     // An exotic definition cannot participate in attribution safely.
     return undefined

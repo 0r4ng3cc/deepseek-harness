@@ -261,7 +261,7 @@ export function renderMiniContextBar(
     fill += HBLOCKS[rem]
   }
   const track = TRACK.repeat(Math.max(0, width - fill.length))
-  return `▕${pressureColor(pct, fill)}${`\x1b[2m${track}\x1b[22m`}▏`
+  return `▕${pressureColor(pct, fill)}\x1b[2m${track}\x1b[22m▏`
 }
 
 // --- TPS gauge + sparkline (pi-tps-meter) ---
@@ -310,7 +310,7 @@ export function renderTpsGauge(tps: number, peak: number): string {
     fill += HBLOCKS[rem]
   }
   const track = TRACK.repeat(Math.max(0, GAUGE_LEN - fill.length))
-  return `▕${speedColor(tps, fill)}${`\x1b[2m${track}\x1b[22m`}▏`
+  return `▕${speedColor(tps, fill)}\x1b[2m${track}\x1b[22m▏`
 }
 
 /** Min-max normalized 12-sample sparkline: `▁▄▇▅▂▁▇█▅▃▆▇`.

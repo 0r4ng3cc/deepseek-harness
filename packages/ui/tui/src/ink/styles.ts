@@ -170,7 +170,9 @@ export type Styles = {
   readonly flexGrow?: number
 
   /**
-   * It specifies the “flex shrink factor”, which determines how much the flex item will shrink relative to the rest of the flex items in the flex container when there isn’t enough space on the row.
+   * It specifies the “flex shrink factor”, which determines how much the flex
+   * item will shrink relative to the rest of the flex items in the flex
+   * container when there isn’t enough space on the row.
    * See [flex-shrink](https://css-tricks.com/almanac/properties/f/flex-shrink/).
    */
   readonly flexShrink?: number
@@ -188,7 +190,9 @@ export type Styles = {
   readonly flexBasis?: number | string
 
   /**
-   * It defines whether the flex items are forced in a single line or can be flowed into multiple lines. If set to multiple lines, it also defines the cross-axis which determines the direction new lines are stacked in.
+   * It defines whether the flex items are forced in a single line or can be
+   * flowed into multiple lines. If set to multiple lines, it also defines the
+   * cross-axis which determines the direction new lines are stacked in.
    * See [flex-wrap](https://css-tricks.com/almanac/properties/f/flex-wrap/).
    */
   readonly flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse'
@@ -733,16 +737,16 @@ const applyBorderStyles = (
     // Skip undefined values — they mean the prop was removed or never set,
     // not that a border should be enabled.
     if ('borderTop' in style && style.borderTop !== undefined) {
-      node.setBorder(LayoutEdge.Top, style.borderTop === false ? 0 : 1)
+      node.setBorder(LayoutEdge.Top, style.borderTop ? 1 : 0)
     }
     if ('borderBottom' in style && style.borderBottom !== undefined) {
-      node.setBorder(LayoutEdge.Bottom, style.borderBottom === false ? 0 : 1)
+      node.setBorder(LayoutEdge.Bottom, style.borderBottom ? 1 : 0)
     }
     if ('borderLeft' in style && style.borderLeft !== undefined) {
-      node.setBorder(LayoutEdge.Left, style.borderLeft === false ? 0 : 1)
+      node.setBorder(LayoutEdge.Left, style.borderLeft ? 1 : 0)
     }
     if ('borderRight' in style && style.borderRight !== undefined) {
-      node.setBorder(LayoutEdge.Right, style.borderRight === false ? 0 : 1)
+      node.setBorder(LayoutEdge.Right, style.borderRight ? 1 : 0)
     }
   }
 }

@@ -22,32 +22,13 @@ export type Edges = {
 }
 
 /**
- * Create uniform edges with the same value on every side.
- * @param all - the value applied to all four sides.
- * @returns edges with every side set to `all`.
+ * Create edges from one, two, or four side values.
+ * @param a - all sides, or the top (and bottom, when only `b` is given).
+ * @param b - left/right sides, or the right side.
+ * @param c - the bottom side.
+ * @param d - the left side.
+ * @returns edges with the given sides.
  */
-export function edges(all: number): Edges
-/**
- * Create edges from vertical and horizontal values.
- * @param vertical - the value for the top and bottom sides.
- * @param horizontal - the value for the left and right sides.
- * @returns edges with the vertical value on top/bottom and the horizontal value on left/right.
- */
-export function edges(vertical: number, horizontal: number): Edges
-/**
- * Create edges from four individual side values.
- * @param top - the value for the top side.
- * @param right - the value for the right side.
- * @param bottom - the value for the bottom side.
- * @param left - the value for the left side.
- * @returns edges with each side set to its own value.
- */
-export function edges(
-  top: number,
-  right: number,
-  bottom: number,
-  left: number,
-): Edges
 export function edges(a: number, b?: number, c?: number, d?: number): Edges {
   if (b === undefined) {
     return { top: a, right: a, bottom: a, left: a }
@@ -55,7 +36,7 @@ export function edges(a: number, b?: number, c?: number, d?: number): Edges {
   if (c === undefined) {
     return { top: a, right: b, bottom: a, left: b }
   }
-  return { top: a, right: b, bottom: c, left: d! }
+  return { top: a, right: b, bottom: c, left: d ?? 0 }
 }
 
 /**

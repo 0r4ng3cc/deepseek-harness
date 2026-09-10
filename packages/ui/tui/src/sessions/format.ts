@@ -97,11 +97,11 @@ export function spreadRow(left: string, right: string, columns: number): SpreadR
 export function tailWidth(text: string, maxWidth: number): string {
   if (maxWidth <= 0) return ''
   if (stringWidth(text) <= maxWidth) return text
-  const characters = [...text]
+  const characters = Array.from(text)
   let width = 0
   let out = ''
   for (let at = characters.length - 1; at >= 0; at--) {
-    const character = characters[at]!
+    const character = characters[at]
     const characterWidth = stringWidth(character)
     if (width + characterWidth > maxWidth - 1) break
     width += characterWidth

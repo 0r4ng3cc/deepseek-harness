@@ -84,7 +84,7 @@ export function RewindPicker({
                   description={option.description}
                   showScrollUp={absoluteIndex === start && start > 0}
                   showScrollDown={absoluteIndex === end - 1 && end < options.length}
-                  onClick={onPickMode === undefined ? undefined : () => onPickMode(absoluteIndex)}
+                  onClick={onPickMode === undefined ? undefined : () => { onPickMode(absoluteIndex) }}
                 >
                   {option.label}
                 </ListItem>
@@ -148,7 +148,7 @@ export function RewindPicker({
                 showScrollDown={absoluteIndex === end - 1 && end < rows.length}
                 onClick={
                   onPickRow !== undefined && !busy
-                    ? () => onPickRow(absoluteIndex)
+                    ? () => { onPickRow(absoluteIndex) }
                     : undefined
                 }
               >

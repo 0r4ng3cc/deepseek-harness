@@ -42,7 +42,7 @@ export function ActivityPicker({
           }))}
           focusIndex={focusIndex}
           selectedValue={currentPreset}
-          onPick={onPick ? index => onPick(index) : undefined}
+          onPick={onPick ? (index) => { onPick(index) } : undefined}
         />
         <Text dimColor italic>
           <HintLine text={t('hint-confirm-exit')} />

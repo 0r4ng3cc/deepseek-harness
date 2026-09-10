@@ -246,7 +246,7 @@ export function buildView(
   }
 
   const top = filters.showSubagents ? [...conversations, ...orphans] : conversations
-  const visible = top.filter(session => {
+  const visible = top.filter((session) => {
     if (matches(session, needle)) return true
     // A parent whose own text does not match is still shown when one of its
     // runs does — hiding it would strand the match under a row that is gone.
@@ -272,9 +272,9 @@ export function buildView(
     : []
   const pinnedRows = pinned.size > 0
     ? [
-        ...visible.filter(session => pinned.has(session.id)),
-        ...pinnedChildren,
-      ].sort((left, right) => right.updatedAt - left.updatedAt)
+      ...visible.filter(session => pinned.has(session.id)),
+      ...pinnedChildren,
+    ].sort((left, right) => right.updatedAt - left.updatedAt)
     : []
   const pinnedRowIds = new Set(pinnedRows.map(session => session.id))
   const emit = (session: SessionSummary): void => {
@@ -312,7 +312,8 @@ export function buildView(
       projectCounts.set(key, (projectCounts.get(key) ?? 0) + 1)
     }
     ordered.sort((left, right) =>
-      projectOrder.get(projectKey(left))! - projectOrder.get(projectKey(right))! || right.updatedAt - left.updatedAt)
+      (projectOrder.get(projectKey(left)) ?? 0) - (projectOrder.get(projectKey(right)) ?? 0)
+      || right.updatedAt - left.updatedAt)
   }
   for (const session of ordered) {
     // Group headers only earn their line when more than one project is in
@@ -374,7 +375,7 @@ export function moveSelection(rows: readonly BrowserRow[], current: number, step
 /** The session under the cursor, when the cursor is on one. */
 export function sessionAt(rows: readonly BrowserRow[], index: number): SessionSummary | undefined {
   const row = rows[index]
-  return row?.kind === 'session' ? row.session : undefined
+  return row.kind === 'session' ? row.session : undefined
 }
 
 /** Lines one row occupies: a session shows a title and a metadata line. */
@@ -413,17 +414,17 @@ export function anchorTop(
   // Scroll down only until the focused row's last line fits.
   for (;;) {
     let used = 0
-    for (let at = top; at <= focus; at++) used += rowHeight(rows[at]!)
+    for (let at = top; at <= focus; at++) used += rowHeight(rows[at])
     if (used <= budget || top >= focus) break
     top += 1
   }
   // A window that has slack below the last row wastes it; pull the start back
   // up so the final screenful is full rather than ragged.
   let total = 0
-  for (let at = top; at < rows.length; at++) total += rowHeight(rows[at]!)
-  while (top > 0 && total + rowHeight(rows[top - 1]!) <= budget) {
+  for (let at = top; at < rows.length; at++) total += rowHeight(rows[at])
+  while (top > 0 && total + rowHeight(rows[top - 1]) <= budget) {
     top -= 1
-    total += rowHeight(rows[top]!)
+    total += rowHeight(rows[top])
   }
   return top
 }
@@ -440,7 +441,7 @@ export function windowEnd(rows: readonly BrowserRow[], top: number, budget: numb
   let used = 0
   let at = top
   while (at < rows.length) {
-    const next = used + rowHeight(rows[at]!)
+    const next = used + rowHeight(rows[at])
     if (next > budget) break
     used = next
     at += 1

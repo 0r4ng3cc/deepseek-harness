@@ -18,7 +18,8 @@ export function truncateContextText(text: string, max = CONTEXT_ENTRY_MAX_CHARS)
 
 /**
  * One-line collapsed summary of a loaded-context snapshot, naming only the
- * non-empty groups (`${t('context-sections', { n: context.sections.length })} · ${t('context-files', { n: context.files.length })} · ${t('context-skills', { n: context.skills.length })} · ${t('context-tools', { n: context.tools.length })}`).
+ * non-empty groups (`context-sections` · `context-files` · `context-skills` ·
+ * `context-tools`).
  * @param context - the loaded-context snapshot.
  * @returns the summary, or `''` when every group is empty.
  */

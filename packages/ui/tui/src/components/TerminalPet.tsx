@@ -35,8 +35,8 @@ export function useTerminalPetAnimation(channel: Channel): PetAnimationName {
   const transientTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   React.useEffect(() => {
-    const timer = setTimeout(() => setStartup(false), 2400)
-    return () => clearTimeout(timer)
+    const timer = setTimeout(() => { setStartup(false) }, 2400)
+    return () => { clearTimeout(timer) }
   }, [])
 
   React.useEffect(() => {

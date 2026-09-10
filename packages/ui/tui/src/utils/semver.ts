@@ -17,7 +17,7 @@ export function gte(a: string, b: string): boolean {
 function parts(version: string): [number, number, number] {
   const [major = 0, minor = 0, patch = 0] = version
     .replace(/^v/, '')
-    .split('-')[0]!
+    .split('-')[0]
     .split('.')
     .map(part => Number.parseInt(part, 10) || 0)
   return [major, minor, patch]

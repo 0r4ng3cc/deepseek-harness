@@ -27,7 +27,7 @@ export function WorkspaceListRow({
   selected: boolean
   home: string
   now: number
-  onClick?(event: ClickEvent): void
+  onClick?: (event: ClickEvent) => void
 }): React.ReactNode {
   const [hovered, setHovered] = useState(false)
   const body = Math.max(8, width - 4)
@@ -42,11 +42,11 @@ export function WorkspaceListRow({
   const detail = all
     ? t('session-workspace-all-detail', { n: count })
     : [
-        formatProject(workspace?.cwd ?? '', home),
-        count > 0 && workspace !== undefined
-          ? formatWhen(workspace.updatedAt, now)
-          : t('session-workspace-empty'),
-      ].filter(Boolean).join(' · ')
+      formatProject(workspace?.cwd ?? '', home),
+      count > 0 && workspace !== undefined
+        ? formatWhen(workspace.updatedAt, now)
+        : t('session-workspace-empty'),
+    ].filter(Boolean).join(' · ')
 
   return (
     <Box
@@ -54,8 +54,8 @@ export function WorkspaceListRow({
       flexShrink={0}
       paddingX={1}
       onClick={onClick}
-      onMouseEnter={onClick === undefined ? undefined : () => setHovered(true)}
-      onMouseLeave={onClick === undefined ? undefined : () => setHovered(false)}
+      onMouseEnter={onClick === undefined ? undefined : () => { setHovered(true) }}
+      onMouseLeave={onClick === undefined ? undefined : () => { setHovered(false) }}
       backgroundColor={focused || hovered ? 'userMessageBackgroundHover' : undefined}
     >
       <Box height={1} flexShrink={0} overflow="hidden">

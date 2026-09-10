@@ -158,7 +158,7 @@ export function AskUserQuestionPanel({
   /** Drop the character before the cursor; empty text drops the attach. */
   const backspaceText = (): void => {
     if (customCursor <= 0) return
-    setCustomText(previous => {
+    setCustomText((previous) => {
       const next = previous.slice(0, customCursor - 1) + previous.slice(customCursor)
       if (next === '') setAttached(null)
       return next
@@ -217,9 +217,9 @@ export function AskUserQuestionPanel({
       : inputFocused
         ? (attached === null ? [] : [attached])
         : (() => {
-            const label = options[focusIndex]?.label
-            return label === undefined ? [] : [label]
-          })()
+          const label = options[focusIndex]?.label
+          return label === undefined ? [] : [label]
+        })()
     return {
       selected,
       ...(customText !== '' ? { custom: customText } : {}),
@@ -256,7 +256,7 @@ export function AskUserQuestionPanel({
       }
       if (key.delete) {
         if (customCursor < customText.length) {
-          setCustomText(text => {
+          setCustomText((text) => {
             const next = text.slice(0, customCursor) + text.slice(customCursor + 1)
             if (next === '') setAttached(null)
             return next
@@ -303,7 +303,7 @@ export function AskUserQuestionPanel({
       return
     }
     if (input === ' ' && multiSelect) {
-      setChecked(previous => {
+      setChecked((previous) => {
         const next = new Set(previous)
         if (next.has(focusIndex)) next.delete(focusIndex)
         else next.add(focusIndex)
@@ -346,7 +346,7 @@ export function AskUserQuestionPanel({
    */
   const clickOption = (index: number): void => {
     if (multiSelect) {
-      setChecked(previous => {
+      setChecked((previous) => {
         const next = new Set(previous)
         if (next.has(index)) next.delete(index)
         else next.add(index)
@@ -365,8 +365,8 @@ export function AskUserQuestionPanel({
       flexDirection="row"
       marginTop={inputFocused ? 1 : 0}
       onClick={focusInputRow}
-      onMouseEnter={() => setHoverIndex(options.length)}
-      onMouseLeave={() => setHoverIndex(current => (current === options.length ? -1 : current))}
+      onMouseEnter={() => { setHoverIndex(options.length) }}
+      onMouseLeave={() => { setHoverIndex(current => (current === options.length ? -1 : current)) }}
       backgroundColor={hoverIndex === options.length && !inputFocused ? 'userMessageBackgroundHover' : undefined}
     >
       <Box width={1} flexShrink={0}>
@@ -422,9 +422,9 @@ export function AskUserQuestionPanel({
             key={`${absoluteIndex}:${option.label}`}
             flexDirection="row"
             marginTop={!windowedOptions && focused ? 1 : 0}
-            onClick={() => clickOption(absoluteIndex)}
-            onMouseEnter={() => setHoverIndex(absoluteIndex)}
-            onMouseLeave={() => setHoverIndex(current => (current === absoluteIndex ? -1 : current))}
+            onClick={() => { clickOption(absoluteIndex) }}
+            onMouseEnter={() => { setHoverIndex(absoluteIndex) }}
+            onMouseLeave={() => { setHoverIndex(current => (current === absoluteIndex ? -1 : current)) }}
             backgroundColor={hoverIndex === absoluteIndex && !focused ? 'userMessageBackgroundHover' : undefined}
           >
             <Box width={1} flexShrink={0}>
@@ -460,22 +460,22 @@ export function AskUserQuestionPanel({
 
   const hintParts = inputFocused
     ? [
-        t('question-hint-type'),
-        t('question-hint-enter'),
-        ...(options.length > 0 ? [t('question-hint-back')] : []),
-        onBack === undefined ? t('question-hint-esc') : t('question-hint-previous'),
-        ...(onBack === undefined ? [] : [t('question-hint-cancel')]),
-        ...(multiSelect && checked.size > 0 ? [t('question-hint-selected', { n: checked.size })] : []),
-      ]
+      t('question-hint-type'),
+      t('question-hint-enter'),
+      ...(options.length > 0 ? [t('question-hint-back')] : []),
+      onBack === undefined ? t('question-hint-esc') : t('question-hint-previous'),
+      ...(onBack === undefined ? [] : [t('question-hint-cancel')]),
+      ...(multiSelect && checked.size > 0 ? [t('question-hint-selected', { n: checked.size })] : []),
+    ]
     : [
-        t('question-hint-select'),
-        ...(multiSelect ? [t('question-hint-multi')] : []),
-        ...(hideCustomInput ? [] : [t('question-hint-attach')]),
-        t('question-hint-enter'),
-        onBack === undefined ? t('question-hint-esc') : t('question-hint-previous'),
-        ...(onBack === undefined ? [] : [t('question-hint-cancel')]),
-        ...(multiSelect && checked.size > 0 ? [t('question-hint-selected', { n: checked.size })] : []),
-      ]
+      t('question-hint-select'),
+      ...(multiSelect ? [t('question-hint-multi')] : []),
+      ...(hideCustomInput ? [] : [t('question-hint-attach')]),
+      t('question-hint-enter'),
+      onBack === undefined ? t('question-hint-esc') : t('question-hint-previous'),
+      ...(onBack === undefined ? [] : [t('question-hint-cancel')]),
+      ...(multiSelect && checked.size > 0 ? [t('question-hint-selected', { n: checked.size })] : []),
+    ]
 
   return (
     <Box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} width="100%">

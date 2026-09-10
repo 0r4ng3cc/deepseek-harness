@@ -12,7 +12,7 @@ type Props = {
   addMargin: boolean
   /** Message-selection mode highlight. */
   isSelected?: boolean
-  onClick?(event: ClickEvent): void
+  onClick?: (event: ClickEvent) => void
 }
 
 /**

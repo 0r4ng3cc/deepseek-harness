@@ -51,7 +51,7 @@ function spawnDetached(
       windowsHide: true,
       windowsVerbatimArguments: verbatim,
     })
-    child.on('error', error => {
+    child.on('error', (error) => {
       logError(error)
       onError?.()
     })

@@ -128,7 +128,7 @@ function hasUnknownActivationRule(
   if (principal.activationId !== undefined) return false
   const actual = normalizePermissionScope(permission, scope, principal.componentId)
   if (actual === undefined) return false
-  return rules.some(rule => {
+  return rules.some((rule) => {
     if (rule.legacy || rule.permission !== permission || rule.activationId === undefined) return false
     const declared = normalizePermissionScope(permission, rule.scope ?? '', principal.componentId)
     return declared !== undefined && permissionScopeCovers(permission, declared, actual)
@@ -149,7 +149,7 @@ function storeFrom(
     get corrupt() {
       return table().corrupt
     },
-    allows(principalValue, permission, scope) {
+    allows(principalValue: GrantPrincipal | string, permission: string, scope: string) {
       const current = table()
       if (current.corrupt || known.get(permission) === undefined) return false
       const principal = principalParts(principalValue)
@@ -162,7 +162,7 @@ function storeFrom(
       if (grants.some(rule => ruleMatches(rule, principal, permission, scope, 'grant'))) return true
       return known.get(permission) === 'allow'
     },
-    defaultOf: permission => known.get(permission) ?? 'deny',
+    defaultOf: (permission: string) => known.get(permission) ?? 'deny',
     knownPermissions: () => [...known.keys()],
     onChange,
   })
@@ -227,7 +227,7 @@ export function readGrantStore(dir: string = DATA_DIR, registry?: PermissionRegi
       // remains the authorization source of truth; this loop only releases
       // grant-owned subscriptions promptly after a revocation.
       watchTimer = setInterval(changed, 50)
-      watchTimer.unref?.()
+      watchTimer.unref()
     }
     return () => {
       listeners.delete(listener)

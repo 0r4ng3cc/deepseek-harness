@@ -66,7 +66,7 @@ export function frameEnd(buffer: Buffer, start: number): number {
   if (buffer.readUInt32LE(at) !== ZSTD_MAGIC) return -1
   at += 4
 
-  const descriptor = buffer[at]!
+  const descriptor = buffer[at]
   at += 1
   const contentSizeFlag = descriptor >> 6
   const singleSegment = (descriptor >> 5) & 1
@@ -75,14 +75,14 @@ export function frameEnd(buffer: Buffer, start: number): number {
 
   // Window_Descriptor is present only when the frame is not single-segment.
   if (singleSegment === 0) at += 1
-  at += [0, 1, 2, 4][dictionaryIdFlag]!
+  at += [0, 1, 2, 4][dictionaryIdFlag]
   // Frame_Content_Size: absent (0) unless single-segment, where it is 1 byte.
-  at += contentSizeFlag === 0 ? singleSegment : [0, 2, 4, 8][contentSizeFlag]!
+  at += contentSizeFlag === 0 ? singleSegment : [0, 2, 4, 8][contentSizeFlag]
   if (at > buffer.length) return -1
 
   for (;;) {
     if (at + 3 > buffer.length) return -1
-    const header = buffer[at]! | (buffer[at + 1]! << 8) | (buffer[at + 2]! << 16)
+    const header = buffer[at] | (buffer[at + 1] << 8) | (buffer[at + 2] << 16)
     at += 3
     const isLast = header & 1
     const blockType = (header >> 1) & 3

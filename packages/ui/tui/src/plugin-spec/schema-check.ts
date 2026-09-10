@@ -25,7 +25,11 @@ function canonicalJson(value: unknown): string {
     case 'number': return JSON.stringify(value) ?? 'null'
     case 'boolean': return value ? 'true' : 'false'
     case 'undefined': return 'undefined'
-    default: return `${typeof value}:${String(value)}`
+    default:
+      if (typeof value === 'bigint' || typeof value === 'symbol' || typeof value === 'function') {
+        return `${typeof value}:${String(value)}`
+      }
+      return typeof value
   }
 }
 
@@ -51,7 +55,8 @@ function resolveRef(rootSchema: JsonSchema, ref: string): JsonSchema {
  */
 export function check(value: unknown, schema: JsonSchema, rootSchema: JsonSchema = schema, where = '$'): void {
   if (typeof schema.$ref === 'string') {
-    return check(value, resolveRef(rootSchema, schema.$ref), rootSchema, where)
+    check(value, resolveRef(rootSchema, schema.$ref), rootSchema, where)
+    return
   }
   // oneOf: exactly one variant must match (JSON Schema semantics). Variants
   // are currently mutually exclusive by design; exact-one keeps future

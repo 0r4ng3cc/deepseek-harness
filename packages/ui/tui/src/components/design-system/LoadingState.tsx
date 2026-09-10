@@ -11,7 +11,8 @@ const SPINNER_FRAMES = [
 ]
 
 /**
- * A spinner with a loading message for async operations, mirroring Claude Code's design-system/LoadingState.tsx (using the small animated glyph).
+ * A spinner with a loading message for async operations, mirroring Claude
+ * Code's design-system/LoadingState.tsx (using the small animated glyph).
  *
  * @example
  * <LoadingState message="Loading models" bold subtitle="Querying the provider…" />

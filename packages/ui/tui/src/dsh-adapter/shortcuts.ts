@@ -89,7 +89,6 @@ export class TuiShortcutRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiShortcuts')
     compositionRoot(ctx)
-    const runtime = this
     const state: ShortcutState = {
       shortcuts: new Map(),
       owners: new Map(),
@@ -98,16 +97,16 @@ export class TuiShortcutRuntime extends Service {
       logger: ctx.logger,
     }
     const host: TuiShortcutHost = Object.freeze({
-      dispatch: (input, key) => dispatchShortcut(runtime, input, key),
+      dispatch: (input: string, key: TuiShortcutKey) => dispatchShortcut(this, input, key),
       setErrorHandler: (handler) => {
-        state.onError = handler
+        state.onError = handler as ShortcutState['onError']
         return () => {
           if (state.onError === handler) state.onError = undefined
         }
       },
     })
     state.host = host
-    hostShortcuts.set(runtime, state)
+    hostShortcuts.set(this, state)
   }
 
   /**
@@ -183,8 +182,8 @@ export class TuiShortcutRuntime extends Service {
     let description: string
     let handler: (() => void | Promise<void>) | undefined
     try {
-      description = cleanScalarText(options?.description, 120)
-      handler = options?.handler
+      description = cleanScalarText(options.description, 120)
+      handler = options.handler
     } catch {
       this.ctx.logger.warn(`dsh-tui: tuiShortcuts.register rejected "${parsed.raw}" — malformed options`)
       return () => {}

@@ -33,7 +33,7 @@ const SLOT_MIN_LENGTH = 2048
 let slot: WrapSlot | null = null
 
 function slotOptionsApply(options: WrapAnsiOptions | undefined): boolean {
-  return options?.hard === true && (options?.trim ?? false) === false
+  return options?.hard === true && options?.trim !== true
 }
 
 function wrapAnsiNpmIncremental(

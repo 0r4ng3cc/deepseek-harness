@@ -57,7 +57,7 @@ export function PermissionsPicker({
           }))}
           focusIndex={focusIndex}
           selectedValue={currentValue}
-          onPick={onPick ? index => onPick(index) : undefined}
+          onPick={onPick ? (index) => { onPick(index) } : undefined}
         />
         <Text dimColor italic>
           <HintLine text={t('hint-confirm-exit')} />

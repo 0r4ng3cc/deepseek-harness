@@ -90,19 +90,19 @@ function positions(nodes: readonly TrajNode[], projection: WaveProjection): numb
   if (projection === 'sequence') return even()
 
   if (projection === 'time') {
-    const first = nodes[0]!.time
-    const span = nodes[count - 1]!.time - first
+    const first = nodes[0].time
+    const span = nodes[count - 1].time - first
     // A zero span (every row inside the same millisecond) has no meaningful
     // time axis; fall back to equal spacing rather than dividing by zero.
     if (span <= 0) return even()
-    return Array.from({ length: count }, (_, index) => (nodes[index]!.time - first) / span)
+    return Array.from({ length: count }, (_, index) => (nodes[index].time - first) / span)
   }
 
   // compressed: accumulate inter-row gaps, each capped.
   let accumulated = 0
   const cumulative = Array.from({ length: count }, (_, index) => {
     if (index > 0) {
-      const gap = nodes[index]!.time - nodes[index - 1]!.time
+      const gap = nodes[index].time - nodes[index - 1].time
       accumulated += Math.min(Math.max(0, gap), GAP_CAP_MS)
     }
     return accumulated
@@ -142,10 +142,10 @@ export function projectWave(
   const turns: (readonly [number, number])[] = []
 
   for (let index = 0; index < nodes.length; index++) {
-    const node = nodes[index]!
+    const node = nodes[index]
     // `pos` is in [0, 1]; the final row must land inside the last column.
-    const column = Math.min(width - 1, Math.floor(pos[index]! * width))
-    const slot = buckets[column]!
+    const column = Math.min(width - 1, Math.floor(pos[index] * width))
+    const slot = buckets[column]
     const weight = costOf(node)
     slot.count += 1
     slot.weight += weight
@@ -182,7 +182,7 @@ export function projectWave(
   const floor = weights[0] ?? 0
   const peak = weights.length === 0
     ? 0
-    : weights[Math.min(weights.length - 1, Math.floor(weights.length * 0.95))]!
+    : weights[Math.min(weights.length - 1, Math.floor(weights.length * 0.95))]
 
   return { buckets, peak, floor, turns }
 }
@@ -208,7 +208,7 @@ export function columnOfIndex(band: WaveBand, ledgerIndex: number): number {
   // scan from the right finds the owning column in one pass without needing a
   // parallel index array.
   for (let column = band.buckets.length - 1; column >= 0; column--) {
-    if (band.buckets[column]!.firstIndex <= ledgerIndex) return column
+    if (band.buckets[column].firstIndex <= ledgerIndex) return column
   }
   return 0
 }

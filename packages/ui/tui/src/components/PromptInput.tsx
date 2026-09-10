@@ -82,8 +82,8 @@ function clipboardImageMediaType(path: string): 'image/png' | 'image/jpeg' | 'im
 /** Index of the word boundary at or before `cursor` (readline alt+b). */
 function wordBoundaryLeft(text: string, cursor: number): number {
   let index = cursor
-  while (index > 0 && /\s/.test(text[index - 1]!)) index--
-  while (index > 0 && !/\s/.test(text[index - 1]!)) index--
+  while (index > 0 && /\s/.test(text[index - 1])) index--
+  while (index > 0 && !/\s/.test(text[index - 1])) index--
   return index
 }
 
@@ -91,8 +91,8 @@ function wordBoundaryLeft(text: string, cursor: number): number {
 function wordBoundaryRight(text: string, cursor: number): number {
   const length = text.length
   let index = cursor
-  while (index < length && !/\s/.test(text[index]!)) index++
-  while (index < length && /\s/.test(text[index]!)) index++
+  while (index < length && !/\s/.test(text[index])) index++
+  while (index < length && /\s/.test(text[index])) index++
   return index
 }
 
@@ -116,7 +116,7 @@ function vimLineFirstNonBlank(text: string, cursor: number): number {
   const start = vimLineStart(text, cursor)
   const end = vimLineEnd(text, cursor)
   let i = start
-  while (i < end && /\s/.test(text[i]!)) i++
+  while (i < end && /\s/.test(text[i])) i++
   return i
 }
 
@@ -125,10 +125,10 @@ function vimLineFirstNonBlank(text: string, cursor: number): number {
 function vimWordForward(text: string, cursor: number): number {
   const len = text.length
   let i = cursor
-  if (i < len && !/\s/.test(text[i]!)) {
-    while (i < len && !/\s/.test(text[i]!)) i++
+  if (i < len && !/\s/.test(text[i])) {
+    while (i < len && !/\s/.test(text[i])) i++
   }
-  while (i < len && /\s/.test(text[i]!)) i++
+  while (i < len && /\s/.test(text[i])) i++
   return i
 }
 
@@ -136,8 +136,8 @@ function vimWordForward(text: string, cursor: number): number {
  *  whitespace, the preceding word's start. */
 function vimWordBackward(text: string, cursor: number): number {
   let i = cursor
-  while (i > 0 && /\s/.test(text[i - 1]!)) i--
-  while (i > 0 && !/\s/.test(text[i - 1]!)) i--
+  while (i > 0 && /\s/.test(text[i - 1])) i--
+  while (i > 0 && !/\s/.test(text[i - 1])) i--
   return i
 }
 
@@ -145,7 +145,7 @@ function vimWordBackward(text: string, cursor: number): number {
 function vimWordEnd(text: string, cursor: number): number {
   const len = text.length
   let i = cursor
-  while (i < len && !/\s/.test(text[i]!)) i++
+  while (i < len && !/\s/.test(text[i])) i++
   return i
 }
 
@@ -164,7 +164,7 @@ function graphemeBoundaries(text: string): number[] {
   const bounds = [0]
   for (const { index, segment } of getGraphemeSegmenter().segment(text)) {
     const end = index + segment.length
-    if (end > bounds[bounds.length - 1]!) bounds.push(end)
+    if (end > bounds[bounds.length - 1]) bounds.push(end)
   }
   return bounds
 }
@@ -174,11 +174,11 @@ function graphemeBoundaries(text: string): number[] {
 function boundaryAtOrBefore(bounds: number[], offset: number): number {
   let lo = 0
   let hi = bounds.length - 1
-  let ans = bounds[0]!
+  let ans = bounds[0]
   while (lo <= hi) {
     const mid = (lo + hi) >> 1
-    if (bounds[mid]! <= offset) {
-      ans = bounds[mid]!
+    if (bounds[mid] <= offset) {
+      ans = bounds[mid]
       lo = mid + 1
     } else {
       hi = mid - 1
@@ -194,8 +194,8 @@ function previousGraphemeBoundary(bounds: number[], offset: number): number {
   let ans = 0
   while (lo <= hi) {
     const mid = (lo + hi) >> 1
-    if (bounds[mid]! < offset) {
-      ans = bounds[mid]!
+    if (bounds[mid] < offset) {
+      ans = bounds[mid]
       lo = mid + 1
     } else {
       hi = mid - 1
@@ -212,8 +212,8 @@ function nextGraphemeBoundary(bounds: number[], offset: number): number {
   let ans = bounds[hi] ?? 0
   while (lo <= hi) {
     const mid = (lo + hi) >> 1
-    if (bounds[mid]! > offset) {
-      ans = bounds[mid]!
+    if (bounds[mid] > offset) {
+      ans = bounds[mid]
       hi = mid - 1
     } else {
       lo = mid + 1
@@ -291,12 +291,12 @@ export interface PromptInputProps {
   channel: Channel
   /** Whether the `?` help menu is open (state lives in the Chat screen). */
   helpOpen: boolean
-  onToggleHelp(): void
+  onToggleHelp: () => void
   /**
    * Execute a slash command (built-in or plugin-registered) with its raw
    * argument text; returns false when the input should be sent to the model.
    */
-  onRunCommand(name: string, rawInput: string): boolean
+  onRunCommand: (name: string, rawInput: string) => boolean
   /** Message-selection mode (Shift+↑): the input ignores keys while active. */
   selectionActive: boolean
   /**
@@ -305,9 +305,9 @@ export interface PromptInputProps {
    * the end. The caller clears it via onFillConsumed once consumed.
    */
   fillText?: string | null
-  onFillConsumed?(): void
+  onFillConsumed?: () => void
   /** Double-tap Esc with an empty input: open the rewind picker (CC rewind). */
-  onRewindRequest?(): void
+  onRewindRequest?: () => void
   /** Filled with the live controller each render (see PromptController). */
   controllerRef?: React.RefObject<PromptController | null>
 }
@@ -428,7 +428,7 @@ export function PromptInput({
    * channel without the field also reads as on). Off hides the ⛶
    * affordance and refuses the shortcut — the editor cannot open.
    */
-  const expandEnabled = channel.expandEditor !== false
+  const expandEnabled = channel.expandEditor ?? true
   /** Latest expanded viewport metrics for the useInput wheel branch. */
   const editorViewportRef = React.useRef<{ maxRows: number; total: number } | null>(null)
   /** Hover state of the ⤢/⛶ expand affordance in the input row. */
@@ -446,7 +446,7 @@ export function PromptInput({
   }, [])
   const hoverLeave = React.useCallback(() => {
     if (hoverLeaveTimerRef.current) clearTimeout(hoverLeaveTimerRef.current)
-    hoverLeaveTimerRef.current = setTimeout(() => setHovered(false), 120)
+    hoverLeaveTimerRef.current = setTimeout(() => { setHovered(false) }, 120)
   }, [])
   const valueRef = React.useRef(value)
   const cursorRef = React.useRef(cursor)
@@ -597,7 +597,6 @@ export function PromptInput({
     // Deps key on `mention.query` (and trigger on/off) only: cursor movement
     // within the same token must NOT refetch, and `selectedFile`/`fileSelected`
     // are read as their render-time values only to seed selection preservation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     void channel.listFileCandidates(mention.query, { topK: 50 }).then((next) => {
       if (requestId !== fileRequestId.current) return
       setFileMatches(next)
@@ -996,7 +995,7 @@ export function PromptInput({
     // and from an idle prompt; selectionActive has already returned above.
     // Refused while the feature is turned off in /settings.
     if (expandEnabled && actionMatches('expandEditor', input, key)) {
-      event?.stopImmediatePropagation()
+      event.stopImmediatePropagation()
       toggleExpand()
       return
     }
@@ -1032,7 +1031,7 @@ export function PromptInput({
     if (key.escape && expandedRef.current) {
       // Collapse runs AHEAD of the fold-block/vim Esc meanings: the
       // fullscreen cover is the outermost modal layer.
-      event?.stopImmediatePropagation()
+      event.stopImmediatePropagation()
       collapseEditor()
       return
     }
@@ -1098,7 +1097,7 @@ export function PromptInput({
     // at the caret after removing terminal controls and expanding tabs.
     // Newlines remain data — they are NOT Enter — so this branch runs before
     // the whole-line submit rule.
-    if (event?.isPasted && input.length > 0) {
+    if (event.isPasted && input.length > 0) {
       const text = sanitizeEditableText(input.replace(/\r\n/g, '\n').replace(/\r/g, '\n'))
       const at = insertAtCaret(text)
       // A big paste becomes a CC-style fold block right away (hover peeks
@@ -1221,7 +1220,7 @@ export function PromptInput({
     // report modifiers on Enter. Legacy terminals deliver bare LF (`enter`),
     // while kitty/modifyOtherKeys encode it as an exact Ctrl+J key.
     const isCtrlJ = input === 'j' && key.ctrl && !key.shift && !key.meta && !key.super
-    if ((input === '\n' && event?.keypress.name === 'enter') || isCtrlJ) {
+    if ((input === '\n' && event.keypress.name === 'enter') || isCtrlJ) {
       insertAtCaret('\n')
       return
     }
@@ -1247,7 +1246,7 @@ export function PromptInput({
       if (line.startsWith('/')) {
         const matches = channel.commandCompletions(line)
         if (matches.length === 1) {
-          tryRunCommand(matches[0]!.commandLine)
+          tryRunCommand(matches[0].commandLine)
           return
         }
       }
@@ -1583,9 +1582,9 @@ export function PromptInput({
       // deletion start never crosses into the block.
       const before = value.slice(0, cursor)
       let end = before.length
-      while (end > 0 && /\s/.test(before[end - 1]!)) end--
+      while (end > 0 && /\s/.test(before[end - 1])) end--
       let start = end
-      while (start > 0 && !/\s/.test(before[start - 1]!)) start--
+      while (start > 0 && !/\s/.test(before[start - 1])) start--
       const clipped = clampRowStart(start)
       setInput(value.slice(0, clipped) + value.slice(cursor), clipped)
       return
@@ -1828,7 +1827,7 @@ export function PromptInput({
               setFileSelected(0)
               break
             }
-            handleVimNormal(input[i]!)
+            handleVimNormal(input[i])
           }
           return
         }
@@ -2079,7 +2078,7 @@ export function PromptInput({
     const intervals: Array<[number, number]> = []
     const sel = selection
     if (sel) {
-      const [rowStart, rowEnd] = lineRanges[absoluteLine] ?? [0, 0]
+      const [rowStart] = lineRanges[absoluteLine] ?? [0, 0]
       const lo = Math.min(Math.max(sel.start - rowStart, 0), text.length)
       const hi = Math.min(Math.max(sel.end - rowStart, 0), text.length)
       if (hi > lo) intervals.push([lo, hi])
@@ -2162,7 +2161,7 @@ export function PromptInput({
     let count = 0
     for (let i = 0; i < lineRanges.length; i++) {
       editorRowLogical.push(count)
-      const rangeEnd = lineRanges[i]![1]
+      const rangeEnd = lineRanges[i][1]
       if (value[rangeEnd] === '\n') count++
     }
   }
@@ -2452,7 +2451,7 @@ export function PromptInput({
   // 「会话名标签」开关（dsh-tui.promptSessionLabel）开启后显示。
   const sessionTitle = channel.sessionTitle ?? ''
   const topRightLabel: InputBorderLabel | undefined =
-    channel.promptSessionLabel === true && sessionTitle !== ''
+    channel.promptSessionLabel && sessionTitle !== ''
       ? {
         text: truncateToWidth(sessionTitle, Math.max(8, Math.min(28, columns - 8))),
         color: channel.mode.plan === true ? 'planMode' : (sessionAccent ?? 'claude'),
@@ -2964,12 +2963,12 @@ function wordSelectionAt(
   if (offset < lo || offset >= hi) return null
   const bounds = graphemeBoundaries(text.slice(lo, hi)).map(b => b + lo)
   let i = 0
-  while (i < bounds.length - 1 && bounds[i + 1]! <= offset) i++
-  const clusterAt = (index: number): string => text.slice(bounds[index]!, bounds[index + 1]!)
+  while (i < bounds.length - 1 && bounds[i + 1] <= offset) i++
+  const clusterAt = (index: number): string => text.slice(bounds[index], bounds[index + 1])
   const cls = selectionCharClass(clusterAt(i))
   let a = i
   while (a > 0 && selectionCharClass(clusterAt(a - 1)) === cls) a--
   let b = i
   while (b < bounds.length - 2 && selectionCharClass(clusterAt(b + 1)) === cls) b++
-  return { start: bounds[a]!, end: bounds[b + 1]! }
+  return { start: bounds[a], end: bounds[b + 1] }
 }

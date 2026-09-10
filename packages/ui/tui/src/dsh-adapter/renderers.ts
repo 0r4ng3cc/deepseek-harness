@@ -74,16 +74,17 @@ export class TuiRendererRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiRenderers')
     compositionRoot(ctx)
-    const runtime = this
     const state: RendererState = {
       renderers: new Map(),
       failedTypes: new Set(),
       host: undefined,
       logger: ctx.logger,
     }
-    const host: TuiRendererHost = Object.freeze({ render: (type, payload) => renderEntry(runtime, type, payload) })
+    const host: TuiRendererHost = Object.freeze({
+      render: (type: string, payload: unknown) => renderEntry(this, type, payload),
+    })
     state.host = host
-    hostRenderers.set(runtime, state)
+    hostRenderers.set(this, state)
   }
 
   /**
@@ -104,7 +105,7 @@ export class TuiRendererRuntime extends Service {
     const state = rendererStateFor(this)
     let normalized: string
     try {
-      normalized = String(type ?? '').trim().toLowerCase()
+      normalized = type.trim().toLowerCase()
     } catch {
       this.ctx.logger.warn('dsh-tui: tuiRenderers.register rejected an uncoercible event type')
       return () => {}

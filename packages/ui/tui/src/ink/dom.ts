@@ -605,9 +605,10 @@ export const markDirty = (node?: DOMNode): void => {
 export const markTreeDirty = (node?: DOMNode): void => {
   const stack: DOMNode[] = node === undefined ? [] : [node]
   while (stack.length > 0) {
-    const current = stack.pop()!
+    const current = stack.pop()
+    if (current === undefined) break
     if (current.nodeName === '#text') continue
-    const element = current as DOMElement
+    const element = current
     element.dirty = true
     // markDirty() is only legal on yoga nodes that carry a measure function;
     // those are exactly the two text node kinds (see createNode).

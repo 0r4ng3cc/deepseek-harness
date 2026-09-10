@@ -401,7 +401,7 @@ function updateStreamingSlot(
   slot.current = {
     line: detachString(line),
     clustered,
-    trailingStyles: chars.length > 0 ? chars[chars.length - 1]!.styles : [],
+    trailingStyles: chars.length > 0 ? chars[chars.length - 1].styles : [],
   }
 }
 
@@ -758,6 +758,10 @@ export default class Output {
           continue
         }
 
+        case 'noSelect':
+          // Applied after the paint loop so fences win over blits/writes.
+          continue
+
         case 'write': {
           const { text, softWrap } = operation
           let { x, y } = operation
@@ -769,34 +773,49 @@ export default class Output {
 
           if (clip) {
             const clipHorizontally =
-              typeof clip?.x1 === 'number' && typeof clip?.x2 === 'number'
+              typeof clip.x1 === 'number' && typeof clip.x2 === 'number'
 
             const clipVertically =
-              typeof clip?.y1 === 'number' && typeof clip?.y2 === 'number'
+              typeof clip.y1 === 'number' && typeof clip.y2 === 'number'
 
             // If text is positioned outside of clipping area altogether,
             // skip to the next operation to avoid unnecessary calculations
             if (clipHorizontally) {
               const width = widestLine(text)
+              const clipX1 = clip.x1
+              const clipX2 = clip.x2
+              if (clipX1 === undefined || clipX2 === undefined) {
+                continue
+              }
 
-              if (x + width <= clip.x1! || x >= clip.x2!) {
+              if (x + width <= clipX1 || x >= clipX2) {
                 continue
               }
             }
 
             if (clipVertically) {
               const height = lines.length
+              const clipY1 = clip.y1
+              const clipY2 = clip.y2
+              if (clipY1 === undefined || clipY2 === undefined) {
+                continue
+              }
 
-              if (y + height <= clip.y1! || y >= clip.y2!) {
+              if (y + height <= clipY1 || y >= clipY2) {
                 continue
               }
             }
 
             if (clipHorizontally) {
-              lines = lines.map(line => {
-                const from = x < clip.x1! ? clip.x1! - x : 0
+              const clipX1 = clip.x1
+              const clipX2 = clip.x2
+              if (clipX1 === undefined || clipX2 === undefined) {
+                continue
+              }
+              lines = lines.map((line) => {
+                const from = x < clipX1 ? clipX1 - x : 0
                 const width = stringWidth(line)
-                const to = x + width > clip.x2! ? clip.x2! - x : width
+                const to = x + width > clipX2 ? clipX2 - x : width
                 // Fast path: the line sits entirely inside the clip — no
                 // slice needed. sliceAnsi re-tokenizes the line (the
                 // dominant per-frame cost of long sessions otherwise:
@@ -815,29 +834,34 @@ export default class Output {
                 return sliced
               })
 
-              if (x < clip.x1!) {
-                x = clip.x1!
+              if (x < clipX1) {
+                x = clipX1
               }
             }
 
             if (clipVertically) {
-              const from = y < clip.y1! ? clip.y1! - y : 0
+              const clipY1 = clip.y1
+              const clipY2 = clip.y2
+              if (clipY1 === undefined || clipY2 === undefined) {
+                continue
+              }
+              const from = y < clipY1 ? clipY1 - y : 0
               const height = lines.length
-              const to = y + height > clip.y2! ? clip.y2! - y : height
+              const to = y + height > clipY2 ? clipY2 - y : height
 
               // If the first visible line is a soft-wrap continuation, we
               // need the clipped previous line's content end so
               // screen.softWrap[lineY] correctly records the join point
               // even though that line's cells were never written.
-              if (softWrap && from > 0 && softWrap[from] === true) {
-                prevContentEnd = x + stringWidth(lines[from - 1]!)
+              if (softWrap && from > 0 && softWrap[from]) {
+                prevContentEnd = x + stringWidth(lines[from - 1])
               }
 
               lines = lines.slice(from, to)
               swFrom = from
 
-              if (y < clip.y1!) {
-                y = clip.y1!
+              if (y < clipY1) {
+                y = clipY1
               }
             }
           }
@@ -867,7 +891,7 @@ export default class Output {
             // from writeLineToScreen is tab-expansion-aware, unlike
             // x+stringWidth(line) which treats tabs as width 0.
             if (softWrap) {
-              const isSW = softWrap[swFrom + offsetY] === true
+              const isSW = softWrap[swFrom + offsetY]
               swBits[lineY] = isSW ? prevContentEnd : 0
               prevContentEnd = contentEnd
             }
@@ -908,7 +932,7 @@ function stylesEqual(a: AnsiCode[], b: AnsiCode[]): boolean {
   if (len !== b.length) return false
   if (len === 0) return true // Both empty
   for (let i = 0; i < len; i++) {
-    if (a[i]!.code !== b[i]!.code) return false
+    if (a[i].code !== b[i].code) return false
   }
   return true
 }
@@ -930,10 +954,10 @@ function styledCharsWithGraphemeClustering(
 
   const result: ClusteredChar[] = []
   const bufferChars: string[] = []
-  let bufferStyles: AnsiCode[] = chars[0]!.styles
+  let bufferStyles: AnsiCode[] = chars[0].styles
 
   for (let i = 0; i < charCount; i++) {
-    const char = chars[i]!
+    const char = chars[i]
     const styles = char.styles
 
     // Different styles means we need to flush and start new buffer
@@ -1056,13 +1080,13 @@ function writeLineToScreen(
     x >= 0 &&
     y >= 0 &&
     y < screen.height
-  let run = recordable ? createCellRun(screen) : undefined
+  const run = recordable ? createCellRun(screen) : undefined
   let runAlive = run !== undefined
 
   let offsetX = x
 
   for (let charIdx = 0; charIdx < characters.length; charIdx++) {
-    const character = characters[charIdx]!
+    const character = characters[charIdx]
     const codePoint = character.value.codePointAt(0)
 
     // Handle C0 control characters (0x00-0x1F) that cause cursor movement
@@ -1095,7 +1119,7 @@ function writeLineToScreen(
       // tokens that we need to skip here.
       else if (codePoint === 0x1b) {
         const nextChar = characters[charIdx + 1]?.value
-        const nextCode = nextChar?.codePointAt(0)
+        const nextCode = nextChar.codePointAt(0)
         if (
           nextChar === '(' ||
           nextChar === ')' ||

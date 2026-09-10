@@ -132,18 +132,11 @@ export class TuiSettingsSectionsRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiSettingsSections')
     compositionRoot(ctx)
-    const runtime = this
     const state: SettingsSectionState = { sections: new Map(), owners: new Map(), listeners: new Set(), host: undefined }
     state.host = Object.freeze({
-      register(section: TuiSettingsSection) {
-        return registerSection(runtime, section)
-      },
-      list() {
-        return [...settingsSectionStateFor(runtime).sections.values()]
-      },
-      subscribe(listener: () => void) {
-        return subscribeSections(runtime, listener)
-      },
+      register: (section: TuiSettingsSection) => registerSection(this, section),
+      list: () => [...settingsSectionStateFor(this).sections.values()],
+      subscribe: (listener: () => void) => subscribeSections(this, listener),
     })
     settingsSectionStates.set(this, state)
   }
@@ -218,7 +211,11 @@ function settingsSectionStateFor(runtime: TuiSettingsSectionsRuntime): SettingsS
   return state
 }
 
-function registerSection(runtime: TuiSettingsSectionsRuntime | SettingsSectionState, section: TuiSettingsSection, owner?: object): () => void {
+function registerSection(
+  runtime: TuiSettingsSectionsRuntime | SettingsSectionState,
+  section: TuiSettingsSection,
+  owner?: object,
+): () => void {
   const state = isSectionState(runtime) ? runtime : settingsSectionStateFor(runtime)
   const ns = section.ns.trim()
   if (!/^[a-z][a-z0-9_-]*$/u.test(ns)) throw new TypeError(`invalid TUI settings-section namespace: ${section.ns}`)
@@ -227,7 +224,7 @@ function registerSection(runtime: TuiSettingsSectionsRuntime | SettingsSectionSt
   const groupIds = new Set<string>()
   const groups = section.groups === undefined
     ? undefined
-    : Object.freeze(section.groups.map(group => {
+    : Object.freeze(section.groups.map((group) => {
       const id = group.id.trim()
       if (!/^[a-z][a-z0-9_-]*$/u.test(id)) throw new TypeError(`invalid TUI settings group id: ${group.id}`)
       if (groupIds.has(id)) throw new Error(`TUI settings group "${id}" is already declared in section "${ns}"`)
@@ -238,7 +235,7 @@ function registerSection(runtime: TuiSettingsSectionsRuntime | SettingsSectionSt
         descriptions: group.descriptions === undefined ? undefined : Object.freeze({ ...group.descriptions }),
       })
     }))
-  const fields = Object.freeze(section.fields.map(field => {
+  const fields = Object.freeze(section.fields.map((field) => {
     const group = field.group?.trim()
     if (group !== undefined && !groupIds.has(group)) {
       throw new TypeError(`TUI settings field "${field.path.join('.')}" references unknown group "${field.group}" in section "${ns}"`)
@@ -251,7 +248,12 @@ function registerSection(runtime: TuiSettingsSectionsRuntime | SettingsSectionSt
       hintDescriptions: field.hintDescriptions === undefined ? undefined : Object.freeze({ ...field.hintDescriptions }),
       options: field.options === undefined
         ? undefined
-        : Object.freeze(field.options.map(option => Object.freeze({ ...option, descriptions: option.descriptions === undefined ? undefined : Object.freeze({ ...option.descriptions }) }))),
+        : Object.freeze(field.options.map(option => Object.freeze({
+          ...option,
+          descriptions: option.descriptions === undefined
+            ? undefined
+            : Object.freeze({ ...option.descriptions }),
+        }))),
       secret: field.secret === undefined ? undefined : Object.freeze({ ...field.secret }),
     })
   }))
@@ -299,7 +301,7 @@ export function getHostSettingsSections(runtime: TuiSettingsSectionsRuntime | un
 }
 
 function isSectionState(value: object): value is SettingsSectionState {
-  return value instanceof Map === false && 'sections' in value && 'listeners' in value
+  return !(value instanceof Map) && 'sections' in value && 'listeners' in value
 }
 
 /**

@@ -123,7 +123,7 @@ export class TuiToastRuntime extends Service {
     let color: TuiToastDelivery['color']
     if (options.color !== undefined) {
       if (!COLORS.has(options.color)) {
-        caller.logger.warn(`dsh-tui: tuiToast.show rejected unknown color "${String(options.color)}"`)
+        caller.logger.warn(`dsh-tui: tuiToast.show rejected unknown color "${options.color}"`)
         return false
       }
       color = options.color
@@ -145,7 +145,7 @@ export class TuiToastRuntime extends Service {
     }
     const now = Date.now()
     const window = state.windows.get(owner) ?? []
-    while (window.length > 0 && now - window[0]! >= RATE_WINDOW_MS) window.shift()
+    while (window.length > 0 && now - window[0] >= RATE_WINDOW_MS) window.shift()
     if (window.length >= RATE_LIMIT) {
       if (!state.warned.has(owner)) {
         state.warned.add(owner)

@@ -25,7 +25,7 @@ export function negotiate(
   const required = manifest.requires.contracts.filter(reference => reference.optional !== true)
   const optional = manifest.requires.contracts.filter(reference => reference.optional === true)
 
-  const unknown = manifest.requires.contracts.filter(reference => {
+  const unknown = manifest.requires.contracts.filter((reference) => {
     try {
       return index.resolveContractRef(reference).unregisteredVersion
     } catch {

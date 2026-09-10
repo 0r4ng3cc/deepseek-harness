@@ -312,7 +312,7 @@ export function SessionBrowser({
     () => selectedWorkspace?.current !== false
       ? sameProject
       : (left: string, right: string): boolean =>
-          normalizeWorkspaceCwd(left) === normalizeWorkspaceCwd(right),
+        normalizeWorkspaceCwd(left) === normalizeWorkspaceCwd(right),
     [selectedWorkspace?.id, selectedWorkspace?.current, sameProject],
   )
   const view = React.useMemo(
@@ -620,7 +620,7 @@ export function SessionBrowser({
     report(t(pinning ? 'resume-pinned' : 'resume-unpinned', { name: target.title.text }), 'info')
   }
 
-  const runDelete = (target: SessionSummary): void =>
+  const runDelete = (target: SessionSummary): void => {
     mutate(
       async (): Promise<boolean> => {
         const ok = await channel.deleteSession(target.id)
@@ -636,13 +636,15 @@ export function SessionBrowser({
       t('resume-deleted', { name: target.title.text }),
       t('resume-delete-failed', { name: target.title.text }),
     )
+  }
 
-  const runRename = (target: SessionSummary, title: string): void =>
+  const runRename = (target: SessionSummary, title: string): void => {
     mutate(
       () => channel.renameSessionTo(target.id, title),
       t('rename-done', { title }),
       t('resume-rename-failed', { name: target.title.text }),
     )
+  }
 
   const runClean = (): void => {
     // Snapshot the ids before any await: the view is rebuilt by the reload
@@ -917,8 +919,8 @@ export function SessionBrowser({
           flexShrink={0}
           overflow="hidden"
           onClick={level === 'sessions' && mode === 'list' ? openWorkspaceMenu : undefined}
-          onMouseEnter={level === 'sessions' && mode === 'list' ? () => setScopeHovered(true) : undefined}
-          onMouseLeave={level === 'sessions' && mode === 'list' ? () => setScopeHovered(false) : undefined}
+          onMouseEnter={level === 'sessions' && mode === 'list' ? () => { setScopeHovered(true) } : undefined}
+          onMouseLeave={level === 'sessions' && mode === 'list' ? () => { setScopeHovered(false) } : undefined}
           backgroundColor={scopeHovered ? 'userMessageBackgroundHover' : undefined}
         >
           <Text color="remember" bold>{scopeRow.left}</Text>
@@ -964,7 +966,7 @@ export function SessionBrowser({
                 selected={choice.id === selectedWorkspaceId}
                 home={home}
                 now={now}
-                onClick={mode === 'list' ? () => chooseWorkspace(choice) : undefined}
+                onClick={mode === 'list' ? () => { chooseWorkspace(choice) } : undefined}
               />
             ))}
           </ink-box>
@@ -1022,9 +1024,9 @@ export function SessionBrowser({
                       onTogglePin={
                         mode === 'list' && menu === undefined && !actionPendingRef.current
                           ? () => {
-                              setFocusId(row.session.id)
-                              togglePin(row.session)
-                            }
+                            setFocusId(row.session.id)
+                            togglePin(row.session)
+                          }
                           : undefined
                       }
                       onContextMenu={mode === 'list' ? (event: ContextMenuEvent) => {
@@ -1077,8 +1079,8 @@ export function SessionBrowser({
             setMode('list')
             runDelete(focused)
           }}
-          onMouseEnter={(): void => setConfirmHovered(true)}
-          onMouseLeave={(): void => setConfirmHovered(false)}
+          onMouseEnter={(): void => { setConfirmHovered(true) }}
+          onMouseLeave={(): void => { setConfirmHovered(false) }}
           backgroundColor={confirmHovered ? 'userMessageBackgroundHover' : undefined}
         >
           <Text color="error">
@@ -1093,8 +1095,8 @@ export function SessionBrowser({
             setMode('list')
             runClean()
           }}
-          onMouseEnter={(): void => setConfirmHovered(true)}
-          onMouseLeave={(): void => setConfirmHovered(false)}
+          onMouseEnter={(): void => { setConfirmHovered(true) }}
+          onMouseLeave={(): void => { setConfirmHovered(false) }}
           backgroundColor={confirmHovered ? 'userMessageBackgroundHover' : undefined}
         >
           <Text color="warning">
@@ -1152,7 +1154,7 @@ export function SessionBrowser({
               height={1}
               flexShrink={0}
               backgroundColor={index === menu.item ? 'userMessageBackgroundHover' : undefined}
-              onMouseEnter={(): void => setMenu(m => (m === undefined ? m : { ...m, item: index }))}
+              onMouseEnter={(): void => { setMenu(m => (m === undefined ? m : { ...m, item: index })) }}
               onClick={(): void => {
                 if (actionPendingRef.current) return
                 activateMenu(menuTarget, index)

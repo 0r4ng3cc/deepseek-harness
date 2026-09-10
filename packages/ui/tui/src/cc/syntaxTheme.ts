@@ -46,8 +46,8 @@ export const SYNTAX_CLASS_TO_TOKEN: Record<string, string> = {
 export function chalkFromToken(token: string): (text: string) => string {
   let match = /^#([0-9a-fA-F]{3})$/.exec(token)
   if (match !== null) {
-    const [r, g, b] = match[1]!.split('').map(c => parseInt(c + c, 16))
-    return chalk.rgb(r!, g!, b!)
+    const [r = 0, g = 0, b = 0] = match[1].split('').map(c => parseInt(c + c, 16))
+    return chalk.rgb(r, g, b)
   }
   match = /^#([0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?$/.exec(token)
   if (match !== null) return chalk.hex(`#${match[1]}`)

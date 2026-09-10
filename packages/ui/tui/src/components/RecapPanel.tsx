@@ -43,8 +43,8 @@ export function RecapPanel({
   const [frame, setFrame] = React.useState(0)
   React.useEffect(() => {
     if (!streaming || summary !== '') return
-    const interval = setInterval(() => setFrame(f => f + 1), 80)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { setFrame(f => f + 1) }, 80)
+    return () => { clearInterval(interval) }
   }, [streaming, summary])
 
   const canApply = title !== undefined && title !== '' && !titleApplied

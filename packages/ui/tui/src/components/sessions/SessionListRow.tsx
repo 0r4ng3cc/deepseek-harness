@@ -49,11 +49,11 @@ export function SessionListRow({
   /** Epoch ms used for every relative time in this render pass. */
   now: number
   /** 鼠标点击行（fullscreen）：恢复该会话（与 Enter 同路径）。 */
-  onClick?(event: ClickEvent): void
+  onClick?: (event: ClickEvent) => void
   /** 鼠标右键（fullscreen）：在该行弹出操作菜单（打开/固定/重命名/删除）。 */
-  onContextMenu?(event: ContextMenuEvent): void
+  onContextMenu?: (event: ContextMenuEvent) => void
   /** 点击行内 ★/☆（fullscreen）：切换固定状态，不冒泡成"打开会话"。 */
-  onTogglePin?(): void
+  onTogglePin?: () => void
 }): React.ReactNode {
   const indent = depth * 2
   // Two cells for the focus marker, plus the indent for a nested run.
@@ -92,8 +92,8 @@ export function SessionListRow({
       flexShrink={0}
       onClick={onClick}
       onContextMenu={onContextMenu}
-      onMouseEnter={onClick !== undefined || onContextMenu !== undefined ? () => setHovered(true) : undefined}
-      onMouseLeave={onClick !== undefined || onContextMenu !== undefined ? () => setHovered(false) : undefined}
+      onMouseEnter={onClick !== undefined || onContextMenu !== undefined ? () => { setHovered(true) } : undefined}
+      onMouseLeave={onClick !== undefined || onContextMenu !== undefined ? () => { setHovered(false) } : undefined}
       backgroundColor={focused || hovered ? 'userMessageBackgroundHover' : undefined}
     >
       <Box>

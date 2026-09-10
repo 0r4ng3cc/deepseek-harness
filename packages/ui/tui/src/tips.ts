@@ -757,7 +757,7 @@ export const TIPS: readonly Tip[] = [
  * random 可注入以便测试固定（默认 Math.random）。
  */
 export function pickRandomTip(random: () => number = Math.random): Tip {
-  return TIPS[Math.floor(random() * TIPS.length)]!
+  return TIPS[Math.floor(random() * TIPS.length)]
 }
 
 /** 按分组取 tips（/tips 面板展示用，保持 TIPS 内顺序）。 */

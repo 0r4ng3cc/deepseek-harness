@@ -1,4 +1,5 @@
 import React from 'react'
+import type { WheelEvent } from '../ink/events/wheel-event.js'
 import { Box, Text, NoSelect, type ScrollBoxHandle } from '../ui.js'
 import { RAIL_MIN_TERMINAL_WIDTH, RAIL_WIDTH } from '../ink/timeline-rail.js'
 
@@ -60,7 +61,7 @@ export function ScrollbarGutter({
   React.useEffect(() => clearDwell, [])
   React.useEffect(() => {
     if (!handle) return
-    return handle.subscribe(() => setTick(t => t + 1))
+    return handle.subscribe(() => { setTick(t => t + 1) })
   }, [handle])
 
   if (!handle) return null
@@ -93,7 +94,7 @@ export function ScrollbarGutter({
         key={y}
         height={1}
         flexShrink={0}
-        onClick={() => handle.scrollTo(trackScrollTop(y))}
+        onClick={() => { handle.scrollTo(trackScrollTop(y)) }}
         onMouseEnter={() => {
           setHoverRow(y)
           // Resting pointer: chip follows immediately once dwell has
@@ -102,7 +103,7 @@ export function ScrollbarGutter({
           if (chipRow !== null) {
             setChipRow(y)
           } else {
-            dwellTimer.current = setTimeout(() => setChipRow(y), CHIP_DWELL_MS)
+            dwellTimer.current = setTimeout(() => { setChipRow(y) }, CHIP_DWELL_MS)
           }
         }}
         onMouseLeave={() => {
@@ -160,7 +161,7 @@ export function ScrollbarGutter({
           above extends past the page margin (Chat), so this track
           naturally lands at the terminal's right edge. */}
       <ink-box
-        onWheel={e => {
+        onWheel={(e: WheelEvent) => {
           if (e.deltaY !== 0) handle.scrollBy(e.deltaY)
         }}
         style={{ flexDirection: 'column', flexShrink: 0, width: RAIL_WIDTH }}

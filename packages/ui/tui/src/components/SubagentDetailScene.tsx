@@ -89,7 +89,7 @@ function JsonArgsText({ raw }: { raw: string }): React.ReactNode {
   React.useEffect(() => {
     if (!json) return
     let alive = true
-    void getCliHighlightPromise().then(cli => {
+    void getCliHighlightPromise().then((cli) => {
       if (!alive || cli === null) return
       try {
         setHighlighted(cli.highlight(flat, { language: 'json' }))
@@ -133,8 +133,8 @@ export function SubagentDetailScene({
 
   const turnPage = (delta: number): void => {
     const next = (pageIndex + delta + PAGES.length) % PAGES.length
-    setPage(PAGES[next]!)
-    scrollRef.current?.scrollTo?.(0)
+    setPage(PAGES[next])
+    scrollRef.current.scrollTo(0)
   }
 
   // tail -f: while the subagent runs and the output page is showing, follow
@@ -190,7 +190,7 @@ export function SubagentDetailScene({
     return (
       <React.Fragment key={name}>
         <Box
-          onClick={() => setPage(name)}
+          onClick={() => { setPage(name) }}
           backgroundColor={!active ? 'userMessageBackgroundHover' : undefined}
         >
           <Text color={active ? 'claude' : undefined} bold={active} inverse={active}>
@@ -317,7 +317,7 @@ export function SubagentDetailScene({
         {isRunning && onInterrupt && (
           <>
             <Text dimColor>{' · '}</Text>
-            <Box onClick={() => onInterrupt(subagent.agentId)}>
+            <Box onClick={() => { onInterrupt(subagent.agentId) }}>
               <Text dimColor bold color="warning">X interrupt</Text>
             </Box>
           </>

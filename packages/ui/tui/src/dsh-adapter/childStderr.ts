@@ -31,8 +31,11 @@ import { t } from '../i18n.js'
 
 /** Strip ANSI escape sequences (CSI/OSC) so raw child output can't inject
  *  cursor moves or colors into the notification area. */
-// eslint-disable-next-line no-control-regex -- intentional: matching terminal escape sequences
-const ANSI_PATTERN = /[\u001b\u009b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)/g
+const ANSI_PATTERN = new RegExp(
+  String.raw`[\u001b\u009b][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~]`
+  + String.raw`|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)`,
+  'g',
+)
 
 /**
  * Rewrite spawn options so an inherited stderr (fd 2) becomes a pipe.

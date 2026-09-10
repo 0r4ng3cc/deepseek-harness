@@ -85,7 +85,7 @@ let state: TraceState = {
   cause: null,
   scroll: [],
   list: null,
-  aux: {}
+  aux: {},
 }
 
 /** Tag the origin of the next painted frame. First note in the window wins. */
@@ -129,7 +129,7 @@ export function endGeometryFrame(durationMs: number): void {
       ms: Math.round(durationMs * 10) / 10,
       scroll: state.scroll,
       list: state.list,
-      aux: state.aux
+      aux: state.aux,
     })
     try {
       appendFileSync(TRACE_PATH, line + '\n')

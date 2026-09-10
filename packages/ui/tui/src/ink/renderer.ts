@@ -46,7 +46,7 @@ export default function createRenderer(
   // Reuse Output across frames so charCache (tokenize + grapheme clustering)
   // persists — most lines don't change between renders.
   let output: Output | undefined
-  return options => {
+  return (options) => {
     const { frontFrame, backFrame, isTTY, terminalWidth, terminalRows } =
       options
     // The no-interest hover rect (hit-test.ts) is strictly per-frame: drop
@@ -115,7 +115,7 @@ export default function createRenderer(
     if (options.altScreen && yogaHeight > terminalRows) {
       logForDebugging(
         `alt-screen: yoga height ${yogaHeight} > terminalRows ${terminalRows} — ` +
-          `something is rendering outside <AlternateScreen>. Overflow clipped.`,
+          'something is rendering outside <AlternateScreen>. Overflow clipped.',
         { level: 'warn' },
       )
     }

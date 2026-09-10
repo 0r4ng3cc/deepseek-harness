@@ -81,7 +81,7 @@ export function validatePlugin(index: ContractIndex, manifest: PluginManifest): 
   for (const subscription of manifest.subscriptions) index.resolveSubscription(subscription)
 
   const knownPermissions = new Set(index.permissions.permissions.map(permission => permission.name))
-  const commandIds = new Set(manifest.contributes.commands.map(command => command.id))
+  const commandIds = new Set((manifest.contributes.commands as readonly { id: string }[]).map(command => command.id))
   const requiresDecisionEvents = manifest.requires.contracts.some(requirement =>
     requirement.kind === 'DecisionEvents'
     && groupOf(requirement.apiVersion) === groupOf('tui.dsh/v1alpha1'))
@@ -120,14 +120,15 @@ export function validatePlugin(index: ContractIndex, manifest: PluginManifest): 
   }
   for (const commandId of commandIds) {
     if (!manifest.permissions.some(permission => permission.name === 'commands.invoke' && permission.scope === commandId)) {
-      throw new Error(`declared command is missing commands.invoke permission scope: ${commandId}`)
+      const idText = typeof commandId === 'string' ? commandId : JSON.stringify(commandId)
+      throw new Error(`declared command is missing commands.invoke permission scope: ${idText}`)
     }
   }
 
   const projected = projectManifest(manifest)
   const report = index.manifests.validate(projected, index.protocols)
   const errors = report.issues.filter(issue => issue.severity === 'error')
-  if (errors.length > 0) throw new Error(errors.map(issue => issue.message).join('; '))
+  if (errors.length > 0) throw new Error(errors.map((issue: { message: string }) => issue.message).join('; '))
 }
 
 export function validateHost(index: ContractIndex, host: HostDescriptor): void {

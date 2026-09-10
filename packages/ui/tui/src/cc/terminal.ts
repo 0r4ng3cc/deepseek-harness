@@ -108,18 +108,18 @@ export function renderTruncatedContent(
   // overflow, so fall back to a length-based estimate in that case.
   const estimatedRemaining = preTruncated
     ? Math.max(
-        hidden,
-        Math.ceil(trimmedContent.length / wrapWidth) - MAX_VISIBLE_LINES,
-      )
+      hidden,
+      Math.ceil(trimmedContent.length / wrapWidth) - MAX_VISIBLE_LINES,
+    )
     : hidden
 
   const overflowHint =
     estimatedRemaining > 0
       ? chalk.dim(
-          `… +${estimatedRemaining} lines${
-            suppressExpandHint ? '' : ` ${ctrlOToExpand()}`
-          }`,
-        )
+        `… +${estimatedRemaining} lines${
+          suppressExpandHint ? '' : ` ${ctrlOToExpand()}`
+        }`,
+      )
       : ''
 
   return [visible, overflowHint].filter(Boolean).join('\n')

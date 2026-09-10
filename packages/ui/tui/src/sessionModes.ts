@@ -40,7 +40,7 @@ export function resolveSessionModes(raw: readonly SessionModeSpec[] | undefined)
 } {
   if (raw === undefined || raw.length === 0) return { modes: DEFAULT_SESSION_MODES, dropped: [] }
   const dropped: string[] = []
-  const modes = raw.filter(spec => {
+  const modes = raw.filter((spec) => {
     const usable = spec.plan !== undefined || spec.sandbox !== undefined || spec.approval !== undefined
     if (!usable) dropped.push(spec.id)
     return usable

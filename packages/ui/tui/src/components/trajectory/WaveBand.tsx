@@ -117,7 +117,7 @@ export function WaveBand({
   let wave = ''
 
   for (let column = 0; column < band.buckets.length; column++) {
-    const bucket = band.buckets[column]!
+    const bucket = band.buckets[column]
     const dimmed = matches !== undefined && !matches.has(column)
     const isCursor = column === cursorColumn
 
@@ -127,7 +127,7 @@ export function WaveBand({
     }
 
     if (bucket.running) {
-      wave += chalk.hex(toHex(mix(theme.success, theme.planMode, breath) as string))(RUNNING)
+      wave += chalk.hex(toHex(mix(theme.success, theme.planMode, breath)))(RUNNING)
       continue
     }
 
@@ -151,7 +151,7 @@ export function WaveBand({
     // at least half height so the red is visible at a glance, which is the
     // whole point of colouring it.
     const shown = failed ? Math.max(level, Math.ceil(LEVELS / 2)) : level
-    wave += chalk.hex(hex)(shown >= LEVELS ? FULL : BLOCKS[shown - 1]!)
+    wave += chalk.hex(hex)(shown >= LEVELS ? FULL : BLOCKS[shown - 1])
   }
 
   // ── ruler: turn numbers plus the viewport bracket ─────────────────────────
@@ -168,7 +168,7 @@ export function WaveBand({
       continue
     }
     for (let offset = 0; offset < label.length && column + offset < ruler.length; offset++) {
-      ruler[column + offset] = label[offset]!
+      ruler[column + offset] = label[offset]
     }
     lastLabelEnd = column + label.length
   }
@@ -177,7 +177,7 @@ export function WaveBand({
   let rulerText = ''
   for (let column = 0; column < ruler.length; column++) {
     const inViewport = column >= from && column <= to
-    const glyph = inViewport ? (column === from ? '▐' : column === to ? '▌' : '▀') : ruler[column]!
+    const glyph = inViewport ? (column === from ? '▐' : column === to ? '▌' : '▀') : ruler[column]
     rulerText += inViewport
       ? chalk.hex(toHex(theme.permission))(glyph)
       : chalk.hex(toHex(theme.subtle))(glyph)
@@ -191,9 +191,9 @@ export function WaveBand({
         onColumnClick === undefined
           ? undefined
           : (event: ClickEvent) => {
-              const column = Math.max(0, Math.min(band.buckets.length - 1, event.localCol))
-              onColumnClick(column, event)
-            }
+            const column = Math.max(0, Math.min(band.buckets.length - 1, event.localCol))
+            onColumnClick(column, event)
+          }
       }
     >
       <Text>{wave}</Text>

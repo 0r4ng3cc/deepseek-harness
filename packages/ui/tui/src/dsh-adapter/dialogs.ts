@@ -33,26 +33,26 @@ export interface TuiDialogSelectOption {
 /** What the chat screen renders while a dialog is pending. */
 export type TuiDialogSnapshot =
   | {
-      readonly key: string
-      readonly kind: 'select'
-      readonly title: string
-      readonly options: readonly TuiDialogSelectOption[]
-    }
+    readonly key: string
+    readonly kind: 'select'
+    readonly title: string
+    readonly options: readonly TuiDialogSelectOption[]
+  }
   | {
-      readonly key: string
-      readonly kind: 'confirm'
-      readonly title: string
-      readonly message?: string
-      readonly confirmLabel: string
-      readonly cancelLabel: string
-    }
+    readonly key: string
+    readonly kind: 'confirm'
+    readonly title: string
+    readonly message?: string
+    readonly confirmLabel: string
+    readonly cancelLabel: string
+  }
   | {
-      readonly key: string
-      readonly kind: 'input'
-      readonly title: string
-      readonly placeholder?: string
-      readonly initial: string
-    }
+    readonly key: string
+    readonly kind: 'input'
+    readonly title: string
+    readonly placeholder?: string
+    readonly initial: string
+  }
 
 /** Common request options. */
 export interface TuiDialogBase {
@@ -153,7 +153,7 @@ export class TuiDialogStore {
         timer: undefined,
         ownerCleanup: undefined,
       }
-      pending.snapshot = { ...snapshot, key: pending.key } as TuiDialogSnapshot
+      pending.snapshot = { ...snapshot, key: pending.key }
       pending.settle = (value: TuiDialogAnswer): void => {
         if (settled) return
         settled = true
@@ -188,7 +188,7 @@ export class TuiDialogStore {
       if (owner !== undefined) {
         const bound = bindOwnerEffect?.(
           pending.onAbort,
-          cleanup => { pending.ownerCleanup = cleanup },
+          (cleanup) => { pending.ownerCleanup = cleanup },
         ) ?? false
         if (!bound) {
           // An inactive or untrusted activation must never leave an orphan in
@@ -286,7 +286,7 @@ export class TuiDialogRuntime extends Service {
     // compatibility.
     const store = new TuiDialogStore()
     hostDialogStores.set(this, store)
-    ctx.effect(() => () => store.settleAll())
+    ctx.effect(() => () => { store.settleAll() })
   }
 
   /** Cordis traceable services normally provide the caller through `this.ctx`;
@@ -318,19 +318,21 @@ export class TuiDialogRuntime extends Service {
     try {
       const owner = this.callContext(ownerOrRequest)
       const request = (explicitRequest ?? ownerOrRequest) as TuiDialogSelectRequest
-      const title = clean(request?.title, TITLE_CELLS)
-      const rawOptions = Array.isArray(request?.options) ? request.options : []
+      const title = clean(request.title, TITLE_CELLS)
+      const rawOptions: readonly unknown[] = Array.isArray(request.options) ? request.options : []
       const options: TuiDialogSelectOption[] = []
       for (const raw of rawOptions.slice(0, MAX_OPTIONS)) {
         // The id is NOT render-path data — it is the opaque token the promise
         // resolves with, matched by the plugin against its own options. Sanitizing
         // it (whitespace collapse, cell truncation) would hand back a DIFFERENT
         // string the plugin cannot look up; validate and keep it verbatim.
-        const id = raw?.id
-        const label = clean(raw?.label, LABEL_CELLS)
+        if (raw === null || typeof raw !== 'object') continue
+        const record = raw as Record<string, unknown>
+        const id = record.id
+        const label = clean(record.label, LABEL_CELLS)
         if (typeof id !== 'string' || id === '' || !label) continue
         // '' (absent, blank, or a dropped non-scalar) means no description row.
-        const description = clean(raw?.description, MESSAGE_CELLS)
+        const description = clean(record.description, MESSAGE_CELLS)
         options.push({ id, label, ...(description === '' ? {} : { description }) })
       }
       if (!title || options.length === 0) {
@@ -359,14 +361,14 @@ export class TuiDialogRuntime extends Service {
     try {
       const owner = this.callContext(ownerOrRequest)
       const request = (explicitRequest ?? ownerOrRequest) as TuiDialogConfirmRequest
-      const title = clean(request?.title, TITLE_CELLS)
+      const title = clean(request.title, TITLE_CELLS)
       if (!title) {
         this.ctx.logger.warn('dsh-tui: tuiDialogs.confirm called without a title; cancelled')
         return Promise.resolve(false)
       }
-      const message = clean(request?.message, MESSAGE_CELLS)
-      const confirmLabel = clean(request?.confirmLabel, LABEL_CELLS)
-      const cancelLabel = clean(request?.cancelLabel, LABEL_CELLS)
+      const message = clean(request.message, MESSAGE_CELLS)
+      const confirmLabel = clean(request.confirmLabel, LABEL_CELLS)
+      const cancelLabel = clean(request.cancelLabel, LABEL_CELLS)
       return dialogStoreFor(this)
         .ask(
           {
@@ -395,13 +397,13 @@ export class TuiDialogRuntime extends Service {
     try {
       const owner = this.callContext(ownerOrRequest)
       const request = (explicitRequest ?? ownerOrRequest) as TuiDialogInputRequest
-      const title = clean(request?.title, TITLE_CELLS)
+      const title = clean(request.title, TITLE_CELLS)
       if (!title) {
         this.ctx.logger.warn('dsh-tui: tuiDialogs.input called without a title; cancelled')
         return Promise.resolve(undefined)
       }
-      const placeholder = clean(request?.placeholder, LABEL_CELLS)
-      const initial = clean(request?.initial, INPUT_CELLS)
+      const placeholder = clean(request.placeholder, LABEL_CELLS)
+      const initial = clean(request.initial, INPUT_CELLS)
       return dialogStoreFor(this)
         .ask(
           { kind: 'input', title, ...(placeholder === '' ? {} : { placeholder }), initial },

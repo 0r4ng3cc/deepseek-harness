@@ -10,7 +10,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { WorkspaceRegistry } from '@deepseek-ai/dsh-workspace'
+import type {} from '@deepseek-ai/dsh-workspace'
 
 /**
  * Find or create the Workspace for `cwd`, then durably account `sessionId`.
@@ -25,7 +25,7 @@ export async function attachSessionToWorkspace(
   cwd: string,
   sessionId: SessionId,
 ): Promise<boolean> {
-  const registry = ctx.get('workspaceRegistry') as WorkspaceRegistry | undefined
+  const registry = ctx.get('workspaceRegistry')
   if (registry === undefined) return false
 
   const workspace = await registry.resolveByPath(cwd) ?? await registry.create(cwd)

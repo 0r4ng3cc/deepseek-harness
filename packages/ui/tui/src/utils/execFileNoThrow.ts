@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { extname } from 'node:path'
 
 const MAX_CAPTURE_BYTES = 64 * 1024
@@ -52,8 +52,8 @@ export function execFileNoThrow(
   args: readonly string[] = [],
   options?: ExecFileNoThrowOptions,
 ): Promise<ExecFileNoThrowResult> {
-  return new Promise(resolve => {
-    let child
+  return new Promise((resolve) => {
+    let child: ChildProcess
     try {
       child = spawnCommand(file, args, options)
     } catch {
@@ -74,11 +74,11 @@ export function execFileNoThrow(
         stderr: Buffer.concat(stderrChunks).toString('utf8'),
       })
     }
-    child.stdout?.on('data', (chunk: Buffer) => appendBounded(stdoutChunks, chunk, stdoutTotal))
-    child.stderr?.on('data', (chunk: Buffer) => appendBounded(stderrChunks, chunk, stderrTotal))
+    child.stdout?.on('data', (chunk: Buffer) => { appendBounded(stdoutChunks, chunk, stdoutTotal) })
+    child.stderr?.on('data', (chunk: Buffer) => { appendBounded(stderrChunks, chunk, stderrTotal) })
     child.stdin?.on('error', () => {})
-    child.on('error', () => finish(1))
-    child.on('close', code => finish(code))
+    child.on('error', () => { finish(1) })
+    child.on('close', (code) => { finish(code) })
     if (options?.input !== undefined) child.stdin?.write(options.input)
     child.stdin?.end()
   })

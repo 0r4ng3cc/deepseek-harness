@@ -306,7 +306,8 @@ export async function listSummaries(
       })
     }
     const record = recordsById.get(work.id)
-    if (record !== undefined) record.derived = next.get(work.id)!.derived
+    const nextEntry = next.get(work.id)
+    if (record !== undefined && nextEntry !== undefined) record.derived = nextEntry.derived
   }
 
   // Entries for sessions the backend no longer lists are dropped here; that is

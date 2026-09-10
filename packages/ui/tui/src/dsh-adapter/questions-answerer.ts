@@ -39,15 +39,15 @@ interface UserQuestionWaterfallContext {
 
 export type PreparedQuestionAnswerer =
   | {
-      readonly kind: 'legacy'
-      /** Present only when another component already owns the provider seat. */
-      readonly yieldDecision?: QuestionProviderYieldDecision
-    }
+    readonly kind: 'legacy'
+    /** Present only when another component already owns the provider seat. */
+    readonly yieldDecision?: QuestionProviderYieldDecision
+  }
   | {
-      readonly kind: 'waterfall'
-      /** Bind ownership after the mutable channel has been created. */
-      register(owner: { readonly agentId: string }): () => void
-    }
+    readonly kind: 'waterfall'
+    /** Bind ownership after the mutable channel has been created. */
+    register(owner: { readonly agentId: string }): () => void
+  }
 
 function hasLegacyProvider(service: unknown): service is LegacyUserQuestionService {
   return typeof (service as { registerProvider?: unknown }).registerProvider === 'function'

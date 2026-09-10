@@ -167,9 +167,9 @@ function HelpCommandRow({
   return (
     <Box
       flexShrink={0}
-      onClick={clickable ? () => onPick(command.name) : undefined}
-      onMouseEnter={clickable ? (): void => setHovered(true) : undefined}
-      onMouseLeave={clickable ? (): void => setHovered(false) : undefined}
+      onClick={clickable ? () => { onPick(command.name) } : undefined}
+      onMouseEnter={clickable ? (): void => { setHovered(true) } : undefined}
+      onMouseLeave={clickable ? (): void => { setHovered(false) } : undefined}
       backgroundColor={clickable && hovered ? 'userMessageBackgroundHover' : undefined}
     >
       <Text dimColor wrap="truncate-end">

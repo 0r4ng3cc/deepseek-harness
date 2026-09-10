@@ -25,7 +25,9 @@ export type RenderOptions = {
    */
   stderr?: NodeJS.WriteStream
   /**
-   * Configure whether Ink should listen to Ctrl+C keyboard input and exit the app. This is needed in case `process.stdin` is in raw mode, because then Ctrl+C is ignored by default and process is expected to handle it manually.
+   * Configure whether Ink should listen to Ctrl+C keyboard input and exit the
+   * app. This is needed in case `process.stdin` is in raw mode, because then
+   * Ctrl+C is ignored by default and process is expected to handle it manually.
    *
    * @default true
    */
@@ -118,13 +120,13 @@ export const renderSync = (
   instance.render(node)
 
   return {
-    rerender: instance.render,
+    rerender: instance.render.bind(instance),
     unmount() {
       instance.unmount()
     },
-    waitUntilExit: instance.waitUntilExit,
-    detachForShutdown: () => instance.detachForShutdown(),
-    detachStdinForHandoff: () => instance.detachStdinForHandoff(),
+    waitUntilExit: instance.waitUntilExit.bind(instance),
+    detachForShutdown: () => { instance.detachForShutdown() },
+    detachStdinForHandoff: () => { instance.detachStdinForHandoff() },
     cleanup: () => instances.delete(inkOptions.stdout),
   }
 }
@@ -187,8 +189,8 @@ export async function createRoot(
   instances.set(stdout, instance)
 
   return {
-    render: node => instance.render(node),
-    unmount: () => instance.unmount(),
+    render: (node) => { instance.render(node) },
+    unmount: () => { instance.unmount() },
     waitUntilExit: () => instance.waitUntilExit(),
   }
 }

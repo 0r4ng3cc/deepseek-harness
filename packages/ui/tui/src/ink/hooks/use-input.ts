@@ -20,7 +20,8 @@ type Options = {
  * This hook is used for handling user input.
  * It's a more convenient alternative to using `StdinContext` and listening to `data` events.
  * The callback you pass to `useInput` is called for each character when user enters any input.
- * However, if user pastes text and it's more than one character, the callback will be called only once and the whole string will be passed as `input`.
+ * However, if user pastes text and it's more than one character, the callback
+ * will be called only once and the whole string will be passed as `input`.
  *
  * ```
  * import {useInput} from 'ink';
@@ -92,10 +93,10 @@ const useInput = (inputHandler: Handler, options: Options = {}): void => {
   })
 
   useEffect(() => {
-    internal_eventEmitter?.on('input', handleData)
+    internal_eventEmitter.on('input', handleData)
 
     return () => {
-      internal_eventEmitter?.removeListener('input', handleData)
+      internal_eventEmitter.removeListener('input', handleData)
     }
   }, [internal_eventEmitter, handleData])
 }

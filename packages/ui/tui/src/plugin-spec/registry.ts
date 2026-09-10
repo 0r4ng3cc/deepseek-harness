@@ -5,7 +5,14 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAdmissionCatalog } from './tui-extension.js'
-import type { ContractRegistry, PermissionEntry, PermissionRegistry, RegistryEntry } from './types.js'
+import type {
+  ContractRegistry,
+  ImportedRegistryEntry,
+  PermissionEntry,
+  PermissionRegistry,
+  PrivateRegistryEntry,
+  RegistryEntry,
+} from './types.js'
 
 export const DSH_STD_REVISION = '614dfa1ac168db79fcf4577cf0ebb34e2e3b944b'
 export const ECOSYSTEM_SPEC_REVISION = 'd28c267fe7fd775428ec2dccd65b0b7efd4dacee'
@@ -94,7 +101,10 @@ function structurallySound(data: { registry: unknown; permissions: unknown; sche
   if (new Set(data.registry.facetApiVersions).size !== data.registry.facetApiVersions.length) return false
   if (!data.registry.imports.every(entry => soundEntry(entry, false))) return false
   if (!data.registry.definitions.every(entry => soundEntry(entry, true))) return false
-  const entries = [...data.registry.imports, ...data.registry.definitions]
+  const entries: RegistryEntry[] = [
+    ...(data.registry.imports as ImportedRegistryEntry[]),
+    ...(data.registry.definitions as PrivateRegistryEntry[]),
+  ]
   const names = new Set<string>()
   const coordinates = new Set<string>()
   for (const entry of entries) {
@@ -164,7 +174,7 @@ export function digestFile(dir: string, relative: string): `sha256:${string}` {
 /** Verify definition availability and private profile digest pins. */
 export function verifyRegistry(data: SpecData): string[] {
   const failures: string[] = []
-  const registry = data?.registry as unknown as Record<string, unknown> | undefined
+  const registry = data.registry as unknown as Record<string, unknown> | undefined
   if (!isRecord(registry)
     || !Array.isArray(registry.imports)
     || !Array.isArray(registry.definitions)) {
@@ -173,7 +183,9 @@ export function verifyRegistry(data: SpecData): string[] {
   const names = new Set<string>()
   const coordinates = new Set<string>()
   const { protocols } = createAdmissionCatalog()
-  for (const raw of [...registry.imports, ...registry.definitions]) {
+  const imported = registry.imports as unknown[]
+  const defined = registry.definitions as unknown[]
+  for (const raw of [...imported, ...defined]) {
     const privateDefinition = registry.definitions.includes(raw)
     if (!soundEntry(raw, privateDefinition)) {
       failures.push('registry entry is malformed')
@@ -210,7 +222,7 @@ export function verifyContractProfiles(data: SpecData): string[] {
     'errors', 'concurrency', 'timeout', 'cleanup', 'privacyClass', 'securityBoundary',
   ]
   const failures: string[] = []
-  if (!isRecord(data?.registry)
+  if (!isRecord(data.registry)
     || !Array.isArray((data.registry as unknown as { definitions?: unknown }).definitions)) {
     return ['registry definitions are malformed']
   }

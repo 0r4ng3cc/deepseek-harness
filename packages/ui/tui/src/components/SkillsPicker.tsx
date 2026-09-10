@@ -76,7 +76,7 @@ export function SkillsPicker({
                 description={`${sourceLabel(skill.source)}${skill.description === '' ? '' : ` · ${skill.description}`}`}
                 showScrollUp={absoluteIndex === start && start > 0}
                 showScrollDown={absoluteIndex === end - 1 && end < skills.length}
-                onClick={onPick ? () => onPick(absoluteIndex) : undefined}
+                onClick={onPick ? () => { onPick(absoluteIndex) } : undefined}
               >
                 {skill.userInvocable ? `/${skill.name}` : skill.name}
               </ListItem>

@@ -47,7 +47,7 @@ import {
 } from '@dsh-std/storage'
 import { DATA_DIR } from '../utils/paths.js'
 import { activationContext, assertCallerContext, bindCallerEffect, compositionRoot, concreteService } from './host-access.js'
-import { declaresPermission, requireComponentIdentity, requiresContract, type VerifiedComponentIdentity } from './component-identity.js'
+import { declaresPermission, requireComponentIdentity, requiresContract } from './component-identity.js'
 import { readGrantStore, type GrantStore } from './grants.js'
 import type { TuiEffectLedgerRuntime } from './effect-ledger.js'
 
@@ -94,7 +94,7 @@ function storageStateFor(runtime: TuiPluginStorageRuntime): StorageState {
 
 /** The per-namespace handle returned by {@link TuiPluginStorageRuntime.open}. */
 export interface TuiPluginStorage {
-  get(input: { key: string }): Promise<{ value: unknown | null }>
+  get(input: { key: string }): Promise<{ value: unknown }>
   set(input: { key: string; value: unknown }): Promise<{ stored: true }>
   delete(input: { key: string }): Promise<{ deleted: boolean }>
 }
@@ -142,7 +142,7 @@ function validateStorageInput(
     let keyValid = false
     try {
       const candidate = input as { key?: unknown }
-      assertKey(candidate?.key)
+      assertKey(candidate.key)
       keyValid = true
     } catch {
       keyValid = false
@@ -187,9 +187,8 @@ function isJsonValue(value: unknown, seen: Set<object>): boolean {
     case 'number':
       return Number.isFinite(value)
     case 'object': {
-      const object = value as object
-      if (seen.has(object)) return false
-      seen.add(object)
+      if (seen.has(value)) return false
+      seen.add(value)
       try {
         if (Array.isArray(value)) {
           // Array subclasses/custom prototypes can supply an inherited toJSON
@@ -229,7 +228,7 @@ function isJsonValue(value: unknown, seen: Set<object>): boolean {
       } finally {
         // DAGs (shared references without cycles) serialize fine — only
         // reject a value reachable from ITSELF.
-        seen.delete(object)
+        seen.delete(value)
       }
     }
     default:
@@ -253,7 +252,7 @@ export class TuiPluginStorageRuntime extends Service {
   constructor(ctx: Context, options: { dir?: string; grants?: GrantStore; ledger?: TuiEffectLedgerRuntime } = {}) {
     super(ctx, 'tuiPluginStorage')
     storageStates.set(this, {
-hostContext: compositionRoot(ctx),
+      hostContext: compositionRoot(ctx),
       grantsOption: options.grants,
       fallbackGrants: readGrantStore(),
       ledgerOption: options.ledger,
@@ -326,9 +325,9 @@ hostContext: compositionRoot(ctx),
       if (closed) {
         return Promise.reject(new PluginStorageError('STORAGE_UNAVAILABLE', `storage namespace "${plugin}" handle is closed`))
       }
-      const run = namespace!.chain.then(operation)
+      const run = namespace.chain.then(operation)
       // Keep the chain alive after a failure without unhandled rejections.
-      namespace!.chain = run.catch(() => {})
+      namespace.chain = run.catch(() => {})
       return run
     }
 
@@ -362,7 +361,7 @@ hostContext: compositionRoot(ctx),
       // Object.hasOwn, and keys like "__proto__" / "toString" must behave
       // as ordinary data (a prototype-chain read would leak host objects
       // into plugin results and fake membership for never-stored keys).
-      const table: Record<string, unknown> = Object.create(null)
+      const table: Record<string, unknown> = Object.create(null) as Record<string, unknown>
       for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) table[key] = value
       return table
     }
@@ -400,7 +399,7 @@ hostContext: compositionRoot(ctx),
     }
 
     return {
-      get: (input: { key: string }) => enqueue(async () => {
+      get: (input: { key: string }) => enqueue(() => {
         validateStorageInput('get', input)
         const key = input.key
         assertKey(key)
@@ -410,7 +409,7 @@ hostContext: compositionRoot(ctx),
         try { validateGetOutput(output) } catch {
           throw new PluginStorageError('STORAGE_UNAVAILABLE', `storage namespace "${plugin}" contains an invalid JSON value`)
         }
-        return output
+        return Promise.resolve(output)
       }),
       set: (input: { key: string; value: unknown }) => enqueue(async () => {
         validateStorageInput('set', input)
@@ -451,8 +450,12 @@ hostContext: compositionRoot(ctx),
             validateDeleteOutput(output)
             return output
           }
-          delete table[key]
-          await writeFileAtomic(file, JSON.stringify(table), { mode: 0o600, dirMode: 0o700 })
+          const { [key]: _removed, ...rest } = table
+          const next: Record<string, unknown> = Object.assign(
+            Object.create(null) as Record<string, unknown>,
+            rest,
+          )
+          await writeFileAtomic(file, JSON.stringify(next), { mode: 0o600, dirMode: 0o700 })
           const output = { deleted: true }
           validateDeleteOutput(output)
           return output

@@ -13,13 +13,17 @@ export type Props = {
   readonly stdin: NodeJS.ReadStream
 
   /**
-   * Ink exposes this function via own `<StdinContext>` to be able to handle Ctrl+C, that's why you should use Ink's `setRawMode` instead of `process.stdin.setRawMode`.
+   * Ink exposes this function via own `<StdinContext>` to be able to handle
+   * Ctrl+C, that's why you should use Ink's `setRawMode` instead of
+   * `process.stdin.setRawMode`.
    * If the `stdin` stream passed to Ink does not support setRawMode, this function does nothing.
    */
   readonly setRawMode: (value: boolean) => void
 
   /**
-   * A boolean flag determining if the current `stdin` supports `setRawMode`. A component using `setRawMode` might want to use `isRawModeSupported` to nicely fall back in environments where raw mode is not supported.
+   * A boolean flag determining if the current `stdin` supports `setRawMode`.
+   * A component using `setRawMode` might want to use `isRawModeSupported` to
+   * nicely fall back in environments where raw mode is not supported.
    */
   readonly isRawModeSupported: boolean
 
@@ -47,7 +51,6 @@ const StdinContext = createContext<Props>({
   internal_querier: null,
 })
 
-// eslint-disable-next-line custom-rules/no-top-level-side-effects
 StdinContext.displayName = 'InternalStdinContext'
 
 export default StdinContext

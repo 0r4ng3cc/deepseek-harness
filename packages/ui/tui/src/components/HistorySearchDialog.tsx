@@ -73,7 +73,7 @@ export function HistorySearchDialog({
                 description={formatRelativeAge(entry.ts)}
                 showScrollUp={absoluteIndex === start && start > 0}
                 showScrollDown={absoluteIndex === end - 1 && end < matches.length}
-                onClick={onPick ? () => onPick(absoluteIndex) : undefined}
+                onClick={onPick ? () => { onPick(absoluteIndex) } : undefined}
               >
                 {entry.text}
               </ListItem>

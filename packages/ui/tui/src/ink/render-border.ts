@@ -96,14 +96,14 @@ const renderBorder = (
   node: DOMNode,
   output: Output,
 ): void => {
-  if (node.style.borderStyle) {
-    const width = Math.floor(node.yogaNode!.getComputedWidth())
-    const height = Math.floor(node.yogaNode!.getComputedHeight())
+  if (node.style.borderStyle && node.yogaNode) {
+    const width = Math.floor(node.yogaNode.getComputedWidth())
+    const height = Math.floor(node.yogaNode.getComputedHeight())
     const box =
       typeof node.style.borderStyle === 'string'
         ? (CUSTOM_BORDER_STYLES[
-            node.style.borderStyle as keyof typeof CUSTOM_BORDER_STYLES
-          ] ?? cliBoxes[node.style.borderStyle as keyof Boxes])
+          node.style.borderStyle as keyof typeof CUSTOM_BORDER_STYLES
+        ] ?? cliBoxes[node.style.borderStyle as keyof Boxes])
         : node.style.borderStyle
 
     const topBorderColor = node.style.borderTopColor ?? node.style.borderColor

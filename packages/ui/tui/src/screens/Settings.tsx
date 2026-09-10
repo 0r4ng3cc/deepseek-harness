@@ -193,7 +193,10 @@ function CardTop({
   if (used(stringWidth(titleText), showSubtitle, showBadges) + 1 > columns && showSubtitle) showSubtitle = false
   if (used(stringWidth(titleText), showSubtitle, showBadges) + 1 > columns && showBadges) showBadges = false
   if (used(stringWidth(titleText), showSubtitle, showBadges) + 1 > columns) {
-    titleText = truncateWidth(titleText, Math.max(4, columns - 6 - (showSubtitle ? stringWidth(subtitleText) : 0) - (showBadges ? 2 + badgesWidth : 0)))
+    titleText = truncateWidth(
+      titleText,
+      Math.max(4, columns - 6 - (showSubtitle ? stringWidth(subtitleText) : 0) - (showBadges ? 2 + badgesWidth : 0)),
+    )
   }
   const dashes = Math.max(0, columns - used(stringWidth(titleText), showSubtitle, showBadges))
   return (
@@ -342,13 +345,12 @@ export function Settings({
         .filter((field): field is TuiSettingsField & { secret: { ref: string } } => field.secret !== undefined)
         .map(async field => [`${section.ns}:${field.path.join('.')}`, await host.credentialConfigured(field.secret.ref)] as const),
     )
-    void Promise.all(pending).then(entries => {
+    void Promise.all(pending).then((entries) => {
       if (!stale && mountedRef.current) setSecrets(new Map(entries))
     })
     return () => {
       stale = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host, sections, secretProbe])
 
   const activeSection = activeGroup === null ? undefined : sections.find(section => section.ns === activeGroup.ns)
@@ -390,7 +392,7 @@ export function Settings({
       pendingSaveRef.current.add(ns)
       return
     }
-    void form.save().then(ok => {
+    void form.save().then((ok) => {
       if (!mountedRef.current) return
       if (ok) {
         setNotice({ text: t('settings-saved', { ns }), tone: 'success' })
@@ -514,7 +516,7 @@ export function Settings({
       if (focused !== undefined && focused.kind === 'field') {
         const field = focused.field
         if ((field.options?.length ?? 0) > 0) {
-          cycleField(focused.ns, field, key.rightArrow === true ? 1 : -1)
+          cycleField(focused.ns, field, key.rightArrow ? 1 : -1)
         }
       }
     } else if (isPlainReturn(key) && focused !== undefined) {
@@ -547,14 +549,14 @@ export function Settings({
       mode === 'edit'
         ? undefined
         : {
-            onClick: (): void => {
-              setFocusIndex(focus)
-              activateEntry({ kind: 'field', ns: section.ns, field })
-            },
-            onMouseEnter: (): void => {
-              setFocusIndex(focus)
-            },
-          }
+          onClick: (): void => {
+            setFocusIndex(focus)
+            activateEntry({ kind: 'field', ns: section.ns, field })
+          },
+          onMouseEnter: (): void => {
+            setFocusIndex(focus)
+          },
+        }
 
     let value: string
     if (field.secret !== undefined) {
@@ -581,9 +583,9 @@ export function Settings({
     const selectLabel =
       ((field.kind === 'select' || (field.options?.length ?? 0) > 0) && !isEditing && state.text !== '')
         ? (() => {
-            const option = field.options?.find(entry => entry.value === state.text)
-            return option === undefined ? state.text : pick(option.label, option.descriptions)
-          })()
+          const option = field.options?.find(entry => entry.value === state.text)
+          return option === undefined ? state.text : pick(option.label, option.descriptions)
+        })()
         : undefined
 
     return (
@@ -682,14 +684,14 @@ export function Settings({
           mode === 'edit'
             ? undefined
             : {
-                onClick: (): void => {
-                  setFocusIndex(index)
-                  activateEntry({ kind: 'group', ns: section.ns, group })
-                },
-                onMouseEnter: (): void => {
-                  setFocusIndex(index)
-                },
-              }
+              onClick: (): void => {
+                setFocusIndex(index)
+                activateEntry({ kind: 'group', ns: section.ns, group })
+              },
+              onMouseEnter: (): void => {
+                setFocusIndex(index)
+              },
+            }
         entries.push({
           key: `group:${section.ns}:${group.id}`,
           lines: 1,
@@ -736,7 +738,7 @@ export function Settings({
   // list above it.
   const viewport = Math.max(1, rows - 4)
   React.useEffect(() => {
-    setWindowStart(start => {
+    setWindowStart((start) => {
       if (focusedOffset < start) return focusedOffset
       if (focusedOffset + focusedLines > start + viewport) return focusedOffset + focusedLines - viewport
       return start
@@ -744,7 +746,7 @@ export function Settings({
   }, [focusedOffset, focusedLines, viewport])
 
   let entryOffset = 0
-  const visible = entries.filter(entry => {
+  const visible = entries.filter((entry) => {
     const start = entryOffset
     entryOffset += entry.lines
     return start >= windowStart && start + entry.lines <= windowStart + viewport

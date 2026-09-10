@@ -238,6 +238,6 @@ export class InputEvent extends Event {
     this.keypress = keypress
     this.key = key
     this.input = input
-    this.isPasted = keypress.isPasted === true
+    this.isPasted = keypress.isPasted
   }
 }

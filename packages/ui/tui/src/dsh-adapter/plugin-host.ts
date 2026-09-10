@@ -100,7 +100,7 @@ export class TuiPluginHostRuntime extends Service implements TuiPluginHost {
   constructor(ctx: Context) {
     super(ctx, 'tuiPluginHost')
     hostStates.set(this, {
-hostContext: compositionRoot(ctx),
+      hostContext: compositionRoot(ctx),
       generationId: randomUUID(),
       grants: Object.freeze(readGrantStore()),
       descriptorBuild: undefined,
@@ -142,7 +142,7 @@ hostContext: compositionRoot(ctx),
     const observerMounted = host.get('tuiMessageObserver') !== undefined
     const topology = `${Number(commandsMounted)}:${Number(storageMounted)}:${Number(observerMounted)}`
     if (state.descriptorBuild === undefined || state.descriptorTopology !== topology) {
-      const supported = HOST_SUPPORTED_CONTRACTS.filter(contract => {
+      const supported = HOST_SUPPORTED_CONTRACTS.filter((contract) => {
         if (contract.kind === 'Command') return commandsMounted
         if (contract.kind === 'LocalStorage') return storageMounted
         if (contract.kind === 'MessageObserver') return observerMounted
@@ -284,7 +284,7 @@ hostContext: compositionRoot(ctx),
       host.get('tuiEffectLedger')?.record(
         {
           operation: 'bind',
-          resource: { kind: 'permission', id: `${event}` },
+          resource: { kind: 'permission', id: event },
           result: 'failed',
           errorCode: 'PERMISSION_NOT_GRANTED',
         },
@@ -337,11 +337,11 @@ hostContext: compositionRoot(ctx),
     const definition = typeof contributionOrDefinition === 'string' ? explicitDefinition : contributionOrDefinition
     if (definition === undefined) throw new TypeError('dsh-tui: registerCommand requires a command definition')
     const name = typeof definition.name === 'string' ? definition.name : 'unknown'
-    const inferred = identity.manifest.contributes.commands.filter(command =>
+    const inferred = (identity.manifest.contributes.commands as readonly { id: string }[]).filter(command =>
       command.id === name || command.id.endsWith(`.${name}`))
     const contributionId = typeof contributionOrDefinition === 'string'
       ? contributionOrDefinition
-      : inferred.length === 1 ? inferred[0]!.id : ''
+      : inferred.length === 1 ? inferred[0].id : ''
     if (contributionId === '' || !declaresCommand(identity, contributionId)) {
       throw new TypeError(`dsh-tui: command "${name}" is not bound to a declared contribution id`)
     }
@@ -349,14 +349,14 @@ hostContext: compositionRoot(ctx),
     // unknown fields. A per-registration handler wrapper survives that copy,
     // giving the invoke checkpoint a collision-free identity for the actual
     // resolved definition (including agent-scoped shadows).
-    const handler: unknown = definition?.handler
+    const handler: unknown = definition.handler
     const attributedDefinition: CommandDefinition = typeof handler === 'function'
       ? {
-          ...definition,
-          handler: function (this: unknown, invocation) {
-            return handler.call(this, invocation)
-          },
-        }
+        ...definition,
+        handler: function (this: unknown, invocation) {
+          return (handler as CommandDefinition['handler']).call(this, invocation)
+        },
+      }
       : definition
     let dispose: () => void
     try {
@@ -386,7 +386,7 @@ hostContext: compositionRoot(ctx),
       unstampCommandOwner(host, attributedDefinition, identity.activationId)
       host.get('tuiEffectLedger')?.record(
         { operation: 'release', resource: { kind: 'command', id: contributionId }, result: 'applied' },
-      caller,
+        caller,
       )
     }
     // commands.register() already belongs to pluginCtx and therefore removes

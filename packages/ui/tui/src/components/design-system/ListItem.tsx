@@ -109,8 +109,8 @@ export function ListItem({
       ref={cursorRef}
       flexDirection="column"
       onClick={clickable ? onClick : undefined}
-      onMouseEnter={clickable ? () => setHovered(true) : undefined}
-      onMouseLeave={clickable ? () => setHovered(false) : undefined}
+      onMouseEnter={clickable ? () => { setHovered(true) } : undefined}
+      onMouseLeave={clickable ? () => { setHovered(false) } : undefined}
       backgroundColor={clickable && hovered ? 'userMessageBackgroundHover' : undefined}
     >
       {/* 行高恒 1、不压缩、溢出隐藏：压边换行会把每个列表项膨胀成 2 个

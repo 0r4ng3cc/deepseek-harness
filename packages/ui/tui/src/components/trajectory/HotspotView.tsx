@@ -40,14 +40,14 @@ function bar(value: number, max: number, width: number): string {
 type Entry =
   | { readonly kind: 'title'; readonly text: string }
   | {
-      readonly kind: 'row'
-      readonly row: HotspotRow
-      /** Index into the flattened row list the cursor walks. */
-      readonly cursorIndex: number
-      /** Largest value in this row's own section, for bar scaling. */
-      readonly max: number
-      readonly colorKey: 'chromeYellow' | 'autoAccept' | 'professionalBlue'
-    }
+    readonly kind: 'row'
+    readonly row: HotspotRow
+    /** Index into the flattened row list the cursor walks. */
+    readonly cursorIndex: number
+    /** Largest value in this row's own section, for bar scaling. */
+    readonly max: number
+    readonly colorKey: 'chromeYellow' | 'autoAccept' | 'professionalBlue'
+  }
 
 /** Flatten the three sections into the single list the cursor walks. */
 export function hotspotRows(agg: TrajAggregate): HotspotRow[] {
@@ -141,12 +141,12 @@ export function HotspotView({
             height={1}
             flexShrink={0}
             gap={1}
-            onClick={onRowClick === undefined ? undefined : () => onRowClick(entry.cursorIndex)}
-            onMouseEnter={onRowClick === undefined ? undefined : () => setHoverIndex(entry.cursorIndex)}
+            onClick={onRowClick === undefined ? undefined : () => { onRowClick(entry.cursorIndex) }}
+            onMouseEnter={onRowClick === undefined ? undefined : () => { setHoverIndex(entry.cursorIndex) }}
             onMouseLeave={
               onRowClick === undefined
                 ? undefined
-                : () => setHoverIndex(previous => (previous === entry.cursorIndex ? -1 : previous))
+                : () => { setHoverIndex(previous => (previous === entry.cursorIndex ? -1 : previous)) }
             }
           >
             <Box flexShrink={0} width={2}>
@@ -158,7 +158,7 @@ export function HotspotView({
               </Text>
             </Box>
             <Box flexShrink={0} width={barWidth}>
-              <Text color={mix(base as string, theme.background as string, dim)}>
+              <Text color={mix(base, theme.background, dim)}>
                 {bar(valueOf(row, sort), max, barWidth)}
               </Text>
             </Box>

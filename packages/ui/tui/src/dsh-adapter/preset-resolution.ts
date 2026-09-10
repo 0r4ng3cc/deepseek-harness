@@ -42,7 +42,7 @@ export function resolveRecordedPreset(session: {
 }): string | undefined {
   for (let index = session.events.length - 1; index >= 0; index -= 1) {
     const event = session.events[index]
-    if (event?.type !== 'agent-preset/selected') continue
+    if (event.type !== 'agent-preset/selected') continue
     if (event.data === null || typeof event.data !== 'object') continue
     const selected = (event.data as { agentPreset?: unknown }).agentPreset
     if (typeof selected === 'string') return selected

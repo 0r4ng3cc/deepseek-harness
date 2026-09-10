@@ -64,7 +64,7 @@ export function hitTest(
   }
   // Later siblings paint on top; reversed traversal returns topmost hit.
   for (let i = node.childNodes.length - 1; i >= 0; i--) {
-    const child = node.childNodes[i]!
+    const child = node.childNodes[i]
     if (child.nodeName === '#text') continue
     const hit = hitTest(child, col, row)
     if (hit) return hit
@@ -110,7 +110,7 @@ export function hitTestWithOverlays(
   hitTestWithOverlaysCount++
   const overlays = getAbsoluteHitList()
   for (let i = overlays.length - 1; i >= 0; i--) {
-    const { node, rect } = overlays[i]!
+    const { node, rect } = overlays[i]
     if (
       col >= rect.x &&
       col < rect.x + rect.width &&
@@ -441,7 +441,7 @@ function hasHoverInterest(node: DOMElement): boolean {
 function subtreeHasHoverInterest(node: DOMElement): boolean {
   for (const childNode of node.childNodes) {
     if (childNode.nodeName === '#text') continue
-    const child = childNode as DOMElement
+    const child = childNode
     if (hasHoverInterest(child) || subtreeHasHoverInterest(child)) return true
   }
   return false
@@ -466,7 +466,7 @@ function overlappingSiblingHasHoverInterest(hit: DOMElement, rect: NoInterestRec
   for (let parent = hit.parentNode; parent; parent = parent.parentNode) {
     for (const siblingNode of parent.childNodes) {
       if (siblingNode === branch || siblingNode.nodeName === '#text') continue
-      const sibling = siblingNode as DOMElement
+      const sibling = siblingNode
       const siblingRect = nodeCache.get(sibling)
       if (
         siblingRect &&
@@ -536,7 +536,7 @@ export function dispatchHover(
     // defensively (hovered is empty here by construction — the rect is
     // only cached right after the diff emptied it).
   } else {
-    let hit: DOMElement | undefined =
+    const hit: DOMElement | undefined =
       hitTestWithOverlays(root, col, row) ?? undefined
     // Chain walk collects the enter/leave set AND decides cache
     // eligibility: the rect is only trusted when no node in the hit chain

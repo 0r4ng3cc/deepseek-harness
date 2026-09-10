@@ -322,7 +322,7 @@ export function selectWordAt(
 // Printable ASCII minus terminal URL delimiters. Restricting to single-
 // codeunit ASCII keeps cell-count === string-index, so the column-span
 // check below is exact (no wide-char/grapheme drift).
-const URL_BOUNDARY = new Set([...'<>"\'` '])
+const URL_BOUNDARY = new Set(Array.from('<>"\'` '))
 function isUrlChar(c: string): boolean {
   if (c.length !== 1) return false
   const code = c.charCodeAt(0)
@@ -381,7 +381,11 @@ export function findPlainTextUrlAt(
   }
 
   let token = ''
-  for (let i = lo; i <= hi; i++) token += cellAt(screen, i, row)!.char
+  for (let i = lo; i <= hi; i++) {
+    const cell = cellAt(screen, i, row)
+    if (cell === undefined) continue
+    token += cell.char
+  }
 
   // 1 cell = 1 char across [lo, hi] (ASCII-only run), so string index =
   // column offset. Find the last scheme anchor at or before the click —
@@ -391,7 +395,7 @@ export function findPlainTextUrlAt(
   const schemeRe = /(?:https?|file):\/\//g
   let urlStart = -1
   let urlEnd = token.length
-  for (let m; (m = schemeRe.exec(token)); ) {
+  for (let m: RegExpExecArray | null; (m = schemeRe.exec(token)); ) {
     if (m.index > clickIdx) {
       urlEnd = m.index
       break
@@ -405,7 +409,8 @@ export function findPlainTextUrlAt(
   // if unbalanced — `/wiki/Foo_(bar)` keeps `)`, `/arr[0]` keeps `]`.
   const OPENER: Record<string, string> = { ')': '(', ']': '[', '}': '{' }
   while (url.length > 0) {
-    const last = url.at(-1)!
+    const last = url.at(-1)
+    if (last === undefined) break
     if ('.,;:!?'.includes(last)) {
       url = url.slice(0, -1)
       continue
@@ -1095,7 +1100,7 @@ function extractRowText(
 ): string {
   const noSelect = screen.noSelect
   const rowOff = row * screen.width
-  const contentEnd = row + 1 < screen.height ? screen.softWrap[row + 1]! : 0
+  const contentEnd = row + 1 < screen.height ? screen.softWrap[row + 1] : 0
   const lastCol = contentEnd > 0 ? Math.min(colEnd, contentEnd - 1) : colEnd
   let line = ''
   for (let col = colStart; col <= lastCol; col++) {
@@ -1156,17 +1161,17 @@ export function getSelectedText(s: SelectionState, screen: Screen): string {
   const lines: string[] = []
 
   for (let i = 0; i < s.scrolledOffAbove.length; i++) {
-    joinRows(lines, s.scrolledOffAbove[i]!, s.scrolledOffAboveSW[i])
+    joinRows(lines, s.scrolledOffAbove[i], s.scrolledOffAboveSW[i])
   }
 
   for (let row = start.row; row <= end.row; row++) {
     const rowStart = row === start.row ? start.col : 0
     const rowEnd = row === end.row ? end.col : screen.width - 1
-    joinRows(lines, extractRowText(screen, row, rowStart, rowEnd), sw[row]! > 0)
+    joinRows(lines, extractRowText(screen, row, rowStart, rowEnd), sw[row] > 0)
   }
 
   for (let i = 0; i < s.scrolledOffBelow.length; i++) {
-    joinRows(lines, s.scrolledOffBelow[i]!, s.scrolledOffBelowSW[i])
+    joinRows(lines, s.scrolledOffBelow[i], s.scrolledOffBelowSW[i])
   }
 
   return lines.join('\n')
@@ -1219,7 +1224,7 @@ export function captureScrolledRows(
     const colEnd = row === end.row ? end.col : width - 1
     const screenRow = row - screenRowOffset
     captured.push(extractRowText(screen, screenRow, colStart, colEnd))
-    capturedSW.push(sw[screenRow]! > 0)
+    capturedSW.push(sw[screenRow] > 0)
   }
 
   if (side === 'above') {

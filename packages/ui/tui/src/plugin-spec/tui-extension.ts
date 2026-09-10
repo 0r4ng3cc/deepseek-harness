@@ -1,6 +1,6 @@
 /** dsh-TUI private protocol registration on the shared dsh-std catalog. */
 
-import { ProtocolCatalog, type ProtocolDefinition, type ProtocolIssue } from '@dsh-std/core'
+import { ProtocolCatalog, type ProtocolDefinition, type ProtocolIssue, type ProtocolNegotiationInput } from '@dsh-std/core'
 import { ManifestDefinitionCatalog } from '@dsh-std/manifest'
 import { register as registerCommand } from '@dsh-std/command'
 import { register as registerMessages } from '@dsh-std/messages'
@@ -54,15 +54,15 @@ export const decisionEventsDefinition: ProtocolDefinition = Object.freeze({
     return undefined
   },
   validateSupport: featureSupport,
-  negotiate(input) {
+  negotiate(input: ProtocolNegotiationInput) {
     const providers = [...new Set(input.supports.map(row => row.participant))].sort()
     const issues: ProtocolIssue[] = input.requirements.flatMap(row => providers.length === 0
       ? [{
-          code: row.requirement.optional === true ? 'optional-support-missing' : 'required-support-missing',
-          severity: row.requirement.optional === true ? 'warning' as const : 'error' as const,
-          participant: row.participant,
-          message: 'DecisionEvents has no provider in this negotiation scope',
-        }]
+        code: row.requirement.optional === true ? 'optional-support-missing' : 'required-support-missing',
+        severity: row.requirement.optional === true ? 'warning' as const : 'error' as const,
+        participant: row.participant,
+        message: 'DecisionEvents has no provider in this negotiation scope',
+      }]
       : [])
     return {
       agreement: Object.freeze({ providers: Object.freeze(providers) }),

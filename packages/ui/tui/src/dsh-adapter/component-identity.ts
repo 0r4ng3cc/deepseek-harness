@@ -106,7 +106,8 @@ export function declaresPermission(
 ): boolean {
   const actual = normalizePermissionScope(permission, actualScope, identity.componentId)
   if (actual === undefined) return false
-  return identity.manifest.permissions.some(request => {
+  const permissions = identity.manifest.permissions as readonly { name: string; scope: string }[]
+  return permissions.some((request) => {
     if (request.name !== permission) return false
     const declared = normalizePermissionScope(permission, request.scope, identity.componentId)
     return declared !== undefined && scopeCovers(declared, actual)
@@ -114,13 +115,15 @@ export function declaresPermission(
 }
 
 export function declaresCommand(identity: VerifiedComponentIdentity, commandId: string): boolean {
-  return identity.manifest.contributes.commands.some(command => command.id === commandId)
+  const commands = identity.manifest.contributes.commands as readonly { id: string }[]
+  return commands.some(command => command.id === commandId)
 }
 
 export function declaresObserverScope(identity: VerifiedComponentIdentity, actualScope: string): boolean {
   const actual = normalizePermissionScope('messages.observe.read', actualScope, identity.componentId)
   if (actual === undefined) return false
-  return identity.manifest.subscriptions.some(subscription => {
+  const subscriptions = identity.manifest.subscriptions as readonly (string | { apiVersion: string; kind: string; scope?: string })[]
+  return subscriptions.some((subscription) => {
     if (typeof subscription === 'string') return subscription === 'messages.observe'
     if (subscription.apiVersion !== 'messages.dsh/v1alpha1' || subscription.kind !== 'MessageObserver') return false
     if (subscription.scope === undefined) return true
@@ -142,6 +145,7 @@ export function requiresContract(
   apiVersion: string,
   kind: string,
 ): boolean {
-  return identity.manifest.requires.contracts.some(requirement =>
+  const contracts = identity.manifest.requires.contracts as readonly { apiVersion: string; kind: string }[]
+  return contracts.some(requirement =>
     requirement.apiVersion === apiVersion && requirement.kind === kind)
 }

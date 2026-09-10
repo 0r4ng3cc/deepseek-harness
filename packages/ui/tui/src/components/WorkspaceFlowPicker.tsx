@@ -47,7 +47,7 @@ export function WorkspaceFlowPicker({
             showScrollDown={index === visible.length - 1 && start + visible.length < choices.length}
             onClick={
               onPick !== undefined && !busy && input === null
-                ? () => onPick(start + index)
+                ? () => { onPick(start + index) }
                 : undefined
             }
           >

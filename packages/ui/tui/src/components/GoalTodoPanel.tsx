@@ -144,8 +144,8 @@ export function GoalTodoPanel({
     // Tick only while the goal is open; a complete goal freezes the last
     // elapsed reading instead of counting past the finish line.
     if (goal === undefined || goal.phase === 'complete') return
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
+    const timer = setInterval(() => { setNow(Date.now()) }, 1000)
+    return () => { clearInterval(timer) }
   }, [goal])
   const elapsed = goal !== undefined && startRef.current !== undefined
     ? formatDuration(now - startRef.current.at)
@@ -200,8 +200,8 @@ export function GoalTodoPanel({
           <Box
             flexDirection="row"
             onClick={onToggle}
-            onMouseEnter={() => setHeaderHovered(true)}
-            onMouseLeave={() => setHeaderHovered(false)}
+            onMouseEnter={() => { setHeaderHovered(true) }}
+            onMouseLeave={() => { setHeaderHovered(false) }}
             backgroundColor={headerHovered ? 'userMessageBackgroundHover' : undefined}
           >
             <Text dimColor>{collapsed ? '▸' : '▾'} </Text>

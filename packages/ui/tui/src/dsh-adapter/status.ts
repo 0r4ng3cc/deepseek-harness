@@ -11,7 +11,6 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { cleanScalarText } from './sanitize.js'
 import { activationFiber, assertCallerContext, bindCallerEffect, compositionRoot, concreteService, requirePluginCaller } from './host-access.js'
-import { componentIdentityOf } from './component-identity.js'
 
 /** One rendered contribution. */
 export interface TuiStatusEntry {
@@ -121,7 +120,7 @@ export class TuiStatusRuntime extends Service {
     // works with Cordis's caller-bound method proxy (unlike `#private`).
     const state: StatusState = { store: new TuiStatusStore(), nextToken: 1 }
     hostStatusStores.set(this, state)
-    ctx.effect(() => () => state.store.clear())
+    ctx.effect(() => () => { state.store.clear() })
   }
 
   /**
@@ -155,8 +154,6 @@ export class TuiStatusRuntime extends Service {
     }
     const state = statusStateFor(this)
     const store = state.store
-    const callerIdentity = componentIdentityOf(caller)
-    const suppliedIdentity = identity === undefined ? callerIdentity : componentIdentityOf(identity)
     if (identity !== undefined) {
       try {
         assertCallerContext(caller, identity, 'tuiStatus.set')
@@ -172,7 +169,7 @@ export class TuiStatusRuntime extends Service {
     }
     let normalized: string
     try {
-      normalized = String(key ?? '').trim().toLowerCase()
+      normalized = key.trim().toLowerCase()
     } catch {
       caller.logger.warn('dsh-tui: tuiStatus.set rejected an uncoercible key')
       return noop

@@ -123,7 +123,7 @@ function validateDescriptor(value: unknown): ValidatedTheme | undefined {
   const name = normalizeRuntimeName(raw.name)
   if (name === undefined) return undefined
   if (!isThemeBase(raw.base)) return undefined
-  const base = raw.base as TuiThemeBase
+  const base = raw.base
 
   let displayName = cleanRenderText(name, DISPLAY_NAME_CELLS)
   if (raw.displayName !== undefined) {
@@ -221,7 +221,6 @@ function recordThemeEffect(
 export class TuiThemeRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiThemes')
-    const runtime = this
     const state: ThemeState = {
       hostContext: compositionRoot(ctx),
       entries: new Map(),
@@ -233,14 +232,14 @@ export class TuiThemeRuntime extends Service {
     }
     hostThemes.set(this, state)
     state.host = Object.freeze({
-      getSnapshot: () => themeStateFor(runtime).snapshot,
-      resolve: (name: string) => resolveRuntimeTheme(runtime, name),
-      subscribe: (listener: () => void) => subscribeRuntimeTheme(runtime, listener),
+      getSnapshot: () => themeStateFor(this).snapshot,
+      resolve: (name: string) => resolveRuntimeTheme(this, name),
+      subscribe: (listener: () => void) => subscribeRuntimeTheme(this, listener),
     })
     // The resolver is process-global for non-React consumers. Its token-safe
     // cleanup means an older composition cannot clear a newer host's resolver.
     state.resolverCleanup = registerRuntimeThemeResolver(
-      name => resolveRuntimeTheme(runtime, name),
+      name => resolveRuntimeTheme(this, name),
     )
     ctx.effect(() => () => {
       if (state.disposed) return

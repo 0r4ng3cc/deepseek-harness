@@ -78,18 +78,6 @@ const NOOP_TOGGLE_STREAM_VIEW = (_rowId: number): void => {}
 // until it catches up — settling mid-reveal must not snap (that is the
 // "non-streaming delivery becomes a smooth flow" contract).
 
-function assistantRevealText(row: ChatRow, enabled: boolean): string {
-  const stripped = stripNarration(row.text)
-  return revealTextOf(`a${row.id}`, stripped, {
-    enabled,
-    active: row.streaming === true || row.fresh === true,
-  })
-}
-
-function reasoningRevealText(row: ChatRow, enabled: boolean): string {
-  return revealTextOf(`r${row.id}`, row.text, { enabled, active: row.streaming === true })
-}
-
 /** Display length only (layout signature; no slice allocation). */
 function revealDisplayLen(row: ChatRow, enabled: boolean): number {
   if (row.kind === 'assistant') {
@@ -157,7 +145,14 @@ function signatureParts(
     case 'reasoning':
       // thinkingFold (preview vs full), its per-row live override, and the
       // visibility filter all change the card's height.
-      signatureScratch.push(row.streaming === true, expanded, expandedRows.has(row.id), streamViewToggledRows.has(row.id), thinkingVisible, thinkingFold)
+      signatureScratch.push(
+        row.streaming === true,
+        expanded,
+        expandedRows.has(row.id),
+        streamViewToggledRows.has(row.id),
+        thinkingVisible,
+        thinkingFold,
+      )
       break
     case 'tool': {
       const tool = row.tool
@@ -356,10 +351,10 @@ export function MessageList({
   // filter boundary (visible-while-streaming → filtered-when-settled).
   // Allocation-free scan; rebuild only when a bit actually flipped.
   let streamBitsSame = visibleCache !== null && visibleCache.streamBits.length === rows.length
-  if (streamBitsSame) {
-    const bits = visibleCache!.streamBits
+  if (streamBitsSame && visibleCache !== null) {
+    const bits = visibleCache.streamBits
     for (let i = 0; i < rows.length; i++) {
-      if (bits[i] !== (rows[i]!.streaming === true ? 1 : 0)) { streamBitsSame = false; break }
+      if (bits[i] !== (rows[i].streaming === true ? 1 : 0)) { streamBitsSame = false; break }
     }
   }
   if (
@@ -417,7 +412,7 @@ export function MessageList({
       }
     }
     const streamBits = new Uint8Array(rows.length)
-    for (let i = 0; i < rows.length; i++) streamBits[i] = rows[i]!.streaming === true ? 1 : 0
+    for (let i = 0; i < rows.length; i++) streamBits[i] = rows[i].streaming === true ? 1 : 0
     visibleRowsCacheRef.current = {
       rows,
       rowsLength: rows.length,
@@ -429,8 +424,12 @@ export function MessageList({
     }
     visGenRef.current++
   }
-  const visibleRows = visibleRowsCacheRef.current!.out
-  const margins = visibleRowsCacheRef.current!.margins
+  const visibleRowsCache = visibleRowsCacheRef.current
+  if (visibleRowsCache === null) {
+    throw new Error('visibleRows cache must be populated before render')
+  }
+  const visibleRows = visibleRowsCache.out
+  const margins = visibleRowsCache.margins
   // Selection keeps its highlight; expanded rows render with no fill (the
   // diff line tints inside cards are the only backgrounds in the transcript).
   const rowBackground = (rowId: number) => {
@@ -552,7 +551,7 @@ export function MessageList({
   {
     const sigs = sigRef.current
     for (let i = 0; i < visibleRows.length; i++) {
-      const row = visibleRows[i]!
+      const row = visibleRows[i]
       // Per-kind signature: only the inputs that row's OWN renderer consumes.
       // A global flat array (every field × every row) over-invalidates — a
       // /settings diffLayout switch used to drop every user/assistant/
@@ -598,7 +597,7 @@ export function MessageList({
   // window follows the viewport.
   React.useEffect(() => {
     if (!scrollHandle) return
-    const tick = (): void =>{  setScrollTick(t => t + 1) }
+    const tick = (): void => { setScrollTick(t => t + 1) }
     return scrollHandle.subscribe(tick)
   }, [scrollHandle])
 
@@ -638,8 +637,12 @@ export function MessageList({
       total,
     }
   }
-  const offsets = offsetsCacheRef.current!.offsets
-  const total = offsetsCacheRef.current!.total
+  const offsetsCacheCurrent = offsetsCacheRef.current
+  if (offsetsCacheCurrent === null) {
+    throw new Error('offsets cache must be populated before render')
+  }
+  const offsets = offsetsCacheCurrent.offsets
+  const total = offsetsCacheCurrent.total
 
   const scrollTop = scrollHandle?.getScrollTop() ?? 0
   const pending = scrollHandle?.getPendingDelta() ?? 0
@@ -659,7 +662,7 @@ export function MessageList({
   let startHigh = visibleRows.length
   while (startLow < startHigh) {
     const middle = (startLow + startHigh) >> 1
-    if (offsets[middle]! + heightOf(visibleRows[middle]!) <= relTop) startLow = middle + 1
+    if (offsets[middle] + heightOf(visibleRows[middle]) <= relTop) startLow = middle + 1
     else startHigh = middle
   }
   let start = startLow
@@ -667,7 +670,7 @@ export function MessageList({
   let endHigh = visibleRows.length
   while (endLow < endHigh) {
     const middle = (endLow + endHigh) >> 1
-    if (offsets[middle]! < relBottom) endLow = middle + 1
+    if (offsets[middle] < relBottom) endLow = middle + 1
     else endHigh = middle
   }
   let end = endLow
@@ -742,7 +745,7 @@ export function MessageList({
       if (paintEdgeRef.current < 0) paintEdgeRef.current = start
       let firstUnpainted = -1
       for (let i = 0; i < paintEdgeRef.current; i++) {
-        if (!paintedOnce.has(visibleRows[i]!.id)) {
+        if (!paintedOnce.has(visibleRows[i].id)) {
           firstUnpainted = i
           break
         }
@@ -759,7 +762,7 @@ export function MessageList({
         let j = paintEdgeRef.current
         while (j > firstUnpainted && budget > 0) {
           j--
-          budget -= heightOf(visibleRows[j]!)
+          budget -= heightOf(visibleRows[j])
         }
         paintEdgeRef.current = j
         start = Math.min(start, j)
@@ -791,8 +794,8 @@ export function MessageList({
     // burned 2.5s of yoga and +84MB heap). Its height is in flux anyway;
     // the final settle invalidates once more and remounts exactly once.
     for (let i = 0; i < start; i++) {
-      if (visibleRows[i]!.streaming === true) continue
-      const rowId = visibleRows[i]!.id
+      if (visibleRows[i].streaming === true) continue
+      const rowId = visibleRows[i].id
       if (!heightsRef.current.has(rowId) && paintedOnceRef.current.has(rowId)) {
         start = i
         break
@@ -825,8 +828,8 @@ export function MessageList({
   // read-while-streaming stall (the streaming tail row sits below the
   // window and invalidated per chunk).
   for (let i = end; i < visibleRows.length; i++) {
-    if (visibleRows[i]!.streaming === true) continue
-    const rowId = visibleRows[i]!.id
+    if (visibleRows[i].streaming === true) continue
+    const rowId = visibleRows[i].id
     if (!heightsRef.current.has(rowId) && paintedOnceRef.current.has(rowId)) end = i + 1
   }
   if (forceMountRowId !== undefined && forceMountRowId !== null) {
@@ -875,7 +878,7 @@ export function MessageList({
     if (firstNew !== -1) {
       const seenBottom = scrollTop + viewport - base
       for (let i = firstNew; i < visibleRows.length; i++) {
-        if (offsets[i]! >= seenBottom) unseenCount++
+        if (offsets[i] >= seenBottom) unseenCount++
       }
     }
   }
@@ -934,9 +937,9 @@ export function MessageList({
       // visibleRows is exactly a folded one).
       const measuredTops = new Map<number, number>()
       for (let i = 0; i < visibleRows.length; i++) {
-        const row = visibleRows[i]!
+        const row = visibleRows[i]
         if (row.kind !== 'user') continue
-        measuredTops.set(row.id, base + offsets[i]! + (margins.get(row.id) === true ? 1 : 0))
+        measuredTops.set(row.id, base + offsets[i] + (margins.get(row.id) === true ? 1 : 0))
       }
       // Walk ALL rows (not the fold window): the rail must cover the whole
       // conversation — a tool-heavy session packs 300 rows into a handful
@@ -962,7 +965,11 @@ export function MessageList({
       }
       timelineMemoRef.current = { key: memoKey, turns }
     }
-    timelineTurns = timelineMemoRef.current!.turns
+    const timelineMemo = timelineMemoRef.current
+    if (timelineMemo === null) {
+      throw new Error('timeline memo must be populated before render')
+    }
+    timelineTurns = timelineMemo.turns
     // (b) per-frame target scan — pure integer comparisons over the
     // memoized list; viewTop is projected (scrollTop + pending) so
     // boundary crossings register during wheel bursts, not one drain
@@ -972,7 +979,7 @@ export function MessageList({
     const viewTop = scrollTop + pending
     const maxScroll = Math.max(0, (scrollHandle?.getScrollHeight() ?? 0) - viewport)
     for (let i = 0; i < timelineTurns.length; i++) {
-      const t = timelineTurns[i]!
+      const t = timelineTurns[i]
       if (t.folded === true) {
         // Above the fold ⇒ strictly above the viewport: a legal ▲ target.
         upTurnIndex = i
@@ -988,9 +995,9 @@ export function MessageList({
   }
   const timeline: TimelineSnapshot = {
     turns: timelineTurns,
-    activeId: activeTurnIndex === null ? null : timelineTurns[activeTurnIndex]!.id,
-    upId: upTurnIndex === null ? null : timelineTurns[upTurnIndex]!.id,
-    downId: downTurnIndex === null ? null : timelineTurns[downTurnIndex]!.id,
+    activeId: activeTurnIndex === null ? null : timelineTurns[activeTurnIndex].id,
+    upId: upTurnIndex === null ? null : timelineTurns[upTurnIndex].id,
+    downId: downTurnIndex === null ? null : timelineTurns[downTurnIndex].id,
   }
   const lastTimelineReportRef = React.useRef<TimelineSnapshot | null>(null)
   React.useEffect(() => {
@@ -1012,7 +1019,7 @@ export function MessageList({
       prev.downId === timeline.downId &&
       prev.turns.length === timeline.turns.length &&
       prev.turns.every((t, i) => {
-        const n = timeline.turns[i]!
+        const n = timeline.turns[i]
         return t.id === n.id && t.top === n.top && t.folded === n.folded && t.preview === n.preview
       })
     ) return
@@ -1043,7 +1050,6 @@ export function MessageList({
       }
     }
     const firstMounted = visibleRows[start]
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: empty list window
     const firstEl = firstMounted ? localRefs.current.get(firstMounted.id) : undefined
     const top = firstEl?.yogaNode?.getComputedTop()
     if (top !== undefined) {
@@ -1299,8 +1305,8 @@ function ClickableDivider({ title, onClick }: { title: string; onClick?: () => v
     <Box
       marginTop={1}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true) }}
+      onMouseLeave={() => { setHovered(false) }}
       backgroundColor={hovered ? 'userMessageBackgroundHover' : undefined}
     >
       <Divider title={title} />
@@ -1555,8 +1561,8 @@ function TranscriptRow({
           backgroundColor={background}
           ref={ref}
           onClick={foldOnClick}
-          onMouseEnter={() => setCompactHovered(true)}
-          onMouseLeave={() => setCompactHovered(false)}
+          onMouseEnter={() => { setCompactHovered(true) }}
+          onMouseLeave={() => { setCompactHovered(false) }}
         >
           {expanded || isExpanded ? (
             <Text dimColor>{text}</Text>
@@ -1579,8 +1585,8 @@ function TranscriptRow({
           backgroundColor={background}
           ref={ref}
           onClick={foldOnClick}
-          onMouseEnter={() => setCompactHovered(true)}
-          onMouseLeave={() => setCompactHovered(false)}
+          onMouseEnter={() => { setCompactHovered(true) }}
+          onMouseLeave={() => { setCompactHovered(false) }}
         >
           {expanded || isExpanded ? (
             <Box flexDirection="column">

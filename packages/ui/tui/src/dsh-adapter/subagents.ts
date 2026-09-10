@@ -121,7 +121,7 @@ export class SubagentActivityStore {
     last.text += text
     const parts = last.text.split('\n')
     if (parts.length > 1) {
-      last.text = parts[0]!
+      last.text = parts[0]
       last.settled = true
       for (const middle of parts.slice(1, -1)) {
         this.pushLine(state, { kind, text: middle, at: Date.now(), settled: true })
@@ -146,7 +146,18 @@ export class SubagentActivityStore {
 
   onSessionEvent(agentId: string, event: unknown): void {
     if (!event || typeof event !== 'object') return
-    const ev = event as { type?: string; data?: any }
+    const ev = event as {
+      type?: string
+      data?: {
+        chunk?: { type?: string; text?: string; usage?: SubagentTokenUsage }
+        usage?: SubagentTokenUsage
+        callId?: string
+        name?: string
+        arguments?: unknown
+        error?: unknown
+        message?: { source?: { callId?: string }; content?: Array<{ type?: string; content?: unknown }> }
+      }
+    }
     const data = ev.data ?? {}
     switch (ev.type) {
       case 'assistant/chunk': {
@@ -165,13 +176,19 @@ export class SubagentActivityStore {
         break
       }
       case 'tool/result': {
-        const callId = data?.message?.source?.callId
+        const callId = data.message?.source?.callId
         const state = this.states.get(agentId)
         const tool = callId !== undefined ? state?.toolCalls.find(entry => entry.id === callId) : undefined
         if (tool) {
           tool.status = data.error !== undefined ? 'failed' : 'completed'
           tool.endedAt = Date.now()
-          if (data.error !== undefined) tool.error = String(data.error)
+          if (data.error !== undefined) {
+            tool.error = data.error instanceof Error
+              ? data.error.message
+              : typeof data.error === 'string' || typeof data.error === 'number' || typeof data.error === 'boolean'
+                ? String(data.error)
+                : 'error'
+          }
           else {
             const block = data.message?.content?.[0]
             tool.resultPreview = block !== undefined && block.type === 'tool-result'
@@ -200,7 +217,11 @@ export class SubagentActivityStore {
     const text = typeof content === 'string'
       ? content
       : Array.isArray(content)
-        ? content.map(item => (typeof item === 'object' && item !== null && 'text' in item ? String((item as { text?: unknown }).text ?? '') : '')).join(' ')
+        ? content.map((item) => {
+          if (typeof item !== 'object' || item === null || !('text' in item)) return ''
+          const text = (item as { text?: unknown }).text
+          return typeof text === 'string' ? text : ''
+        }).join(' ')
         : ''
     const flat = text.replace(/\s+/g, ' ').trim()
     return flat ? (flat.length > 80 ? `${flat.slice(0, 80)}…` : flat) : undefined
@@ -215,7 +236,14 @@ export class SubagentActivityStore {
     this.notify()
   }
 
-  setTokens(agentId: string, usage: { inputTokens?: number; outputTokens?: number; input?: number; output?: number; total?: number; context?: number }): void {
+  setTokens(agentId: string, usage: {
+    inputTokens?: number
+    outputTokens?: number
+    input?: number
+    output?: number
+    total?: number
+    context?: number
+  }): void {
     const state = this.states.get(agentId)
     if (!state) return
     const input = usage.input ?? usage.inputTokens
@@ -250,7 +278,15 @@ export class SubagentActivityStore {
     this.notify()
   }
 
-  snapshot(): SubagentState[] { return Array.from(this.states.values()).map(state => ({ ...state, output: [...state.output], outputEvents: [...state.outputEvents], toolCalls: state.toolCalls.map(tool => ({ ...tool })), tokens: state.tokens ? { ...state.tokens } : undefined })) }
+  snapshot(): SubagentState[] {
+    return Array.from(this.states.values()).map(state => ({
+      ...state,
+      output: [...state.output],
+      outputEvents: [...state.outputEvents],
+      toolCalls: state.toolCalls.map(tool => ({ ...tool })),
+      tokens: state.tokens ? { ...state.tokens } : undefined,
+    }))
+  }
   get(agentId: string): SubagentState | undefined { return this.snapshot().find(state => state.agentId === agentId) }
   subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener) }
   private notify(): void { for (const listener of this.listeners) listener() }

@@ -38,7 +38,7 @@ export function WorkspaceMenuPicker({
           }))}
           focusIndex={focusIndex}
           selectedValue={undefined}
-          onPick={onPick === undefined ? undefined : (index) => onPick(index)}
+          onPick={onPick === undefined ? undefined : (index) => { onPick(index) }}
         />
         <Text dimColor italic>
           <HintLine text={t('hint-confirm-exit')} />

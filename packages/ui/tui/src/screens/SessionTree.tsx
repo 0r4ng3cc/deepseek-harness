@@ -215,7 +215,7 @@ export function SessionTree({
       .buildSessionTree()
       .then(result => (live ? result : undefined))
       .catch(() => undefined)
-      .then(result => {
+      .then((result) => {
         if (!live) return
         if (result === null || result === undefined) {
           onClose()
@@ -244,7 +244,6 @@ export function SessionTree({
   }, [visible, full, selectedId, data?.activeLeafId])
   const focusedNode = visible[focusIndex]
   const focusedEntry = focusedNode?.node.entry ?? null
-
   // The menu rides the PICKED node id (not the cursor): moving the cursor
   // while the menu is open must not retarget an action.
   const menuNode = menuNodeId === null
@@ -259,7 +258,6 @@ export function SessionTree({
   // about), the focused row backs it up so keyboard users see one too.
   const previewNode = (hoverId !== null ? visible.find(n => n.node.id === hoverId) : undefined) ?? focusedNode
   const previewEntry = previewNode?.node.entry ?? null
-
   // ── Actions ─────────────────────────────────────────────────────────────
   /** Pre-validate a rewind pick the way rewindToNode will refuse it. */
   const rewindBlockedReason = (entry: TreeEntry): string | undefined => {
@@ -649,7 +647,7 @@ export function SessionTree({
                 setMenuIndex(index)
                 runMenuOption(option)
               }}
-              onHover={() => setMenuIndex(index)}
+              onHover={() => { setMenuIndex(index) }}
             />
           ))}
         </Box>
@@ -660,9 +658,9 @@ export function SessionTree({
           flexShrink={0}
           flexDirection="column"
           // 点击确认行 = 确认执行（与 Enter 同路径）；取消保留键盘 Esc，防误点
-          onClick={() => performConfirm(confirmState)}
-          onMouseEnter={(): void => setConfirmHovered(true)}
-          onMouseLeave={(): void => setConfirmHovered(false)}
+          onClick={() => { performConfirm(confirmState) }}
+          onMouseEnter={(): void => { setConfirmHovered(true) }}
+          onMouseLeave={(): void => { setConfirmHovered(false) }}
           backgroundColor={confirmHovered ? 'userMessageBackgroundHover' : undefined}
         >
           <Text color="warning">
@@ -718,8 +716,8 @@ function TreeRow({
   width: number
   focused: boolean
   onActivePath: boolean
-  onHover(id: string | null): void
-  onClick(): void
+  onHover: (id: string | null) => void
+  onClick: () => void
 }): React.ReactNode {
   const [hovered, setHovered] = React.useState(false)
   const entry = flatNode.node.entry
@@ -740,7 +738,7 @@ function TreeRow({
           setHovered(true)
           onHover(null)
         }}
-        onMouseLeave={() => setHovered(false)}
+        onMouseLeave={() => { setHovered(false) }}
         backgroundColor={hovered ? 'userMessageBackgroundHover' : undefined}
       >
         <Text color="subtle">{'  '}</Text>
@@ -759,7 +757,13 @@ function TreeRow({
     : ''
   const budget = Math.max(
     4,
-    width - 2 - stringWidth(clampPrefix(treePrefix(flatNode), Math.max(0, width - 8))) - (onActivePath ? 2 : 0) - stringWidth(badge) - stringWidth(kind.text) - (glyph === undefined ? 0 : 2),
+    width
+    - 2
+    - stringWidth(clampPrefix(treePrefix(flatNode), Math.max(0, width - 8)))
+    - (onActivePath ? 2 : 0)
+    - stringWidth(badge)
+    - stringWidth(kind.text)
+    - (glyph === undefined ? 0 : 2),
   )
   return (
     <Box
@@ -805,8 +809,8 @@ function MenuOptionRow({
   option: MenuOption
   highlighted: boolean
   width: number
-  onClick(): void
-  onHover(): void
+  onClick: () => void
+  onHover: () => void
 }): React.ReactNode {
   const dim = option.disabled === true
   const labelWidth = 14
@@ -878,7 +882,7 @@ function PreviewPane({
       ))}
       {cut && (
         <Box flexShrink={0}>
-          <Text dimColor>{` ${'…'}`}</Text>
+          <Text dimColor>{' …'}</Text>
         </Box>
       )}
     </Box>

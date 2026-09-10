@@ -72,7 +72,6 @@ export class TuiSceneRuntime extends Service {
   constructor(ctx: Context) {
     super(ctx, 'tuiScenes')
     compositionRoot(ctx)
-    const runtime = this
     const state: SceneState = {
       scenes: new Map(),
       owners: new Map(),
@@ -83,17 +82,11 @@ export class TuiSceneRuntime extends Service {
     }
     state.host = Object.freeze({
       get active() {
-        return sceneStateFor(runtime).current
+        return state.current
       },
-      open(id: string) {
-        return openScene(runtime, id)
-      },
-      close() {
-        closeScene(runtime)
-      },
-      subscribe(listener: () => void) {
-        return subscribeScenes(runtime, listener)
-      },
+      open: (id: string) => openScene(this, id),
+      close: () => { closeScene(this) },
+      subscribe: (listener: () => void) => subscribeScenes(this, listener),
     })
     sceneStates.set(this, state)
   }

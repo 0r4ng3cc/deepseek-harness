@@ -285,7 +285,7 @@ function* zstdFrames(chunks: Iterable<Buffer>): Generator<Buffer, void, undefine
       pos += take
       left -= take
     }
-    const out = parts.length === 1 ? parts[0]! : Buffer.concat(parts)
+    const out = parts.length === 1 ? parts[0] : Buffer.concat(parts)
     append(out)
     return out
   }
@@ -329,7 +329,7 @@ function* zstdFrames(chunks: Iterable<Buffer>): Generator<Buffer, void, undefine
       if (!torn()) throw new Error('no complete zstd frame found')
       return
     }
-    const d = descriptor[0]!
+    const d = descriptor[0]
     const fcsFlag = d >>> 6
     const singleSegment = (d & 0x20) !== 0
     const hasChecksum = (d & 0x04) !== 0
@@ -349,7 +349,7 @@ function* zstdFrames(chunks: Iterable<Buffer>): Generator<Buffer, void, undefine
         if (!torn()) throw new Error('no complete zstd frame found')
         return
       }
-      const packed = blockHeader[0]! | (blockHeader[1]! << 8) | (blockHeader[2]! << 16)
+      const packed = blockHeader[0] | (blockHeader[1] << 8) | (blockHeader[2] << 16)
       const lastBlock = (packed & 1) !== 0
       const blockType = (packed >>> 1) & 0x03
       if (blockType === 3) throw new Error('reserved zstd block type')
@@ -558,7 +558,7 @@ function readEvents(
         // small forks of a 70k-event parent both stay visible. Titles still
         // collect below the cutoff: branch-head labels need them and they
         // never extract into entries.
-        if ((envelope['seq'] as number) < skipBelowSeq && envelope['type'] !== 'session/title') continue
+        if (envelope['seq'] < skipBelowSeq && envelope['type'] !== 'session/title') continue
         // Budget check BEFORE the push: an exact-fit log reports complete,
         // and only a surviving (maxEvents+1)-th event marks truncation.
         if (events.length >= maxEvents) return { events, complete: false, scanned }
@@ -744,11 +744,11 @@ function decodeEvents(buf: Buffer): Record<string, unknown>[] {
   }
   if (offsets.length === 0) throw new Error('no zstd frame found')
   return offsets.flatMap((start, i) => {
-    const end = i + 1 < offsets.length ? offsets[i + 1]! : buf.length
+    const end = i + 1 < offsets.length ? offsets[i + 1] : buf.length
     const text = zstdDecompressSync(buf.subarray(start, end)).toString('utf8')
     return text
       .split('\n')
-      .filter((line) => line.length > 0)
+      .filter(line => line.length > 0)
       .map((line) => {
         const parsed: unknown = JSON.parse(line)
         if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -946,7 +946,7 @@ export function deleteSessionLog(sessionId: string): 'deleted' | 'unavailable' {
     // whitelisted id. realpath BOTH sides — the root itself may legitimately
     // live behind a symlink (macOS /tmp -> /private/tmp).
     const realDir = realpathSync(dir)
-    const contained = sessionsRoots().some(root => {
+    const contained = sessionsRoots().some((root) => {
       try {
         return realDir.startsWith(realpathSync(root) + sep)
       } catch {

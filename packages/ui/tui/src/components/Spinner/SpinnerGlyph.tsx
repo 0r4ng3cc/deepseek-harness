@@ -44,7 +44,7 @@ export function SpinnerGlyph({
     )
   }
 
-  const spinnerChar = SPINNER_FRAMES[frame % SPINNER_FRAMES.length]!
+  const spinnerChar = SPINNER_FRAMES[frame % SPINNER_FRAMES.length]
 
   if (stalledIntensity > 0) {
     const baseColorStr = theme[messageColor]

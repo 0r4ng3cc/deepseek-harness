@@ -36,7 +36,7 @@ export function forEachCall(
   visit: (node: TrajNode, ledgerIndex: number) => void,
 ): void {
   for (let index = 0; index < nodes.length; index++) {
-    const node = nodes[index]!
+    const node = nodes[index]
     if (node.burst !== undefined) {
       for (const member of node.burst.members) visit(member, index)
       continue
@@ -123,7 +123,7 @@ export function aggregate(build: TrajBuild, sort: HotspotSort = 'duration'): Tra
   })
 
   for (let index = 0; index < nodes.length; index++) {
-    const node = nodes[index]!
+    const node = nodes[index]
     switch (node.kind) {
       case 'turn': {
         turnCount += 1

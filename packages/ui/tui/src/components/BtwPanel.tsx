@@ -32,8 +32,8 @@ export function BtwPanel({
   const [frame, setFrame] = React.useState(0)
   React.useEffect(() => {
     if (!streaming || answer !== '') return
-    const interval = setInterval(() => setFrame(f => f + 1), 80)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { setFrame(f => f + 1) }, 80)
+    return () => { clearInterval(interval) }
   }, [streaming, answer])
 
   useInput((input, key, event) => {

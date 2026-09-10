@@ -91,7 +91,7 @@ export function MiniWake({
       continue
     }
     if (bucket.running) {
-      strip += chalk.hex(toHex(mix(theme.success, theme.planMode, breath) as string))(RUNNING)
+      strip += chalk.hex(toHex(mix(theme.success, theme.planMode, breath)))(RUNNING)
       continue
     }
     const level = Math.min(
@@ -103,7 +103,7 @@ export function MiniWake({
     // red cell is easy to miss, and missing it defeats the point.
     const shown = failed ? Math.max(level, 4) : level
     const colour = failed ? theme.error : channelColor(dominantChannel(bucket), theme)
-    strip += chalk.hex(toHex(colour))(shown >= BLOCKS.length ? FULL : BLOCKS[shown - 1]!)
+    strip += chalk.hex(toHex(colour))(shown >= BLOCKS.length ? FULL : BLOCKS[shown - 1])
   }
 
   return (

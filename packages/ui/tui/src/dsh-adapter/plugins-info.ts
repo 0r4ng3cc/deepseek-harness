@@ -25,7 +25,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { parseManifest, projectManifest } from '@dsh-std/manifest'
+import { parseManifest, projectManifest, type PluginManifest } from '@dsh-std/manifest'
 import { DATA_DIR } from '../utils/paths.js'
 import { t } from '../i18n.js'
 import { loadSpecData } from '../plugin-spec/registry.js'
@@ -66,7 +66,7 @@ interface LedgerLine {
   errorCode?: unknown
 }
 
-const cell = (value: unknown): string => cleanScalarText(String(value ?? ''), LINE_CELLS)
+const cell = (value: unknown): string => cleanScalarText(value, LINE_CELLS)
 
 /** Parse the ledger file tolerantly (skip corrupt lines, never throw). */
 function readLedgerRecords(file: string): LedgerLine[] {
@@ -81,7 +81,7 @@ function readLedgerRecords(file: string): LedgerLine[] {
     if (line.trim() === '') continue
     try {
       const parsed: unknown = JSON.parse(line)
-      if (parsed !== null && typeof parsed === 'object') records.push(parsed as LedgerLine)
+      if (parsed !== null && typeof parsed === 'object') records.push(parsed)
     } catch {
       // Corrupt line: the diagnostics surface skips it (never rewrites).
     }
@@ -146,7 +146,7 @@ function checkManifestLines(pathArg: string, deps: PluginsInfoDeps): string[] {
     lines.push(t('plugins-check-spec-unavailable'))
     return lines
   }
-  let manifest
+  let manifest: PluginManifest
   try {
     manifest = parseManifest(source, { source: target })
     // Projection is an explicit admission stage. validatePlugin performs its

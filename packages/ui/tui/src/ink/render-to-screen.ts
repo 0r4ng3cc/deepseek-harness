@@ -36,7 +36,7 @@ export type MatchPosition = {
 // createContainer cost (~1ms). LegacyRoot: all work sync, no scheduling —
 // ConcurrentRoot's scheduler backlog leaks across roots via flushSyncWork.
 let root: DOMElement | undefined
-let container: ReturnType<typeof reconciler.createContainer> | undefined
+let container: unknown
 let stylePool: StylePool | undefined
 let charPool: CharPool | undefined
 let hyperlinkPool: HyperlinkPool | undefined
@@ -65,13 +65,13 @@ export function renderToScreen(
   el: ReactElement,
   width: number,
 ): { screen: Screen; height: number } {
-  if (!root) {
+  if (root === undefined || stylePool === undefined || charPool === undefined || hyperlinkPool === undefined) {
     root = createNode('ink-root')
     root.focusManager = new FocusManager(() => false)
     stylePool = new StylePool()
     charPool = new CharPool()
     hyperlinkPool = new HyperlinkPool()
-    // @ts-ignore -- ported CC build; type drift tolerated react-reconciler 0.33 takes 10 args; @types says 11
+    // @ts-expect-error -- ported CC build; type drift tolerated react-reconciler 0.33 takes 10 args; @types says 11
     container = reconciler.createContainer(
       root,
       LegacyRoot,
@@ -86,17 +86,30 @@ export function renderToScreen(
     )
   }
 
+  const activeRoot = root
+  const activeStylePool = stylePool
+  const activeCharPool = charPool
+  const activeHyperlinkPool = hyperlinkPool
+  if (
+    activeRoot === undefined
+    || activeStylePool === undefined
+    || activeCharPool === undefined
+    || activeHyperlinkPool === undefined
+  ) {
+    throw new Error('renderToScreen pools were not initialized')
+  }
+
   const t0 = performance.now()
-  // @ts-ignore -- ported CC build; type drift tolerated updateContainerSync exists but not in @types
+  // @ts-expect-error -- ported CC build; type drift tolerated updateContainerSync exists but not in @types
   reconciler.updateContainerSync(el, container, null, noop)
-  // @ts-ignore -- ported CC build; type drift tolerated flushSyncWork exists but not in @types
+  // @ts-expect-error -- ported CC build; type drift tolerated flushSyncWork exists but not in @types
   reconciler.flushSyncWork()
   const t1 = performance.now()
 
   // Yoga layout. Root might not have a yogaNode if the tree is empty.
-  root.yogaNode?.setWidth(width)
-  root.yogaNode?.calculateLayout(width)
-  const height = Math.ceil(root.yogaNode?.getComputedHeight() ?? 0)
+  activeRoot.yogaNode?.setWidth(width)
+  activeRoot.yogaNode?.calculateLayout(width)
+  const height = Math.ceil(activeRoot.yogaNode?.getComputedHeight() ?? 0)
   const t2 = performance.now()
 
   // Paint to a fresh Screen. Width = given, height = yoga's natural.
@@ -104,17 +117,17 @@ export function renderToScreen(
   const screen = createScreen(
     width,
     Math.max(1, height), // avoid 0-height Screen (createScreen may choke)
-    stylePool!,
-    charPool!,
-    hyperlinkPool!,
+    activeStylePool,
+    activeCharPool,
+    activeHyperlinkPool,
   )
   if (!output) {
-    output = new Output({ width, height, stylePool: stylePool!, screen })
+    output = new Output({ width, height, stylePool: activeStylePool, screen })
   } else {
     output.reset(width, height, screen)
   }
   resetLayoutShifted()
-  renderNodeToOutput(root, output, { prevScreen: undefined })
+  renderNodeToOutput(activeRoot, output, { prevScreen: undefined })
   // renderNodeToOutput queues writes into Output; .get() flushes the
   // queue into the Screen's cell arrays. Without this the screen is
   // blank (constructor-zero).
@@ -122,9 +135,9 @@ export function renderToScreen(
   const t3 = performance.now()
 
   // Unmount so next call gets a fresh tree. Leaves root/container/pools.
-  // @ts-ignore -- ported CC build; type drift tolerated updateContainerSync exists but not in @types
+  // @ts-expect-error -- ported CC build; type drift tolerated updateContainerSync exists but not in @types
   reconciler.updateContainerSync(null, container, null, noop)
-  // @ts-ignore -- ported CC build; type drift tolerated flushSyncWork exists but not in @types
+  // @ts-expect-error -- ported CC build; type drift tolerated flushSyncWork exists but not in @types
   reconciler.flushSyncWork()
 
   timing.reconcile += t1 - t0
@@ -197,10 +210,10 @@ export function scanPositions(screen: Screen, query: string): MatchPosition[] {
     // Non-overlapping — same advance as applySearchHighlight.
     let pos = text.indexOf(lq)
     while (pos >= 0) {
-      const startCi = codeUnitToCell[pos]!
-      const endCi = codeUnitToCell[pos + qlen - 1]!
-      const col = colOf[startCi]!
-      const endCol = colOf[endCi]! + 1
+      const startCi = codeUnitToCell[pos]
+      const endCi = codeUnitToCell[pos + qlen - 1]
+      const col = colOf[startCi]
+      const endCol = colOf[endCi] + 1
       positions.push({ row, col, len: endCol - col })
       pos = text.indexOf(lq, pos + qlen)
     }
@@ -235,7 +248,7 @@ export function applyPositionedHighlight(
   currentIdx: number,
 ): boolean {
   if (currentIdx < 0 || currentIdx >= positions.length) return false
-  const p = positions[currentIdx]!
+  const p = positions[currentIdx]
   const row = p.row + rowOffset
   if (row < 0 || row >= screen.height) return false
   const transform = (id: number) => stylePool.withCurrentMatch(id)

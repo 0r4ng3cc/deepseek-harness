@@ -93,7 +93,7 @@ function commandOf(req: ApprovalRequest): string | undefined {
   if (req.callId === undefined) return undefined
   const events = snapshotLiveSessionEvents(req.agent.session)
   for (let i = events.length - 1; i >= 0; i -= 1) {
-    const event: SessionEvent = events[i]!
+    const event: SessionEvent = events[i]
     if (event.type !== 'tool/call') continue
     if (String(event.data.callId) !== String(req.callId)) continue
     const raw = event.data.arguments
@@ -125,7 +125,7 @@ function isLiveToolApproval(req: ApprovalRequest): boolean {
   const events = snapshotLiveSessionEvents(req.agent.session)
   let callIndex = -1
   for (let i = events.length - 1; i >= 0; i -= 1) {
-    const event: SessionEvent = events[i]!
+    const event: SessionEvent = events[i]
     if (event.type !== 'tool/call') continue
     if (String(event.data.callId) !== String(req.callId)) continue
     callIndex = i
@@ -133,7 +133,7 @@ function isLiveToolApproval(req: ApprovalRequest): boolean {
   }
   if (callIndex === -1) return false
   for (let i = callIndex + 1; i < events.length; i += 1) {
-    const event: SessionEvent = events[i]!
+    const event: SessionEvent = events[i]
     if (event.type !== 'tool/result') continue
     const resultCallId = (event.data.message as { source?: { callId?: unknown } } | undefined)?.source?.callId
     if (String(resultCallId) === String(req.callId)) return false
@@ -317,7 +317,7 @@ export class ApprovalStore {
     // the liveness check marks any future twin on its own, so the consumed
     // entry can go.
     const resultCallId = (event.data.message as { source?: { callId?: unknown } } | undefined)?.source?.callId
-    if (resultCallId !== undefined) {
+    if (typeof resultCallId === 'string' || typeof resultCallId === 'number') {
       // Composite keys carry an agent prefix; a landed result retires the
       // callId in every agent domain (suffix match — only ever removes).
       const suffix = `::${String(resultCallId)}`
@@ -358,7 +358,7 @@ export class ApprovalStore {
    *   when the ask is withdrawn or the plugin tears down.
    */
   park(req: ApprovalRequest): Promise<ApprovalOutcome> {
-    return new Promise<ApprovalOutcome>(resolve => {
+    return new Promise<ApprovalOutcome>((resolve) => {
       const command = commandOf(req)
       // Source badge: park() is reached through the approval/request
       // waterfall, which any in-process plugin can dispatch — the agent-id

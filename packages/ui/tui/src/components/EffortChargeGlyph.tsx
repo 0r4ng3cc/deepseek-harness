@@ -64,12 +64,12 @@ export function EffortChargeGlyph({
     chargeStartedAt === null
       ? Infinity
       : // Clamp at zero: the shared clock can hand back a stale tickTime for
-        // one frame after waking from pause.
-        Math.max(0, (clock?.now() ?? Date.now()) - chargeStartedAt)
+    // one frame after waking from pause.
+      Math.max(0, (clock?.now() ?? Date.now()) - chargeStartedAt)
   const charging = chargeElapsed < CHARGE_MS
   useEffect(() => {
     if (!charging || clock === null) return
-    return clock.subscribe(() => forceRender(), /* keepAlive */ true)
+    return clock.subscribe(() => { forceRender() }, /* keepAlive */ true)
   }, [charging, clock])
 
   if (!topActive) return <Text dimColor={working}>❯ </Text>

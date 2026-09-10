@@ -79,7 +79,7 @@ export function recordedModelRoute(
     if (event === undefined || event.type !== 'request/header') continue
     const config = (event.data as { header?: { config?: { provider?: unknown; model?: unknown } } } | undefined)
       ?.header?.config
-    if (typeof config?.provider === 'string' && typeof config?.model === 'string') {
+    if (typeof config?.provider === 'string' && typeof config.model === 'string') {
       return { provider: config.provider, model: config.model }
     }
   }

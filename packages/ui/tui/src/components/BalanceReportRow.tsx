@@ -108,8 +108,8 @@ export function BalanceReportRow({
         marginTop={1}
         marginLeft={1}
         onClick={onRefresh}
-        onMouseEnter={(): void => setHovered(true)}
-        onMouseLeave={(): void => setHovered(false)}
+        onMouseEnter={(): void => { setHovered(true) }}
+        onMouseLeave={(): void => { setHovered(false) }}
       >
         <Text dimColor={!hovered}>{refreshing ? t('balance-summary-loading') : summary}</Text>
         {hovered && (

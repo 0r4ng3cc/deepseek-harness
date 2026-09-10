@@ -202,17 +202,13 @@ function tokenize(
           // Intermediate byte (e.g., ESC ( for charset) - continue buffering
           result.state = 'escapeIntermediate'
           i++
-        } else if (isEscFinal(code)) {
-          // Two-character escape sequence
-          i++
-          emitSequence(data.slice(seqStart, i))
-        } else if (code === C0.CR || code === C0.LF) {
-          // Meta+Enter: ESC CR / ESC LF is how Option+Enter arrives from
+        } else if (isEscFinal(code) || code === C0.CR || code === C0.LF) {
+          // Two-character escape sequence. CR/LF aren't ESC final bytes, but
+          // Meta+Enter (ESC CR / ESC LF) is how Option+Enter arrives from
           // terminals without extended key reporting ("Use Option as Meta").
-          // CR/LF aren't ESC final bytes, but emitting the pair as a
-          // sequence lets the keypress parser recognize it — otherwise it
-          // merges with following text ('\x1b\rabc') and the CR submits
-          // the prompt instead of inserting a newline (#110).
+          // Emitting the pair as a sequence lets the keypress parser recognize
+          // it — otherwise it merges with following text ('\x1b\rabc') and the
+          // CR submits the prompt instead of inserting a newline (#110).
           i++
           emitSequence(data.slice(seqStart, i))
         } else if (code === C0.ESC) {
@@ -311,21 +307,6 @@ function tokenize(
         break
 
       case 'osc':
-        if (code === C0.BEL) {
-          i++
-          emitSequence(data.slice(seqStart, i))
-        } else if (
-          code === C0.ESC &&
-          i + 1 < data.length &&
-          data.charCodeAt(i + 1) === ESC_TYPE.ST
-        ) {
-          i += 2
-          emitSequence(data.slice(seqStart, i))
-        } else {
-          i++
-        }
-        break
-
       case 'dcs':
       case 'apc':
         if (code === C0.BEL) {

@@ -38,7 +38,8 @@ function clipLine(text: string, maxWidth: number): string {
   while (index < text.length) {
     // Advance by the next full code point so wide glyphs (CJK, emoji) are
     // never split in half.
-    const next = text.codePointAt(index)!
+    const next = text.codePointAt(index)
+    if (next === undefined) break
     const char = String.fromCodePoint(next)
     const charWidth = stringWidth(char)
     if (width + charWidth > maxWidth - 1) break
@@ -62,7 +63,7 @@ export function SubagentMessage({ subagent, addMargin, activityFrames, onClick }
   addMargin: boolean
   activityFrames?: string
   isExpanded: boolean
-  onClick?(event: ClickEvent): void
+  onClick?: (event: ClickEvent) => void
 }): React.ReactNode {
   const settled = subagent.status === 'completed' || subagent.status === 'failed' || subagent.status === 'cancelled'
   // 动画订阅仅限运行中的卡片：settled 后传 null 退出共享 clock（keepAlive
@@ -92,8 +93,8 @@ export function SubagentMessage({ subagent, addMargin, activityFrames, onClick }
     paddingLeft={2}
     ref={viewportRef}
     onClick={onClick}
-    onMouseEnter={clickable ? () => setHovered(true) : undefined}
-    onMouseLeave={clickable ? () => setHovered(false) : undefined}
+    onMouseEnter={clickable ? () => { setHovered(true) } : undefined}
+    onMouseLeave={clickable ? () => { setHovered(false) } : undefined}
   >
     <Box flexDirection="row" gap={1}>
       <Text color={hovered && clickable ? 'claude' : info.color}>{settled ? info.glyph : ` ${runningGlyph}`}</Text>

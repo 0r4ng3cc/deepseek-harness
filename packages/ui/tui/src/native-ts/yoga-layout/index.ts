@@ -183,11 +183,11 @@ function defaultStyle(): Style {
     flexGrow: 0,
     flexShrink: 0,
     flexBasis: AUTO_VALUE,
-    margin: new Array(9).fill(UNDEFINED_VALUE),
-    padding: new Array(9).fill(UNDEFINED_VALUE),
-    border: new Array(9).fill(UNDEFINED_VALUE),
-    position: new Array(9).fill(UNDEFINED_VALUE),
-    gap: new Array(3).fill(UNDEFINED_VALUE),
+    margin: new Array<Value>(9).fill(UNDEFINED_VALUE),
+    padding: new Array<Value>(9).fill(UNDEFINED_VALUE),
+    border: new Array<Value>(9).fill(UNDEFINED_VALUE),
+    position: new Array<Value>(9).fill(UNDEFINED_VALUE),
+    gap: new Array<Value>(3).fill(UNDEFINED_VALUE),
     width: AUTO_VALUE,
     height: AUTO_VALUE,
     minWidth: UNDEFINED_VALUE,
@@ -213,21 +213,21 @@ function resolveEdge(
   allowAuto = false,
 ): number {
   // Precedence: specific edge > horizontal/vertical > all
-  let v = edges[physicalEdge]!
+  let v = edges[physicalEdge]
   if (v.unit === Unit.Undefined) {
     if (physicalEdge === EDGE_LEFT || physicalEdge === EDGE_RIGHT) {
-      v = edges[Edge.Horizontal]!
+      v = edges[Edge.Horizontal]
     } else {
-      v = edges[Edge.Vertical]!
+      v = edges[Edge.Vertical]
     }
   }
   if (v.unit === Unit.Undefined) {
-    v = edges[Edge.All]!
+    v = edges[Edge.All]
   }
   // Start/End map to Left/Right for LTR (Ink is always LTR)
   if (v.unit === Unit.Undefined) {
-    if (physicalEdge === EDGE_LEFT) v = edges[Edge.Start]!
-    if (physicalEdge === EDGE_RIGHT) v = edges[Edge.End]!
+    if (physicalEdge === EDGE_LEFT) v = edges[Edge.Start]
+    if (physicalEdge === EDGE_RIGHT) v = edges[Edge.End]
   }
   if (v.unit === Unit.Undefined) return 0
   if (v.unit === Unit.Auto) return allowAuto ? NaN : 0
@@ -235,18 +235,18 @@ function resolveEdge(
 }
 
 function resolveEdgeRaw(edges: Value[], physicalEdge: number): Value {
-  let v = edges[physicalEdge]!
+  let v = edges[physicalEdge]
   if (v.unit === Unit.Undefined) {
     if (physicalEdge === EDGE_LEFT || physicalEdge === EDGE_RIGHT) {
-      v = edges[Edge.Horizontal]!
+      v = edges[Edge.Horizontal]
     } else {
-      v = edges[Edge.Vertical]!
+      v = edges[Edge.Vertical]
     }
   }
-  if (v.unit === Unit.Undefined) v = edges[Edge.All]!
+  if (v.unit === Unit.Undefined) v = edges[Edge.All]
   if (v.unit === Unit.Undefined) {
-    if (physicalEdge === EDGE_LEFT) v = edges[Edge.Start]!
-    if (physicalEdge === EDGE_RIGHT) v = edges[Edge.End]!
+    if (physicalEdge === EDGE_LEFT) v = edges[Edge.Start]
+    if (physicalEdge === EDGE_RIGHT) v = edges[Edge.End]
   }
   return v
 }
@@ -258,11 +258,11 @@ function isMarginAuto(edges: Value[], physicalEdge: number): boolean {
 // Setter helpers for the _hasAutoMargin / _hasPosition fast-path flags.
 // Unit.Undefined = 0, Unit.Auto = 3.
 function hasAnyAutoEdge(edges: Value[]): boolean {
-  for (let i = 0; i < 9; i++) if (edges[i]!.unit === 3) return true
+  for (let i = 0; i < 9; i++) if (edges[i].unit === 3) return true
   return false
 }
 function hasAnyDefinedEdge(edges: Value[]): boolean {
-  for (let i = 0; i < 9; i++) if (edges[i]!.unit !== 0) return true
+  for (let i = 0; i < 9; i++) if (edges[i].unit !== 0) return true
   return false
 }
 
@@ -276,35 +276,35 @@ function resolveEdges4Into(
   out: [number, number, number, number],
 ): void {
   // Hoist fallbacks once — the 4 per-edge chains share these reads.
-  const eH = edges[6]! // Edge.Horizontal
-  const eV = edges[7]! // Edge.Vertical
-  const eA = edges[8]! // Edge.All
-  const eS = edges[4]! // Edge.Start
-  const eE = edges[5]! // Edge.End
+  const eH = edges[6] // Edge.Horizontal
+  const eV = edges[7] // Edge.Vertical
+  const eA = edges[8] // Edge.All
+  const eS = edges[4] // Edge.Start
+  const eE = edges[5] // Edge.End
   const pctDenom = isNaN(ownerSize) ? NaN : ownerSize / 100
 
   // Left: edges[0] → Horizontal → All → Start
-  let v = edges[0]!
+  let v = edges[0]
   if (v.unit === 0) v = eH
   if (v.unit === 0) v = eA
   if (v.unit === 0) v = eS
   out[0] = v.unit === 1 ? v.value : v.unit === 2 ? v.value * pctDenom : 0
 
   // Top: edges[1] → Vertical → All
-  v = edges[1]!
+  v = edges[1]
   if (v.unit === 0) v = eV
   if (v.unit === 0) v = eA
   out[1] = v.unit === 1 ? v.value : v.unit === 2 ? v.value * pctDenom : 0
 
   // Right: edges[2] → Horizontal → All → End
-  v = edges[2]!
+  v = edges[2]
   if (v.unit === 0) v = eH
   if (v.unit === 0) v = eA
   if (v.unit === 0) v = eE
   out[2] = v.unit === 1 ? v.value : v.unit === 2 ? v.value * pctDenom : 0
 
   // Bottom: edges[3] → Vertical → All
-  v = edges[3]!
+  v = edges[3]
   if (v.unit === 0) v = eV
   if (v.unit === 0) v = eA
   out[3] = v.unit === 1 ? v.value : v.unit === 2 ? v.value * pctDenom : 0
@@ -638,7 +638,7 @@ export class Node {
    * @returns the child node.
    */
   getChild(index: number): Node {
-    return this.children[index]!
+    return this.children[index]
   }
   /**
    * Get the number of children.
@@ -818,7 +818,7 @@ export class Node {
    * @returns the border width in pixels.
    */
   getComputedBorder(edge: Edge): number {
-    return this.layout.border[physicalEdge(edge)]!
+    return this.layout.border[physicalEdge(edge)]
   }
   /**
    * Get the computed padding for an edge.
@@ -826,7 +826,7 @@ export class Node {
    * @returns the padding in pixels.
    */
   getComputedPadding(edge: Edge): number {
-    return this.layout.padding[physicalEdge(edge)]!
+    return this.layout.padding[physicalEdge(edge)]
   }
   /**
    * Get the computed margin for an edge.
@@ -834,7 +834,7 @@ export class Node {
    * @returns the margin in pixels.
    */
   getComputedMargin(edge: Edge): number {
-    return this.layout.margin[physicalEdge(edge)]!
+    return this.layout.margin[physicalEdge(edge)]
   }
 
   // -- Style setters: dimensions
@@ -843,7 +843,7 @@ export class Node {
    * Set the width from a number, an 'auto' or percent string, or undefined.
    * @param v - the width value.
    */
-  setWidth(v: number | 'auto' | string | undefined): void {
+  setWidth(v: number | string | undefined): void {
     this.style.width = parseDimension(v)
     this.markDirty()
   }
@@ -866,7 +866,7 @@ export class Node {
    * Set the height from a number, an 'auto' or percent string, or undefined.
    * @param v - the height value.
    */
-  setHeight(v: number | 'auto' | string | undefined): void {
+  setHeight(v: number | string | undefined): void {
     this.style.height = parseDimension(v)
     this.markDirty()
   }
@@ -983,19 +983,16 @@ export class Node {
    * @param v - the flex value.
    */
   setFlex(v: number | undefined): void {
-    if (v === undefined || isNaN(v)) {
+    if (v === undefined || isNaN(v) || v === 0) {
       this.style.flexGrow = 0
       this.style.flexShrink = 0
     } else if (v > 0) {
       this.style.flexGrow = v
       this.style.flexShrink = 1
       this.style.flexBasis = pointValue(0)
-    } else if (v < 0) {
-      this.style.flexGrow = 0
-      this.style.flexShrink = -v
     } else {
       this.style.flexGrow = 0
-      this.style.flexShrink = 0
+      this.style.flexShrink = -v
     }
     this.markDirty()
   }
@@ -1004,7 +1001,7 @@ export class Node {
    * undefined.
    * @param v - the basis value.
    */
-  setFlexBasis(v: number | 'auto' | string | undefined): void {
+  setFlexBasis(v: number | string | undefined): void {
     this.style.flexBasis = parseDimension(v)
     this.markDirty()
   }
@@ -1153,7 +1150,7 @@ export class Node {
    * @param edge - the edge to set.
    * @param v - the margin value.
    */
-  setMargin(edge: Edge, v: number | 'auto' | string | undefined): void {
+  setMargin(edge: Edge, v: number | string | undefined): void {
     const val = parseDimension(v)
     this.style.margin[edge] = val
     if (val.unit === Unit.Auto) this._hasAutoMargin = true
@@ -1469,6 +1466,8 @@ function cacheWrite(
   if (node._cN < CACHE_SLOTS) node._cN = node._cWr
   const o = i * 8
   const cIn = node._cIn
+  const cOut = node._cOut
+  if (cIn === null || cOut === null) return
   cIn[o] = aW
   cIn[o + 1] = aH
   cIn[o + 2] = wM
@@ -1477,8 +1476,8 @@ function cacheWrite(
   cIn[o + 5] = oH
   cIn[o + 6] = fW ? 1 : 0
   cIn[o + 7] = fH ? 1 : 0
-  node._cOut![i * 2] = node.layout.width
-  node._cOut![i * 2 + 1] = node.layout.height
+  cOut[i * 2] = node.layout.width
+  cOut[i * 2 + 1] = node.layout.height
   node._cGen = _generation
 }
 
@@ -1607,23 +1606,26 @@ function layoutNode(
       // recursion over a measure-scratched subtree.
       !(performLayout && node._scratchGen === _generation)
     ) {
-      const cIn = node._cIn!
-      for (let i = 0; i < node._cN; i++) {
-        const o = i * 8
-        if (
-          cIn[o + 2] === widthMode &&
-          cIn[o + 3] === heightMode &&
-          cIn[o + 6] === (forceWidth ? 1 : 0) &&
-          cIn[o + 7] === (forceHeight ? 1 : 0) &&
-          sameFloat(cIn[o]!, availableWidth) &&
-          sameFloat(cIn[o + 1]!, availableHeight) &&
-          sameFloat(cIn[o + 4]!, ownerWidth) &&
-          sameFloat(cIn[o + 5]!, ownerHeight)
-        ) {
-          layout.width = node._cOut![i * 2]!
-          layout.height = node._cOut![i * 2 + 1]!
-          _yogaCacheHits++
-          return
+      const cIn = node._cIn
+      const cOut = node._cOut
+      if (cIn !== null && cOut !== null) {
+        for (let i = 0; i < node._cN; i++) {
+          const o = i * 8
+          if (
+            cIn[o + 2] === widthMode &&
+            cIn[o + 3] === heightMode &&
+            cIn[o + 6] === (forceWidth ? 1 : 0) &&
+            cIn[o + 7] === (forceHeight ? 1 : 0) &&
+            sameFloat(cIn[o], availableWidth) &&
+            sameFloat(cIn[o + 1], availableHeight) &&
+            sameFloat(cIn[o + 4], ownerWidth) &&
+            sameFloat(cIn[o + 5], ownerHeight)
+          ) {
+            layout.width = cOut[i * 2]
+            layout.height = cOut[i * 2 + 1]
+            _yogaCacheHits++
+            return
+          }
         }
       }
     }
@@ -1746,22 +1748,22 @@ function layoutNode(
       wMode === MeasureMode.Exactly
         ? width
         : boundAxis(
-            style,
-            true,
-            (measured.width ?? 0) + paddingBorderWidth,
-            ownerWidth,
-            ownerHeight,
-          )
+          style,
+          true,
+          (measured.width ?? 0) + paddingBorderWidth,
+          ownerWidth,
+          ownerHeight,
+        )
     node.layout.height =
       hMode === MeasureMode.Exactly
         ? height
         : boundAxis(
-            style,
-            false,
-            (measured.height ?? 0) + paddingBorderHeight,
-            ownerWidth,
-            ownerHeight,
-          )
+          style,
+          false,
+          (measured.height ?? 0) + paddingBorderHeight,
+          ownerWidth,
+          ownerHeight,
+        )
     commitCacheOutputs(node, performLayout)
     // Write cache even for dirty nodes — fresh-mounted items during virtual
     // scroll are dirty on first layout, but the dirty chain's measure→layout
@@ -1884,7 +1886,7 @@ function layoutNode(
     let lineStart = 0
     let lineLen = 0
     for (let i = 0; i < flowChildren.length; i++) {
-      const c = flowChildren[i]!
+      const c = flowChildren[i]
       const hypo = boundAxis(c.style, isMainRow, c._flexBasis, ownerW, ownerH)
       const outer = Math.max(0, hypo) + childMarginForAxis(c, mainAxis, ownerW)
       const withGap = i > lineStart ? gapMain : 0
@@ -1904,15 +1906,15 @@ function layoutNode(
 
   // STEP 2+3: For each line, resolve flexible lengths and lay out children to
   // measure cross sizes. Track per-line consumed main and max cross.
-  const lineConsumedMain: number[] = new Array(lineCount)
-  const lineCrossSizes: number[] = new Array(lineCount)
+  const lineConsumedMain: number[] = new Array<number>(lineCount)
+  const lineCrossSizes: number[] = new Array<number>(lineCount)
   // Baseline layout tracks max ascent (baseline + leading margin) per line so
   // baseline-aligned items can be positioned at maxAscent - childBaseline.
-  const lineMaxAscent: number[] = isBaseline ? new Array(lineCount).fill(0) : []
+  const lineMaxAscent: number[] = isBaseline ? new Array<number>(lineCount).fill(0) : []
   let maxLineMain = 0
   let totalLinesCross = 0
   for (let li = 0; li < lineCount; li++) {
-    const line = lines[li]!
+    const line = lines[li]
     const lineGap = line.length > 1 ? gapMain * (line.length - 1) : 0
     let lineBasis = lineGap
     for (const c of line) {
@@ -2029,7 +2031,7 @@ function layoutNode(
     let consumed = lineGap
     for (const c of line) {
       const cm = c.layout.margin
-      consumed += c._mainSize + cm[mainLead]! + cm[mainTrail]!
+      consumed += c._mainSize + cm[mainLead] + cm[mainTrail]
     }
     lineConsumedMain[li] = consumed
     lineCrossSizes[li] = lineCross
@@ -2105,7 +2107,7 @@ function layoutNode(
   const crossTrailEdgePhys = isMainRow ? EDGE_BOTTOM : EDGE_RIGHT
   const reversed = isReverse(mainAxis)
   const mainContainerSize = isMainRow ? node.layout.width : node.layout.height
-  const crossLead = pad[crossLeadEdgePhys]! + bor[crossLeadEdgePhys]!
+  const crossLead = pad[crossLeadEdgePhys] + bor[crossLeadEdgePhys]
 
   // Align-content: distribute free cross space among lines. Single-line
   // containers use the full cross size for the one line (align-items handles
@@ -2129,7 +2131,7 @@ function layoutNode(
       case Align.Stretch:
         if (lineCount > 0 && remCross > 0) {
           const add = remCross / lineCount
-          for (let i = 0; i < lineCount; i++) lineCrossSizes[i]! += add
+          for (let i = 0; i < lineCount; i++) lineCrossSizes[i] += add
         }
         break
       case Align.SpaceBetween:
@@ -2158,9 +2160,9 @@ function layoutNode(
   const crossContainerSize = isMainRow ? node.layout.height : node.layout.width
   let lineCrossPos = lineCrossOffset
   for (let li = 0; li < lineCount; li++) {
-    const line = lines[li]!
-    const lineCross = lineCrossSizes[li]!
-    const consumedMain = lineConsumedMain[li]!
+    const line = lines[li]
+    const lineCross = lineCrossSizes[li]
+    const consumedMain = lineConsumedMain[li]
     const n = line.length
 
     // Re-stretch children whose cross is auto and align is stretch, now that
@@ -2212,7 +2214,7 @@ function layoutNode(
     }
 
     // Justify-content + auto margins for this line
-    let mainOffset = pad[mainLeadEdgePhys]! + bor[mainLeadEdgePhys]!
+    let mainOffset = pad[mainLeadEdgePhys] + bor[mainLeadEdgePhys]
     let betweenMain = gapMain
     let numAutoMarginsMain = 0
     for (const c of line) {
@@ -2282,18 +2284,18 @@ function layoutNode(
         autoCrossTrail = isMarginAuto(cMargin, crossTrailEdgePhys)
         mMainLead = autoMainLead
           ? autoMarginMainSize
-          : cLayoutMargin[mainLeadEdgePhys]!
+          : cLayoutMargin[mainLeadEdgePhys]
         mMainTrail = autoMainTrail
           ? autoMarginMainSize
-          : cLayoutMargin[mainTrailEdgePhys]!
-        mCrossLead = autoCrossLead ? 0 : cLayoutMargin[crossLeadEdgePhys]!
-        mCrossTrail = autoCrossTrail ? 0 : cLayoutMargin[crossTrailEdgePhys]!
+          : cLayoutMargin[mainTrailEdgePhys]
+        mCrossLead = autoCrossLead ? 0 : cLayoutMargin[crossLeadEdgePhys]
+        mCrossTrail = autoCrossTrail ? 0 : cLayoutMargin[crossTrailEdgePhys]
       } else {
         // Fast path: no auto margins — read resolved values directly.
-        mMainLead = cLayoutMargin[mainLeadEdgePhys]!
-        mMainTrail = cLayoutMargin[mainTrailEdgePhys]!
-        mCrossLead = cLayoutMargin[crossLeadEdgePhys]!
-        mCrossTrail = cLayoutMargin[crossTrailEdgePhys]!
+        mMainLead = cLayoutMargin[mainLeadEdgePhys]
+        mMainTrail = cLayoutMargin[mainTrailEdgePhys]
+        mCrossLead = cLayoutMargin[crossLeadEdgePhys]
+        mCrossTrail = cLayoutMargin[crossTrailEdgePhys]
       }
 
       const mainPos = reversed
@@ -2329,7 +2331,7 @@ function layoutNode(
             if (isBaseline) {
               crossPos =
                 effectiveLineCrossPos +
-                lineMaxAscent[li]! -
+                lineMaxAscent[li] -
                 calculateBaseline(c)
             }
             break
@@ -2468,11 +2470,11 @@ function layoutAbsoluteChild(
     left = reversed
       ? trail - child.layout.width - mR
       : justifyAbsolute(
-          parent.style.justifyContent,
-          lead,
-          trail,
-          child.layout.width,
-        ) + mL
+        parent.style.justifyContent,
+        lead,
+        trail,
+        child.layout.width,
+      ) + mL
   } else {
     left =
       alignAbsolute(
@@ -2504,11 +2506,11 @@ function layoutAbsoluteChild(
     top = reversed
       ? trail - child.layout.height - mB
       : justifyAbsolute(
-          parent.style.justifyContent,
-          lead,
-          trail,
-          child.layout.height,
-        ) + mT
+        parent.style.justifyContent,
+        lead,
+        trail,
+        child.layout.height,
+      ) + mT
   }
 
   child.layout.left = left
@@ -2686,13 +2688,13 @@ function resolveFlexibleLengths(
   // Lengths": distribute free space, detect min/max violations, freeze all
   // violators, redistribute among unfrozen children. Repeat until stable.
   const n = children.length
-  const frozen: boolean[] = new Array(n).fill(false)
+  const frozen: boolean[] = new Array<boolean>(n).fill(false)
   const initialFree = isDefined(availableInnerMain)
     ? availableInnerMain - totalFlexBasis
     : 0
   // Freeze inflexible items at their clamped basis
   for (let i = 0; i < n; i++) {
-    const c = children[i]!
+    const c = children[i]
     const clamped = boundAxis(c.style, isMainRow, c._flexBasis, ownerW, ownerH)
     const inflexible =
       !isDefined(availableInnerMain) ||
@@ -2707,14 +2709,14 @@ function resolveFlexibleLengths(
   // Iteratively distribute until no violations. Free space is recomputed each
   // pass: initial free space minus the delta frozen children consumed beyond
   // (or below) their basis.
-  const unclamped: number[] = new Array(n)
+  const unclamped: number[] = new Array<number>(n)
   for (let iter = 0; iter <= n; iter++) {
     let frozenDelta = 0
     let totalGrow = 0
     let totalShrinkScaled = 0
     let unfrozenCount = 0
     for (let i = 0; i < n; i++) {
-      const c = children[i]!
+      const c = children[i]
       if (frozen[i]) {
         frozenDelta += c._mainSize - c._flexBasis
       } else {
@@ -2733,7 +2735,7 @@ function resolveFlexibleLengths(
     } else if (remaining < 0 && totalShrinkScaled > 0) {
       let totalShrink = 0
       for (let i = 0; i < n; i++) {
-        if (!frozen[i]) totalShrink += children[i]!.style.flexShrink
+        if (!frozen[i]) totalShrink += children[i].style.flexShrink
       }
       if (totalShrink < 1) {
         const scaled = initialFree * totalShrink
@@ -2744,7 +2746,7 @@ function resolveFlexibleLengths(
     let totalViolation = 0
     for (let i = 0; i < n; i++) {
       if (frozen[i]) continue
-      const c = children[i]!
+      const c = children[i]
       let t = c._flexBasis
       if (remaining > 0 && totalGrow > 0) {
         t += (remaining * c.style.flexGrow) / totalGrow
@@ -2766,7 +2768,7 @@ function resolveFlexibleLengths(
     let anyFrozen = false
     for (let i = 0; i < n; i++) {
       if (frozen[i]) continue
-      const v = children[i]!._mainSize - unclamped[i]!
+      const v = children[i]._mainSize - unclamped[i]
       if ((totalViolation > 0 && v > 0) || (totalViolation < 0 && v < 0)) {
         frozen[i] = true
         anyFrozen = true
@@ -2838,8 +2840,8 @@ function childMarginForAxis(
 }
 
 function resolveGap(style: Style, gutter: Gutter, ownerSize: number): number {
-  let v = style.gap[gutter]!
-  if (v.unit === Unit.Undefined) v = style.gap[Gutter.All]!
+  let v = style.gap[gutter]
+  if (v.unit === Unit.Undefined) v = style.gap[Gutter.All]
   const r = resolveValue(v, ownerSize)
   return isDefined(r) ? Math.max(0, r) : 0
 }

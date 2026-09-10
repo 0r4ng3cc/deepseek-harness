@@ -62,8 +62,8 @@ export function LoadedContextPanel({
         paddingX={1}
         backgroundColor={open || hovered ? 'userMessageBackgroundHover' : undefined}
         onClick={onToggle}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => { setHovered(true) }}
+        onMouseLeave={() => { setHovered(false) }}
       >
         <Text bold={open} wrap="truncate">
           {open ? '▼' : '▶'} <Text dimColor>（Ctrl+P{open ? t('context-panel-collapse') : t('context-panel-expand')}）</Text> {t('context-loaded')} · {summary}

@@ -120,7 +120,13 @@ export function formatContextUsage(
   contextWindow: number | undefined,
   compact = true,
 ): string | undefined {
-  if (!Number.isFinite(used) || !Number.isFinite(contextWindow) || used === undefined || contextWindow === undefined || contextWindow <= 0) {
+  if (
+    !Number.isFinite(used)
+    || !Number.isFinite(contextWindow)
+    || used === undefined
+    || contextWindow === undefined
+    || contextWindow <= 0
+  ) {
     return undefined
   }
   const safeUsed = Math.max(0, used)
@@ -182,10 +188,10 @@ export function isPageMarginMode(value: string): value is PageMarginMode {
 export function parsePageMarginSpec(text: string): PageMarginSpec | undefined {
   const match = PAGE_MARGIN_SPEC_RE.exec(text.trim().toLowerCase())
   if (match === null) return undefined
-  const x = Number.parseInt(match[1]!, 10)
-  const y = match[2] === undefined ? 1 : Number.parseInt(match[2]!, 10)
+  const x = Number.parseInt(match[1], 10)
+  const y = match[2] === undefined ? 1 : Number.parseInt(match[2], 10)
   if (x > PAGE_MARGIN_MAX_X || y > PAGE_MARGIN_MAX_Y) return undefined
-  return `${x}x${y}` as PageMarginSpec
+  return `${x}x${y}`
 }
 
 /** Normalize untrusted/config-layer values without mutating the input:
@@ -206,10 +212,10 @@ export function resolvePageMargin(setting: PageMarginSetting): { readonly x: num
   if (isPageMarginMode(setting)) return PAGE_MARGIN_PRESETS[setting]
   const spec = parsePageMarginSpec(setting)
   if (spec !== undefined) {
-    const [x, y] = spec.split('x')
+    const [x = '0', y = '0'] = spec.split('x')
     return {
-      x: Number.parseInt(x!, 10),
-      y: Number.parseInt(y!, 10),
+      x: Number.parseInt(x, 10),
+      y: Number.parseInt(y, 10),
     }
   }
   return PAGE_MARGIN_PRESETS[DEFAULT_PAGE_MARGIN]

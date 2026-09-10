@@ -27,9 +27,36 @@ import { ensurePackagedPresets } from './packaged-presets.js'
 import { ensureLegacySessionEventTypes, snapshotLiveSessionEvents } from './compat/index.js'
 import { clearResumeTarget, resumeTargetFromArgv, writeResumeTarget } from '../sessionHistory.js'
 import { resolveSessionCwd } from '../utils/workspaceRoot.js'
-import { beginRestartAttempt, checkForTuiUpdate, installedTuiVersion, isBootDeadlockTarget, isStandaloneRuntime, isVersionNewer, logRestartEvent, resolveDshProfileName, resolveTuiUpdateTarget, restartTui, updateTuiAndRestart, writeHandoffNotice } from '../update.js'
+import {
+  beginRestartAttempt,
+  checkForTuiUpdate,
+  installedTuiVersion,
+  isBootDeadlockTarget,
+  isStandaloneRuntime,
+  isVersionNewer,
+  logRestartEvent,
+  resolveDshProfileName,
+  resolveTuiUpdateTarget,
+  restartTui,
+  updateTuiAndRestart,
+  writeHandoffNotice,
+} from '../update.js'
 import { getLang, isLang, resolveStartupLang, setLang, t, writeLangPref } from '../i18n.js'
-import { DEFAULT_PAGE_MARGIN, DEFAULT_STATUS_BAR, applyPageMargin, isPageMarginMode, normalizePageMargin, normalizeScrollGutter, normalizeStatusBar, normalizeToolBackground, parsePageMarginSpec, type PageMarginSetting, type ScrollGutterMode, type StatusBarConfig, type ToolBackground } from '../tuiDisplayPrefs.js'
+import {
+  DEFAULT_PAGE_MARGIN,
+  DEFAULT_STATUS_BAR,
+  applyPageMargin,
+  isPageMarginMode,
+  normalizePageMargin,
+  normalizeScrollGutter,
+  normalizeStatusBar,
+  normalizeToolBackground,
+  parsePageMarginSpec,
+  type PageMarginSetting,
+  type ScrollGutterMode,
+  type StatusBarConfig,
+  type ToolBackground,
+} from '../tuiDisplayPrefs.js'
 import {
   draftComboConflicts,
   effectiveComboString,
@@ -43,14 +70,14 @@ import { attachHerdrIntegration } from '../herdr.js'
 import { logMouseDebug } from '../utils/debug.js'
 import { Chat } from '../screens/Chat.js'
 import { openInjectChannel, type InjectController } from './inject-channel.js'
-import { getHostDialogStore, type TuiDialogRuntime } from './dialogs.js'
-import { getHostStatusStore, type TuiStatusRuntime } from './status.js'
-import { getHostToastStore, type TuiToastRuntime } from './toast.js'
-import { getHostShortcuts, type TuiShortcutRuntime } from './shortcuts.js'
-import { getHostThemes, type TuiThemeRuntime } from './themes.js'
+import { getHostDialogStore } from './dialogs.js'
+import { getHostStatusStore } from './status.js'
+import { getHostToastStore } from './toast.js'
+import { getHostShortcuts } from './shortcuts.js'
+import { getHostThemes } from './themes.js'
 import { attachSessionToWorkspace } from './workspace.js'
 import { createLocalWorkspaceRuntime, getHostWorkspaceRuntime } from './workspaces.js'
-import { getHostSettingsSections, getLocalSettingsSectionsHost, type TuiSettingsField, type TuiSettingsSectionsRuntime } from './settings-sections.js'
+import { getHostSettingsSections, getLocalSettingsSectionsHost, type TuiSettingsField } from './settings-sections.js'
 import { withHostRootCapability } from './host-access.js'
 import { render, ThemeProvider, AlternateScreen } from '../ui.js'
 import { PageMargin } from '../components/PageMargin.js'
@@ -90,9 +117,9 @@ export function initialPromptFromCmdlineArgs(args: readonly string[] | undefined
   if (args === undefined) return ''
   const promptArgs: string[] = []
   for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i]!
+    const arg = args[i]
     if (arg === '--resume') {
-      if (args[i + 1] !== undefined && !args[i + 1]!.startsWith('-')) i += 1
+      if (args[i + 1] !== undefined && !args[i + 1].startsWith('-')) i += 1
       continue
     }
     if (arg.startsWith('--resume=')) continue
@@ -118,7 +145,7 @@ export function initialPromptFromCmdlineArgs(args: readonly string[] | undefined
 export type TuiHostMode = 'interactive' | 'invalid-explicit-launch' | 'headless-host'
 
 export function resolveTuiHostMode(
-  stdoutIsTTY = process.stdout.isTTY === true,
+  stdoutIsTTY = process.stdout.isTTY,
   env: NodeJS.ProcessEnv = process.env,
 ): TuiHostMode {
   if (stdoutIsTTY) {
@@ -137,9 +164,9 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // silent). First line lands before anything in this function can throw.
   if (process.env.DSH_TUI_RESTART_CHILD === '1') {
     logRestartEvent('boot: plugin apply', {
-      stdoutTty: process.stdout.isTTY === true,
-      stdinTty: process.stdin.isTTY === true,
-      stderrTty: process.stderr.isTTY === true,
+      stdoutTty: process.stdout.isTTY,
+      stdinTty: process.stdin.isTTY,
+      stderrTty: process.stderr.isTTY,
     })
     // Field evidence (2026-08-24): the restarted TUI mounts but takes no
     // input, and the terminal's DA reply surfaced on PS's prompt line in an
@@ -152,8 +179,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     const originalRead = probedStdin.read.bind(probedStdin)
     let loggedChunks = 0
     probedStdin.read = ((...args: Parameters<typeof originalRead>) => {
-      const chunk = originalRead(...args)
-      if (chunk !== null && chunk !== '' && loggedChunks < 12) {
+      const chunk = originalRead(...args) as string | Buffer | null | undefined
+      if (chunk !== null && chunk !== undefined && chunk !== '' && loggedChunks < 12) {
         loggedChunks += 1
         const text = String(chunk)
         logRestartEvent('boot: stdin chunk arrived', {
@@ -165,10 +192,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }) as typeof originalRead
     const sampleStdinState = (label: string): void => {
       logRestartEvent(`boot: ${label}`, {
-        isRaw: probedStdin.isRaw === true,
+        isRaw: probedStdin.isRaw,
         readableListeners: probedStdin.listenerCount('readable'),
         dataListeners: probedStdin.listenerCount('data'),
-        paused: probedStdin.isPaused,
+        paused: probedStdin.isPaused(),
         buffered: probedStdin.readableLength,
         chunksSeen: loggedChunks,
       })
@@ -181,7 +208,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         pendingSamples -= 1
         sampleStdinState(label)
       }, delayMs)
-      timer.unref?.()
+      timer.unref()
     }
     sampleAt(2000, 'stdin state +2s')
     sampleAt(5000, 'stdin state +5s')
@@ -329,7 +356,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // One store, one teardown effect on both API lines. The compatibility
   // adapter binds either registration to this Cordis fiber; this separate
   // effect rejects asks still parked in the UI during teardown.
-  ctx.effect(() => () => questionStore.rejectAll())
+  ctx.effect(() => () => { questionStore.rejectAll() })
   // `/debug-prompt` snapshots the final provider-neutral request at the
   // llm/stream boundary, after every prompt and tool contributor has run.
   registerPromptDebug(ctx)
@@ -363,9 +390,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // before agent resolution so servers spawned during startup are covered;
   // notices posted before the channel exists are buffered and flushed then.
   const stderrBacklog: Array<[string, { color?: 'error' | 'warning' | 'success'; timeoutMs?: number }?]> = []
-  let notifyStderr: ((text: string, options?: { color?: 'error' | 'warning' | 'success'; timeoutMs?: number }) => void) | undefined
+  const stderrSink: {
+    notify?: (text: string, options?: { color?: 'error' | 'warning' | 'success'; timeoutMs?: number }) => void
+  } = {}
   const stderrReporter = createChildStderrReporter((text, options) => {
-    if (notifyStderr !== undefined) notifyStderr(text, options)
+    if (stderrSink.notify !== undefined) stderrSink.notify(text, options)
     else stderrBacklog.push([text, options])
   })
   ctx.effect(() => {
@@ -438,7 +467,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // shortcuts never match, custom-entry renderers stay invisible, and runtime
   // themes stay out of the picker when the row is absent — say why on profile
   // launches. The static JSON theme path remains available without this row.
-  const themeHost = getHostThemes(ctx.get('tuiThemes') as TuiThemeRuntime | undefined)
+  const themeHost = getHostThemes(ctx.get('tuiThemes'))
   if ((ctx.get('tuiDialogs') === undefined || themeHost === undefined) && resolveDshProfileName() !== undefined) {
     ctx.logger.warn(
       'dsh-tui: tuiDialogs/tuiStatus/tuiShortcuts/tuiRenderers/tuiThemes services are not mounted; plugin dialogs, status contributions, shortcuts, custom-entry renderers and runtime themes are off. ' +
@@ -555,7 +584,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // already sanitized/rate-limited the delivery, the sink only forwards.
   // Without the extensions row (tuiToast absent) plugin toasts are dropped
   // by the runtime itself — same soft-degrade contract as the other seams.
-  const toastStore = getHostToastStore(ctx.get('tuiToast') as TuiToastRuntime | undefined)
+  const toastStore = getHostToastStore(ctx.get('tuiToast'))
   toastStore?.setSink((delivery) => {
     channel.notify(delivery.text, { color: delivery.color, timeoutMs: delivery.timeoutMs })
   })
@@ -582,7 +611,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // a bare embedder without a settings service must not deadlock).
   let resolveSettingsReady: (() => void) | undefined
   const settingsReady = new Promise<void>((resolve) => {
-    resolveSettingsReady = () => resolve()
+    resolveSettingsReady = () => { resolve() }
     setTimeout(resolve, 300)
   })
   // Register the dsh-tui settings namespace so the /settings screen can
@@ -772,7 +801,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     if (fullscreenMigration === 'unset') {
       channel.notify(t('settings-fullscreen-migrated'), { color: 'warning' })
     }
-    const { fullscreen: staleFullscreen, ...migratedSettings } = bootSettings
+    const { fullscreen: _staleFullscreen, ...migratedSettings } = bootSettings
     apply(fullscreenMigration === 'unset' ? migratedSettings : bootSettings)
     scope.watch((next) => {
       apply(next)
@@ -791,7 +820,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // one or more ctrl+/alt+ combos (comma-separated); blank restores the
   // default, and a combo another action or a fixed editor binding already
   // owns is refused as invalid so remaps can never silently shadow.
-  const shortcutFieldMeta: Record<ShortcutActionId, { label: string; zh: string; hintEn: (defaults: string) => string; hintZh: (defaults: string) => string }> = {
+  const shortcutFieldMeta: Record<ShortcutActionId, {
+    label: string
+    zh: string
+    hintEn: (defaults: string) => string
+    hintZh: (defaults: string) => string
+  }> = {
     paste: {
       label: 'Paste shortcut',
       zh: '粘贴快捷键',
@@ -890,7 +924,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // same registry either way.
   {
     const settingsSections = getHostSettingsSections(
-      ctx.get('tuiSettingsSections') as TuiSettingsSectionsRuntime | undefined,
+      ctx.get('tuiSettingsSections'),
     ) ?? getLocalSettingsSectionsHost()
     const unregister = settingsSections.register({
       ns: 'dsh-tui',
@@ -916,7 +950,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
             // Unset in settings.yaml: show the effective UI language
             // (env / cordis.yml / lang.json resolution) instead of a
             // blank "unset" that hides the current choice.
-            return value === undefined || value === null ? getLang() : String(value)
+            if (value === undefined || value === null) return getLang()
+            return typeof value === 'string' ? value : getLang()
           },
         },
         {
@@ -932,7 +967,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           format(value: unknown): string {
             // Unset in settings.yaml: show what THIS session booted with
             // (the cordis.yml resolution) instead of a misleading false.
-            return value === undefined || value === null ? String(bootedFullscreen) : String(value)
+            return String(typeof value === 'boolean' ? value : bootedFullscreen)
           },
         },
         {
@@ -1001,7 +1036,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
             { value: 'roomy', label: 'Roomy', descriptions: { zh: '宽' } },
           ],
           format(value: unknown): string {
-            return String(value ?? config.pageMargin ?? DEFAULT_PAGE_MARGIN)
+            const resolved = value ?? config.pageMargin ?? DEFAULT_PAGE_MARGIN
+            return typeof resolved === 'string' || typeof resolved === 'number'
+              ? String(resolved)
+              : ''
           },
           parse(text: string) {
             const draft = text.trim().toLowerCase()
@@ -1065,7 +1103,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           kind: 'boolean',
           format(value: unknown): string {
             // Unset in settings.yaml: the default is on.
-            return value === undefined || value === null ? 'true' : String(value)
+            return value === undefined || value === null
+              ? 'true'
+              : typeof value === 'boolean'
+                ? String(value)
+                : 'true'
           },
         },
         ...shortcutFields,
@@ -1272,8 +1314,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     // session other than the active ask's, so no agent filtering is needed
     // here. The firehose fires post-commit, after the event entered
     // the live session log, so the recheck sees the settled result.
-    ctx.on('session/event', (_session, event) => approvalStore.noteSessionEvent(event))
-    ctx.effect(() => () => approvalStore.settleAll('cancelled'))
+    ctx.on('session/event', (_session, event) => { approvalStore.noteSessionEvent(event) })
+    ctx.effect(() => () => { approvalStore.settleAll('cancelled') })
   }
   // The agent view reads parked ask ids for its "needs input" state.
   channel.bindApprovalStore(approvalStore)
@@ -1298,7 +1340,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   if (initialPrompt) channel.submit(initialPrompt)
   // Attach the stderr reporter to the live channel and flush anything a
   // startup-spawned server produced while the channel didn't exist yet.
-  notifyStderr = (text, options) => channel.notify(text, options)
+  stderrSink.notify = (text, options) => channel.notify(text, options)
   // The question-seat alert was raised before the channel existed; flush it
   // now so it lands as an in-UI notice, not only in the log file.
   if (questionSeatNotice !== undefined) {
@@ -1306,7 +1348,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     questionSeatNotice = undefined
   }
   for (const [text, options] of stderrBacklog.splice(0)) {
-    notifyStderr(text, options)
+    stderrSink.notify(text, options)
   }
   // Single exit funnel: `/exit` and double Ctrl+C land here, and so does
   // the unmount triggered by a cordis context teardown — but the two must
@@ -1317,7 +1359,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // UI; user exit runs the full leave sequence: unmount() restores the
   // terminal (cursor, raw mode, mouse tracking) and the explicit newlines
   // keep the shell prompt from overlapping the TUI's last line.
-  let instance: Awaited<ReturnType<typeof render>> | undefined
+  const mounted: { current?: Awaited<ReturnType<typeof render>> } = {}
   let exited = false
   let updateRequested = false
   let updateTargetVersion: string | undefined
@@ -1340,15 +1382,19 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       // background-check guards that still read the outer one.
       exited = true
       if (error !== undefined) {
-        const message = error instanceof Error ? error.message : String(error)
+        const message = error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : 'unknown'
         ctx.logger.error(`dsh-tui: exit after error: ${message}`)
         void finishExit(
           ctx,
-          instance,
+          mounted.current,
           bootedFullscreen,
           undefined,
           `dsh-tui crashed: ${message}`,
-          () => disposeRootAndExit(ctx, 1),
+          () => { disposeRootAndExit(ctx, 1) },
         )
         return
       }
@@ -1363,11 +1409,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           : t('update-starting')
         void finishExit(
           ctx,
-          instance,
+          mounted.current,
           bootedFullscreen,
           hintText,
           undefined,
-          () => runUpdate(ctx, profile, channel.agentId, updateTargetVersion),
+          () => { runUpdate(ctx, profile, channel.agentId, updateTargetVersion) },
         )
         return
       }
@@ -1388,11 +1434,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         }
         void finishExit(
           ctx,
-          instance,
+          mounted.current,
           bootedFullscreen,
           t('restart-starting'),
           undefined,
-          () => runRestart(ctx, profile, channel.agentId),
+          () => { runRestart(ctx, profile, channel.agentId) },
         )
         return
       }
@@ -1417,11 +1463,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         : undefined
       void finishExit(
         ctx,
-        instance,
+        mounted.current,
         bootedFullscreen,
         hint,
         undefined,
-        () => disposeRootAndExit(ctx, 0),
+        () => { disposeRootAndExit(ctx, 0) },
       )
     },
   })
@@ -1430,7 +1476,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // External injection controller: Chat fills it with `{ append, submit }`
   // every render; the injection socket (opened below) drives it. A ref rather
   // than a prop callback so the socket handler always reaches the live Chat.
-  const injectControllerRef = React.createRef<InjectController | null>() as React.RefObject<InjectController | null>
+  const injectControllerRef = React.createRef<InjectController | null>()
 
   // Chat's `fullscreen` prop must match the root wrap below, or the
   // full-screen surfaces inside Chat (session browser, settings, trajectory,
@@ -1449,15 +1495,15 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     // The dsh-tui-extensions row's services (managed dialogs, status line,
     // shortcuts). Soft-consumed: absent the row (stale patch, bare embed),
     // Chat falls back to inert stores and no shortcut registry.
-    extensionDialogs: getHostDialogStore(ctx.get('tuiDialogs') as TuiDialogRuntime | undefined),
-    extensionStatus: getHostStatusStore(ctx.get('tuiStatus') as TuiStatusRuntime | undefined),
-    extensionShortcuts: getHostShortcuts(ctx.get('tuiShortcuts') as TuiShortcutRuntime | undefined),
+    extensionDialogs: getHostDialogStore(ctx.get('tuiDialogs')),
+    extensionStatus: getHostStatusStore(ctx.get('tuiStatus')),
+    extensionShortcuts: getHostShortcuts(ctx.get('tuiShortcuts')),
     themeHost,
     // Full-screen surfaces inside Chat — the trajectory scene and the session
     // browser — enter the alt screen themselves in inline mode; in fullscreen
     // the tree is already wrapped below, so they must not nest.
     fullscreen: bootedFullscreen,
-    onExit: () => handleExit(),
+    onExit: () => { handleExit() },
     // `/restart`: respawn this process and resume the session, no update.
     onRestart: () => {
       if (exited || restartRequested) return
@@ -1519,7 +1565,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // on a re-mount whose settings application arrived late (see the module
   // latch note). A fresh process still resolves from config + settings
   // normally — the latch is undefined there.
-  if (bootedFullscreen === false && lastBootedFullscreen === true) {
+  if (!bootedFullscreen && lastBootedFullscreen) {
     bootedFullscreen = true
   }
   fullscreenFrozen = true
@@ -1539,7 +1585,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     themeHost,
     children: marginChildren,
   })
-  instance = await render(tree, { exitOnCtrlC: false })
+  mounted.current = await render(tree, { exitOnCtrlC: false })
+  const instance = mounted.current
   const isRecompose = lastBootedFullscreen !== undefined
   lastBootedFullscreen = bootedFullscreen
   logMouseDebug('apply mount', { bootedFullscreen, isRecompose })
@@ -1561,10 +1608,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       append: text => injectControllerRef.current?.append(text),
       submit: () => injectControllerRef.current?.submit(),
     },
-    message => ctx.logger.warn(`dsh-tui: ${message}`),
+    (message) => { ctx.logger.warn(`dsh-tui: ${message}`) },
   )
   if (injectChannel) {
-    ctx.effect(() => () => injectChannel.close())
+    ctx.effect(() => () => { injectChannel.close() })
   }
 
   // Check in the background so registry latency never delays the first frame.
@@ -1598,7 +1645,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     logMouseDebug('apply teardown')
     funnel.markTeardown()
     channel.releaseContributions()
-    instance?.unmount()
+    mounted.current?.unmount()
   })
 
   // The TUI is the front door: when the user unmounts it (Ctrl+C), dispose
@@ -1910,7 +1957,7 @@ function readInkShutdownState(value: unknown): InkShutdownState | undefined {
   if (candidate.drainStdin !== undefined && typeof candidate.drainStdin !== 'function') return undefined
   if (candidate.frontFrame !== undefined && !isFrameState(candidate.frontFrame)) return undefined
   if (candidate.displayCursor !== undefined && candidate.displayCursor !== null && !isCursorState(candidate.displayCursor)) return undefined
-  return value as InkShutdownState
+  return value
 }
 
 function isFrameState(value: unknown): value is { cursor?: { x: number; y: number } } {
@@ -1978,7 +2025,7 @@ function runRestart(ctx: Context, profile: string | undefined, sessionId: string
         }
         process.exit(restartCode)
       },
-      (restartError) => {
+      (restartError: unknown) => {
         const message = restartError instanceof Error ? restartError.message : String(restartError)
         logRestartEvent('runRestart: restartTui rejected', { message })
         writeHandoffNotice(
@@ -2012,7 +2059,7 @@ function runUpdate(
         }
         process.exit(restartCode)
       },
-      (updateError) => {
+      (updateError: unknown) => {
         const message = updateError instanceof Error ? updateError.message : String(updateError)
         process.stderr.write(
           `\ndsh-tui update failed: ${message}. Your session is preserved — resume with:\n` +

@@ -124,7 +124,9 @@ export function compareVersions(a: UpstreamVersionTuple, b: UpstreamVersionTuple
 function validatedLinesLabel(): string {
   const groups: { release: string; channel: UpstreamPrereleaseChannel; numbers: number[] }[] = []
   for (const version of UPSTREAM_VALIDATED_VERSIONS) {
-    const [major, minor, patch, channel, number] = parseUpstreamVersion(version)!
+    const parsed = parseUpstreamVersion(version)
+    if (parsed === undefined) continue
+    const [major, minor, patch, channel, number] = parsed
     const release = `${major}.${minor}.${patch}`
     let group = groups.find(candidate => candidate.release === release && candidate.channel === channel)
     if (group === undefined) {
@@ -214,7 +216,12 @@ export function installedUpstreamLines(
     const version = installedVersions[packageName]
     if (version !== undefined && parseUpstreamVersion(version) !== undefined) lines.add(version)
   }
-  return [...lines].sort((a, b) => compareVersions(parseUpstreamVersion(a)!, parseUpstreamVersion(b)!))
+  return [...lines].sort((a, b) => {
+    const parsedA = parseUpstreamVersion(a)
+    const parsedB = parseUpstreamVersion(b)
+    if (parsedA === undefined || parsedB === undefined) return 0
+    return compareVersions(parsedA, parsedB)
+  })
 }
 
 /**
@@ -283,13 +290,15 @@ export function upstreamDriftSummary(
   if (harness.some(entry => entry.installed === undefined)) {
     return { kind: 'broken', versions }
   }
-  const harnessVersions = [...new Set(harness.map(entry => entry.installed!))]
+  const harnessVersions = [...new Set(
+    harness.flatMap(entry => entry.installed === undefined ? [] : [entry.installed]),
+  )]
   if (harnessVersions.length > 1) {
     return { kind: 'mixed', versions }
   }
   const installed = parseUpstreamVersion(harnessVersions[0] ?? '')
-  const validated = parseUpstreamVersion(UPSTREAM_VALIDATED_VERSION)!
-  if (installed === undefined) {
+  const validated = parseUpstreamVersion(UPSTREAM_VALIDATED_VERSION)
+  if (installed === undefined || validated === undefined) {
     return { kind: 'broken', versions }
   }
   const order = compareVersions(installed, validated)

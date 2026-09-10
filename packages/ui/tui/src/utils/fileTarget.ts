@@ -91,7 +91,7 @@ const NON_EXTENSION_TAILS = new Set([
 function hasPlausibleExtension(stripped: string): boolean {
   const extMatch = FILE_EXTENSION_RE.exec(stripped)
   if (extMatch === null) return false
-  const ext = extMatch[1]!.toLowerCase()
+  const ext = extMatch[1].toLowerCase()
   if (NON_EXTENSION_TAILS.has(ext)) return false
   return stripped.slice(0, extMatch.index).length >= 4
 }
@@ -161,13 +161,13 @@ export function linkifyFilePaths(
   text: string,
   wrap: (path: string, display: string) => string,
 ): string {
-  return text.replace(PATH_SPAN_RE, (match, offset, full) => {
+  return text.replace(PATH_SPAN_RE, (match: string, offset: number, full: string) => {
     // The slash-anchor branch would otherwise match inside URLs
     // (`https:/…` matches `/…`): a span glued to a scheme colon or a `//`
     // run is part of a URL, never a path. offset is available because the
     // regex has no capture groups.
     if (offset > 0) {
-      const prev = full[offset - 1]!
+      const prev = full[offset - 1]
       if (prev === ':' || prev === '/') return match
     }
     const display = match.replace(/[.,;:!?]+$/u, '')

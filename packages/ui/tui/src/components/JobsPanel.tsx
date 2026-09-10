@@ -38,7 +38,8 @@ function clipLine(text: string, maxWidth: number): string {
   let width = 0
   let index = 0
   while (index < text.length) {
-    const next = text.codePointAt(index)!
+    const next = text.codePointAt(index)
+    if (next === undefined) break
     const char = String.fromCodePoint(next)
     const charWidth = stringWidth(char)
     if (width + charWidth > maxWidth - 1) break

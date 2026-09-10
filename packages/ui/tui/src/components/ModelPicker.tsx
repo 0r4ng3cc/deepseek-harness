@@ -59,7 +59,6 @@ export function ModelPicker(props:
   const rowHeights = inGroups
     ? props.groups.map(() => 2)
     : props.models.map(m => (m.description ? 2 : 1))
-  const rows = inGroups ? props.groups : props.models
   const { start, end } = listWindow(rowHeights, props.focusIndex, Math.max(terminalRows - 14, 2))
   const hint = inGroups
     ? t('hint-model-groups')
@@ -72,36 +71,41 @@ export function ModelPicker(props:
             {inGroups || props.groupLabel === undefined ? t('picker-title-model') : props.groupLabel}
           </Text>
         </Box>
-        {rows.slice(start, end).map((row, index) => {
-          const absoluteIndex = start + index
-          return inGroups ? (
-            <ListItem
-              key={row.provider}
-              isFocused={absoluteIndex === props.focusIndex}
-              isSelected={row.provider === props.currentProvider}
-              description={t('picker-group-count', { count: row.count })}
-              showScrollUp={absoluteIndex === start && start > 0}
-              showScrollDown={absoluteIndex === end - 1 && end < rows.length}
-              onClick={onPick ? () => onPick(absoluteIndex) : undefined}
-            >
-              {row.label === RECENTS_LABEL_PLACEHOLDER && row.provider === RECENTS_GROUP_PROVIDER
-                ? t('picker-group-recent')
-                : row.label}
-            </ListItem>
-          ) : (
-            <ListItem
-              key={`${row.provider}/${row.id}`}
-              isFocused={absoluteIndex === props.focusIndex}
-              isSelected={`${row.provider}/${row.id}` === props.currentModel}
-              description={row.description}
-              showScrollUp={absoluteIndex === start && start > 0}
-              showScrollDown={absoluteIndex === end - 1 && end < rows.length}
-              onClick={onPick ? () => onPick(absoluteIndex) : undefined}
-            >
-              {props.showProviderPrefix === true ? `${row.provider} / ${row.name}` : row.name}
-            </ListItem>
-          )
-        })}
+        {inGroups
+          ? props.groups.slice(start, end).map((row, index: number) => {
+            const absoluteIndex = start + index
+            return (
+              <ListItem
+                key={row.provider}
+                isFocused={absoluteIndex === props.focusIndex}
+                isSelected={row.provider === props.currentProvider}
+                description={t('picker-group-count', { count: row.count })}
+                showScrollUp={absoluteIndex === start && start > 0}
+                showScrollDown={absoluteIndex === end - 1 && end < props.groups.length}
+                onClick={onPick ? () => { onPick(absoluteIndex) } : undefined}
+              >
+                {row.label === RECENTS_LABEL_PLACEHOLDER && row.provider === RECENTS_GROUP_PROVIDER
+                  ? t('picker-group-recent')
+                  : row.label}
+              </ListItem>
+            )
+          })
+          : props.models.slice(start, end).map((row, index: number) => {
+            const absoluteIndex = start + index
+            return (
+              <ListItem
+                key={`${row.provider}/${row.id}`}
+                isFocused={absoluteIndex === props.focusIndex}
+                isSelected={`${row.provider}/${row.id}` === props.currentModel}
+                description={row.description}
+                showScrollUp={absoluteIndex === start && start > 0}
+                showScrollDown={absoluteIndex === end - 1 && end < props.models.length}
+                onClick={onPick ? () => { onPick(absoluteIndex) } : undefined}
+              >
+                {props.showProviderPrefix === true ? `${row.provider} / ${row.name}` : row.name}
+              </ListItem>
+            )
+          })}
       </Box>
       <Text dimColor italic>
         <HintLine text={hint} />

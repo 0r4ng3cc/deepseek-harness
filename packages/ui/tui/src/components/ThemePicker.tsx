@@ -49,7 +49,7 @@ function optionFor(name: string, displayName: string, theme: Theme, description:
  * and the /theme command (focus index), so both always see the same ordering.
  */
 export function getThemeOptions(themeHost?: TuiThemeHost): SelectOption[] {
-  return listThemeCatalog(themeHost).map(item => {
+  return listThemeCatalog(themeHost).map((item) => {
     const base = item.base ?? 'dark'
     const description = item.source === 'auto'
       ? t('theme-auto-base')
@@ -102,7 +102,7 @@ export function ThemePicker({
           focusIndex={focusIndex}
           selectedValue={currentTheme}
           visibleOptionCount={6}
-          onPick={onPick ? index => onPick(index) : undefined}
+          onPick={onPick ? (index) => { onPick(index) } : undefined}
         />
         <Text dimColor italic>
           <HintLine text={t('hint-confirm-exit')} />

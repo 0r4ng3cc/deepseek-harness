@@ -114,7 +114,7 @@ const revealListeners = new Set<() => void>()
 function ensureRevealTimer(): void {
   if (revealTimer === undefined) {
     revealTimer = setInterval(revealTick, REVEAL_FRAME_MS)
-    revealTimer.unref?.()
+    revealTimer.unref()
   }
 }
 
@@ -129,7 +129,7 @@ function stopRevealTimerIfIdle(): void {
 // reveal tick pauses this scheduler for the backoff window (cursors freeze
 // in place; the resume timer — or a later render reading an active cursor —
 // restarts it). Absorbing forever would leave the process alive but laggy.
-registerOverflowQuench('reveal.tick', ms => {
+registerOverflowQuench('reveal.tick', (ms) => {
   if (revealTimer !== undefined) {
     clearInterval(revealTimer)
     revealTimer = undefined
@@ -138,7 +138,7 @@ registerOverflowQuench('reveal.tick', ms => {
         ensureRevealTimer()
       }
     }, ms)
-    resume.unref?.()
+    resume.unref()
   }
 })
 

@@ -87,7 +87,7 @@ export function foldAgentViewEvents(
 ): AgentViewFold {
   const fold = { ...base }
   for (let i = start; i < events.length; i += 1) {
-    const event = events[i]!
+    const event = events[i]
     fold.updatedAt = event.time
     switch (event.type) {
       case 'user/message': {
@@ -114,7 +114,7 @@ export function foldAgentViewEvents(
         // The current activity beats the prompt it was answering; assistant
         // text beats a tool call.
         if (fold.summaryKind === 'none' || fold.summaryKind === 'prompt') {
-          fold.summary = String(event.data.name)
+          fold.summary = event.data.name
           fold.summaryKind = 'tool'
         }
         break
@@ -140,7 +140,7 @@ export function foldAgentViewEvents(
 export function agentViewLivePreview(events: readonly SessionEvent[], limit: number): PreviewEntry[] {
   const entries: PreviewEntry[] = []
   for (let i = events.length - 1; i >= 0 && entries.length < limit; i -= 1) {
-    const event = events[i]!
+    const event = events[i]
     if (event.type === 'user/message') {
       const text = agentViewTextOf(event.data.content)
       if (text !== undefined) entries.push({ role: 'user', text, at: event.time })

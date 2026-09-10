@@ -41,7 +41,7 @@ export function EffortSlider({
                 <Text dimColor> ── </Text>
               ) : null}
               <Box
-                onClick={onPick ? () => onPick(index) : undefined}
+                onClick={onPick ? () => { onPick(index) } : undefined}
                 backgroundColor={
                   onPick !== undefined && index !== focusIndex
                     ? 'userMessageBackgroundHover'
@@ -59,7 +59,7 @@ export function EffortSlider({
             </React.Fragment>
           ))}
         </Box>
-        {focused?.description !== undefined ? (
+        {focused.description !== undefined ? (
           <Text dimColor>{focused.description}</Text>
         ) : null}
         <Text dimColor italic>

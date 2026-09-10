@@ -4,10 +4,10 @@ import { formatTokens } from '../cc/format.js'
 import { t } from '../i18n.js'
 import { formatContextUsage, DEFAULT_STATUS_BAR, normalizeStatusBar, type StatusBarConfig } from '../tuiDisplayPrefs.js'
 import { formatRunStats } from '../components/StatsLine.js'
-import { estimateSessionCostCny, estimateSessionCostSplitCny, isDeepSeekOfficialProvider, isPeakHour } from '../deepseekPricing.js'
+import { estimateSessionCostCny, isDeepSeekOfficialProvider, isPeakHour } from '../deepseekPricing.js'
 import { ActivityLine, contextPressurePct } from '../components/ActivityLine.js'
 import { GoalStatusChip } from '../components/GoalTodoPanel.js'
-import { formatJobDuration, type BackgroundJobState } from '../dsh-adapter/jobs.js'
+import { type BackgroundJobState } from '../dsh-adapter/jobs.js'
 
 /** Stable fallback for stubbed channels: verify/repro harnesses render the
  *  real Chat with partial channel literals that predate the jobs field. */
@@ -19,12 +19,10 @@ import { TooltipTarget } from '../components/Tooltip.js'
 import { formatProject } from '../sessions/format.js'
 import { homeDir } from '../utils/paths.js'
 import {
-  USED_SEGMENTS,
   renderMiniContextBar,
   renderTpsGauge,
   renderTpsSparkline,
   speedColor,
-  tpsStats,
 } from './StatusMetrics.js'
 import type { WaveBand } from '../dsh-adapter/types.js'
 

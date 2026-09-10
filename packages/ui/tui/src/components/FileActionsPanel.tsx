@@ -59,7 +59,7 @@ export function FileActionsPanel({
           focusIndex={focusIndex}
           selectedValue={undefined}
           visibleOptionCount={FILE_ACTION_COUNT}
-          onPick={onPick ? index => onPick(index) : undefined}
+          onPick={onPick ? (index) => { onPick(index) } : undefined}
         />
         <Text dimColor italic>
           <HintLine text={t('hint-confirm-exit')} />

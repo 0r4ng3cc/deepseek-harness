@@ -32,7 +32,7 @@ type Props = {
    * clicking other transcript rows. Also makes the `(ctrl+o to expand)`
    * hint actionable with the mouse.
    */
-  onClick?(event: ClickEvent): void
+  onClick?: (event: ClickEvent) => void
   /**
    * Trajectory pointer, rendered as one more `⎿` line under a failed call.
    *
@@ -94,7 +94,7 @@ function displayName(name: string): string {
   const mapped = KNOWN[name]
   if (mapped) return mapped
   if (name.length === 0) return name
-  return name[0]!.toUpperCase() + name.slice(1)
+  return name[0].toUpperCase() + name.slice(1)
 }
 
 function parseJsonArgs(args: string): unknown {
@@ -326,13 +326,25 @@ function toolCardMetaTooltip(tool: ToolRow, isRunning: boolean, isError: boolean
       parts.push(t('tool-tip-exit', { code: resultView.exitCode }))
     }
     if ('signal' in resultView && resultView.signal !== undefined) {
-      parts.push(t('tool-tip-signal', { name: String(resultView.signal) }))
+      parts.push(t('tool-tip-signal', { name: resultView.signal }))
     }
   }
   return parts.join(' · ')
 }
 
-function HeaderTitle({ name, title, isTerminal, folded, displayArgs, argsLanguage, nameColor, filePath, onOpenFile, metaTooltip, headerTextBudget }: {
+function HeaderTitle({
+  name,
+  title,
+  isTerminal,
+  folded,
+  displayArgs,
+  argsLanguage,
+  nameColor,
+  filePath,
+  onOpenFile,
+  metaTooltip,
+  headerTextBudget,
+}: {
   name: string
   title: string | undefined
   isTerminal: boolean
@@ -469,7 +481,8 @@ function HeaderTitle({ name, title, isTerminal, folded, displayArgs, argsLanguag
 /**
  * Tool-call card: `● Edit /path` header with a blinking status dot, then the
  * structured body under a `  ⎿  ` gutter — diff hunks in red/green, terminal
- * output, read content — instead of the raw result dump (mirroring Claude Code's `AssistantToolUseMessage.tsx` + the dsh-tools presentation views the
+ * output, read content — instead of the raw result dump (mirroring Claude
+ * Code's `AssistantToolUseMessage.tsx` + the dsh-tools presentation views the
  * channel captures per call).
  */
 export function AssistantToolUseMessage({
@@ -623,8 +636,8 @@ export function AssistantToolUseMessage({
       // Only selection paints a highlight; the configured treatment applies
       // to an ordinary card. Diff line tints stay - they are content, not chrome.
       backgroundColor={isSelected ? 'messageActionsBackground' : hoverTint ? 'toolCardBackground' : ordinaryBackground}
-      onMouseEnter={interactive ? () => setHovered(true) : undefined}
-      onMouseLeave={interactive ? () => setHovered(false) : undefined}
+      onMouseEnter={interactive ? () => { setHovered(true) } : undefined}
+      onMouseLeave={interactive ? () => { setHovered(false) } : undefined}
     >
       <Box flexDirection="column" flexGrow={1}>
         <Box flexDirection="row" flexWrap="nowrap" minWidth={minWidth}>
@@ -634,7 +647,19 @@ export function AssistantToolUseMessage({
             isError={isError}
             toolName={tool.name}
           />
-          <HeaderTitle name={name} title={headerTitle} isTerminal={headerIsTerminal} folded={foldedHeader} displayArgs={displayArgs} argsLanguage={argsLanguage} nameColor={toolNameColor(tool.name)} filePath={filePath} onOpenFile={onOpenFile} metaTooltip={() => toolCardMetaTooltip(tool, isRunning, isError)} headerTextBudget={headerTextBudget} />
+          <HeaderTitle
+            name={name}
+            title={headerTitle}
+            isTerminal={headerIsTerminal}
+            folded={foldedHeader}
+            displayArgs={displayArgs}
+            argsLanguage={argsLanguage}
+            nameColor={toolNameColor(tool.name)}
+            filePath={filePath}
+            onOpenFile={onOpenFile}
+            metaTooltip={() => toolCardMetaTooltip(tool, isRunning, isError)}
+            headerTextBudget={headerTextBudget}
+          />
           {!isRunning && (
             <Box flexWrap="nowrap">
               <Text dimColor={!hovered}>{elapsedText}</Text>
@@ -646,7 +671,7 @@ export function AssistantToolUseMessage({
             </Box>
           )}
         </Box>
-        {useSplitDiff && view?.card === 'diff' ? (
+        {useSplitDiff && view.card === 'diff' ? (
           <Box flexDirection="row">
             <Box width={3} flexShrink={0}>
               <Text dimColor>{GUTTER_FIRST}</Text>

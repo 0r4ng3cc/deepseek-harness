@@ -100,7 +100,7 @@ function analyzeStableBoundary(tokens: readonly Token[], suffixIndex: number): S
   let segmentStart = 0
   let hasTable = false
   for (let i = suffixIndex - 1; i >= 0; i--) {
-    if (tokens[i]!.type === 'table') {
+    if (tokens[i].type === 'table') {
       segmentStart = i + 1
       hasTable = true
       break
@@ -111,15 +111,15 @@ function analyzeStableBoundary(tokens: readonly Token[], suffixIndex: number): S
   // after the last visible text and therefore only extend its newline run.
   let blankNewlines = 0
   let cursor = suffixIndex - 1
-  while (cursor >= segmentStart && isBlankTokenType(tokens[cursor]!.type)) {
-    blankNewlines += blankTokenNewlines(tokens[cursor]!.type)
+  while (cursor >= segmentStart && isBlankTokenType(tokens[cursor].type)) {
+    blankNewlines += blankTokenNewlines(tokens[cursor].type)
     cursor--
   }
 
   // Format backwards until a token actually produces visible text. A token
   // that formats to blank is folded into the newline run and skipped over.
   for (let i = cursor; i >= segmentStart; i--) {
-    const token = tokens[i]!
+    const token = tokens[i]
     const ansiText = formatToken(token)
     if (ansiText.trim() === '') {
       blankNewlines += ansiText.match(/\n+$/)?.[0].length ?? 0

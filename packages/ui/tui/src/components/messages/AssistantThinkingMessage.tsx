@@ -44,7 +44,7 @@ type Props = {
   durationMs?: number
   /** Message-selection mode highlight. */
   isSelected?: boolean
-  onClick?(event: ClickEvent): void
+  onClick?: (event: ClickEvent) => void
 }
 
 /**
@@ -79,8 +79,8 @@ export function AssistantThinkingMessage({
   const [frame, setFrame] = React.useState(0)
   React.useEffect(() => {
     if (!streaming) return
-    const interval = setInterval(() => setFrame(f => f + 1), THINKING_SPINNER_INTERVAL_MS)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { setFrame(f => f + 1) }, THINKING_SPINNER_INTERVAL_MS)
+    return () => { clearInterval(interval) }
   }, [streaming])
 
   const duration =
@@ -101,12 +101,12 @@ export function AssistantThinkingMessage({
   const minimal = isMinimalMode()
   const pulse = (Math.sin(frame * 0.9) + 1) / 2
   const pulseColor = interpolateColor(BRAND, ICE, pulse)
-  const frameText = THINKING_SPINNER_FRAMES[frame % THINKING_SPINNER_FRAMES.length]!
+  const frameText = THINKING_SPINNER_FRAMES[frame % THINKING_SPINNER_FRAMES.length]
   // Hover 轻指示：可点击折叠时折叠头从 dim 提亮为正常色（不刷整行背景，
   // 转录视觉保持安静）。
   const [hovered, setHovered] = React.useState(false)
   const hoverProps = onClick !== undefined
-    ? { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) }
+    ? { onMouseEnter: () => { setHovered(true) }, onMouseLeave: () => { setHovered(false) } }
     : {}
   const header =
     streaming ? (

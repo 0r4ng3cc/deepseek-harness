@@ -38,8 +38,8 @@ export interface HostDescriptorBuild {
 }
 
 function freezeDeep<T>(value: T, seen = new WeakSet<object>()): T {
-  if (value === null || typeof value !== 'object' || seen.has(value as object)) return value
-  seen.add(value as object)
+  if (value === null || typeof value !== 'object' || seen.has(value)) return value
+  seen.add(value)
   for (const child of Object.values(value as Record<string, unknown>)) freezeDeep(child, seen)
   return Object.freeze(value)
 }

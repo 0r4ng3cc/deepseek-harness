@@ -254,12 +254,10 @@ export function coalesceReplayEvents(events: readonly SessionEvent[]): SessionEv
       (event.data.chunk.type === 'text-delta' || event.data.chunk.type === 'reasoning-delta')
     ) {
       if (run !== null && run.type === event.data.chunk.type) {
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may lack text
         run.parts.push(event.data.chunk.text ?? '')
         continue
       }
       flush()
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- durable replay data may lack text
       run = { event, type: event.data.chunk.type, parts: [event.data.chunk.text ?? ''] }
       continue
     }
@@ -283,7 +281,6 @@ export function turnBoundary(events: readonly SessionEvent[], seq: number): numb
   const start = events[seq]?.type === 'turn/end' ? seq - 1 : seq
   for (let i = start; i >= 0; i--) {
     const event = events[i]
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: seq may exceed events
     if (event === undefined) break
     if (event.type === 'turn/start') return event.seq - 1
     if (event.type === 'turn/end') break
@@ -329,7 +326,6 @@ export interface RewindTarget {
  */
 export function rewindTarget(events: readonly SessionEvent[], seq: number): RewindTarget {
   const selected = events[seq]
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: seq may exceed events
   if (selected === undefined || selected.type === 'user/message') {
     return { boundary: turnBoundary(events, seq) }
   }
@@ -337,7 +333,7 @@ export function rewindTarget(events: readonly SessionEvent[], seq: number): Rewi
   // The enclosing turn's number — needed to close a mid-turn cut.
   let turn: number | undefined
   for (let i = seq; i >= 0; i--) {
-    const event = events[i]!
+    const event = events[i]
     if (event.type === 'turn/start') {
       turn = event.data.turn
       break
@@ -345,7 +341,7 @@ export function rewindTarget(events: readonly SessionEvent[], seq: number): Rewi
     if (event.type === 'turn/end') break // between turns: no enclosing turn
   }
   for (let i = seq + 1; i < events.length; i++) {
-    const event = events[i]!
+    const event = events[i]
     if (event.type === 'step/end' && turn !== undefined) {
       return { boundary: event.seq, closeTurn: turn }
     }
@@ -373,7 +369,6 @@ export function rewindTarget(events: readonly SessionEvent[], seq: number): Rewi
  */
 export function forkTarget(events: readonly SessionEvent[], seq: number): RewindTarget {
   const selected = events[seq]
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard: seq may exceed events
   if (selected === undefined || selected.type !== 'user/message') {
     return rewindTarget(events, seq)
   }
@@ -381,7 +376,7 @@ export function forkTarget(events: readonly SessionEvent[], seq: number): Rewind
   // turn/end encountered first means the entry sits between turns.
   let turn: number | undefined
   for (let i = seq; i >= 0; i--) {
-    const event = events[i]!
+    const event = events[i]
     if (event.type === 'turn/start') {
       turn = event.data.turn
       break
@@ -427,7 +422,7 @@ export function liveTailWindow(
     // least one turn).
     let lastStart = -1
     for (let i = scope.length - 1; i >= 0; i--) {
-      if (scope[i]!.type === 'turn/start') {
+      if (scope[i].type === 'turn/start') {
         lastStart = i
         break
       }
@@ -447,11 +442,11 @@ export function turnUserText(events: readonly SessionEvent[], seq: number): stri
   // turn/start and steal that turn's prompt.
   if (boundary >= seq) return ''
   for (let i = boundary + 1; i < events.length; i++) {
-    const event = events[i]!
+    const event = events[i]
     if (event.type === 'turn/end') break
     if (event.type !== 'user/message') continue
     if (event.data.source.kind !== 'user') continue
-    const text = firstTextOf(event.data.content as readonly Block[])
+    const text = firstTextOf(event.data.content)
     if (text) return text
   }
   return ''
@@ -500,7 +495,7 @@ export function extractEntries(sessionId: string, events: readonly SessionEvent[
       case 'user/message': {
         const source = event.data.source as { kind: string; plugin?: string }
         if (source.kind === 'plugin' && source.plugin === 'compact') {
-          const summary = textOf(event.data.content as readonly Block[])
+          const summary = textOf(event.data.content)
           push({
             seq: event.seq,
             kind: 'compact',
@@ -511,7 +506,7 @@ export function extractEntries(sessionId: string, events: readonly SessionEvent[
           break
         }
         if (source.kind !== 'user') break
-        const text = firstTextOf(event.data.content as readonly Block[])
+        const text = firstTextOf(event.data.content)
         if (text) {
           push({
             seq: event.seq,
@@ -526,7 +521,7 @@ export function extractEntries(sessionId: string, events: readonly SessionEvent[
       case 'assistant/message': {
         const { turn, step } = event.data
         seenSteps.add(`${turn}:${step}`)
-        const text = textOf(event.data.message.content as readonly Block[])
+        const text = textOf(event.data.message.content)
         // pi hides assistant messages with only tool calls (no text).
         if (text) {
           push({
@@ -574,7 +569,7 @@ export function extractEntries(sessionId: string, events: readonly SessionEvent[
       case 'tool/result': {
         const index = openTools.get(event.data.message.source.callId)
         if (index === undefined) break
-        const entry = entries[index]!
+        const entry = entries[index]
         entries[index] = {
           ...entry,
           toolStatus: event.data.error === undefined ? 'ok' : 'error',
@@ -620,7 +615,7 @@ export function extractEntries(sessionId: string, events: readonly SessionEvent[
     const turn = Number(key.slice(0, key.indexOf(':')))
     if (abortedTurns.has(turn)) {
       for (const index of indices) {
-        entries[index] = { ...entries[index]!, label: 'aborted' }
+        entries[index] = { ...entries[index], label: 'aborted' }
       }
     }
   }
@@ -714,8 +709,8 @@ export function buildSessionTree(
     if (session.unreadable === true || session.unloaded === true || session.events.length === 0) {
       cover = parentCover
     } else {
-      const firstSeq = session.events[0]!.seq
-      const lastSeq = session.events[session.events.length - 1]!.seq
+      const firstSeq = session.events[0].seq
+      const lastSeq = session.events[session.events.length - 1].seq
       // The events claim [0..lastSeq] only when they CONNECT to the parent's
       // coverage (a full log starts at 0; a coverage-skipped read starts at
       // the parent's cutoff). Otherwise the range is an island and coverage
@@ -753,7 +748,7 @@ export function buildSessionTree(
     // than blaming the wrong span. Open turns end at the loaded tail.
     {
       const mutableTurns: { start: number; end: number; entries: number; closed: boolean }[] = []
-      const lastSeq = session.events.length > 0 ? session.events[session.events.length - 1]!.seq : -1
+      const lastSeq = session.events.length > 0 ? session.events[session.events.length - 1].seq : -1
       let lastTurnEnd = -1
       for (const event of session.events) {
         if (event.type === 'turn/start') {
@@ -770,7 +765,7 @@ export function buildSessionTree(
       // Both lists are seq-ordered: two-pointer the own entries into turns.
       let turnIndex = 0
       for (const entry of own) {
-        while (turnIndex < mutableTurns.length && entry.seq > mutableTurns[turnIndex]!.end) turnIndex++
+        while (turnIndex < mutableTurns.length && entry.seq > mutableTurns[turnIndex].end) turnIndex++
         const turn = mutableTurns[turnIndex]
         if (turn !== undefined && entry.seq > turn.start) turn.entries++
       }
@@ -801,7 +796,7 @@ export function buildSessionTree(
   // Linear links first: node[i].children = [node[i+1]].
   for (const chain of chains.values()) {
     for (let i = 0; i + 1 < chain.length; i++) {
-      chain[i]!.children.push(chain[i + 1]!)
+      chain[i].children.push(chain[i + 1])
     }
   }
 
@@ -835,9 +830,10 @@ export function buildSessionTree(
       visited.add(cursorId)
       const holder = byId.get(cursorId)
       if (holder === undefined) break
-      const chain = chains.get(cursorId)!
+      const chain = chains.get(cursorId)
+      if (chain === undefined) break
       for (let i = chain.length - 1; i >= 0; i--) {
-        const entry = chain[i]!.entry
+        const entry = chain[i].entry
         if (entry !== null && entry.seq <= boundary) return chain[i]
       }
       cursorId = parentOf(holder)
@@ -850,7 +846,7 @@ export function buildSessionTree(
   const resolved = new Map<string, { anchor: TreeNode | undefined; fork: FamilySession }[]>()
   for (const [parentId, forks] of childrenOf) {
     const list = forks.sort((a, b) => a.createdAt - b.createdAt)
-      .map(fork => {
+      .map((fork) => {
         const anchor = findAnchor(fork)
         if (anchor === undefined) headlessParents.add(parentId)
         return { anchor, fork }
@@ -860,8 +856,9 @@ export function buildSessionTree(
   // Pass B: synthesize the session-start heads (skipped when the parent's
   // chain already opens with a placeholder).
   for (const parentId of headlessParents) {
-    const parentChain = chains.get(parentId)!
-    const first = parentChain[0]!
+    const parentChain = chains.get(parentId)
+    if (parentChain === undefined) continue
+    const first = parentChain[0]
     if (first.entry === null) continue
     const head: TreeNode = { id: `${parentId}:head`, entry: null, sessionId: parentId, branchHead: true, children: [] }
     first.branchHead = false
@@ -871,8 +868,11 @@ export function buildSessionTree(
   // Pass C: attach — chain heads are final now, no capture can go stale.
   for (const [parentId, list] of resolved) {
     for (const { anchor, fork } of list) {
-      const forkHead = chains.get(fork.id)![0]!
-      ;(anchor ?? chains.get(parentId)![0]!).children.push(forkHead)
+      const forkChain = chains.get(fork.id)
+      const parentChain = chains.get(parentId)
+      if (forkChain === undefined || parentChain === undefined) continue
+      const forkHead = forkChain[0]
+      ;(anchor ?? parentChain[0]).children.push(forkHead)
     }
   }
 
@@ -880,7 +880,9 @@ export function buildSessionTree(
   for (const session of sessions) {
     const parentId = parentOf(session)
     if (parentId !== undefined && byId.has(parentId)) continue
-    roots.push(chains.get(session.id)![0]!)
+    const rootChain = chains.get(session.id)
+    if (rootChain === undefined) continue
+    roots.push(rootChain[0])
   }
 
   // Active path: live session's whole chain, then each ancestor up to the
@@ -893,7 +895,8 @@ export function buildSessionTree(
   let activeLeafId: string | null = null
   const liveChain = chains.get(liveSessionId)
   if (liveChain !== undefined) {
-    activeLeafId = liveChain.at(-1)!.id
+    const liveLeaf = liveChain.at(-1)
+    if (liveLeaf !== undefined) activeLeafId = liveLeaf.id
     for (const node of liveChain) activePath.add(node.id)
     const visited = new Set<string>([liveSessionId])
     let current = byId.get(liveSessionId)
@@ -905,7 +908,9 @@ export function buildSessionTree(
       if (current.seedLength === undefined) break
       visited.add(parentId)
       boundary = Math.min(boundary, current.seedLength - 1)
-      for (const node of chains.get(parentId)!) {
+      const parentChain = chains.get(parentId)
+      if (parentChain === undefined) break
+      for (const node of parentChain) {
         if (node.entry !== null && node.entry.seq <= boundary) activePath.add(node.id)
       }
       current = byId.get(parentId)
@@ -930,12 +935,13 @@ export function flattenTree(roots: readonly TreeNode[], activeLeafId: string | n
     const all: TreeNode[] = []
     const stack: TreeNode[] = [...roots]
     while (stack.length > 0) {
-      const node = stack.pop()!
+      const node = stack.pop()
+      if (node === undefined) break
       all.push(node)
-      for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]!)
+      for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i])
     }
     for (let i = all.length - 1; i >= 0; i--) {
-      const node = all[i]!
+      const node = all[i]
       let has = node.id === activeLeafId
       for (const child of node.children) {
         if (containsActive.get(child) === true) has = true
@@ -958,7 +964,7 @@ export function flattenTree(roots: readonly TreeNode[], activeLeafId: string | n
   const orderedRoots = activeFirst(roots)
   for (let i = orderedRoots.length - 1; i >= 0; i--) {
     stack.push([
-      orderedRoots[i]!,
+      orderedRoots[i],
       multipleRoots ? 1 : 0,
       multipleRoots,
       multipleRoots,
@@ -971,7 +977,9 @@ export function flattenTree(roots: readonly TreeNode[], activeLeafId: string | n
 
   const flat: FlatNode[] = []
   while (stack.length > 0) {
-    const [node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild, parentId] = stack.pop()!
+    const popped = stack.pop()
+    if (popped === undefined) break
+    const [node, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild, parentId] = popped
     flat.push({
       node,
       parentId,
@@ -999,7 +1007,7 @@ export function flattenTree(roots: readonly TreeNode[], activeLeafId: string | n
 
     for (let i = children.length - 1; i >= 0; i--) {
       stack.push([
-        children[i]!,
+        children[i],
         childIndent,
         multipleChildren,
         multipleChildren,
@@ -1026,7 +1034,7 @@ export function filterTree(
   query: string,
 ): FlatNode[] {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean)
-  const visible = flat.filter(flatNode => {
+  const visible = flat.filter((flatNode) => {
     const { node } = flatNode
     if (node.id === activeLeafId) return true
     if (node.entry === null) {
@@ -1081,18 +1089,21 @@ export function filterTree(
 
   // Recompute indent/connectors/gutters over the visible tree, same rules as
   // flattenTree (roots = children of the virtual null parent).
-  const visibleRoots = visibleChildren.get(null)!
+  const visibleRoots = visibleChildren.get(null) ?? []
   const multipleRoots = visibleRoots.length > 1
   const visibleById = new Map(visible.map(flatNode => [flatNode.node.id, flatNode]))
   type StackItem = [string, number, boolean, boolean, boolean, readonly GutterInfo[], boolean]
   const stack: StackItem[] = []
   for (let i = visibleRoots.length - 1; i >= 0; i--) {
-    stack.push([visibleRoots[i]!, multipleRoots ? 1 : 0, multipleRoots, multipleRoots, i === visibleRoots.length - 1, [], multipleRoots])
+    stack.push([visibleRoots[i], multipleRoots ? 1 : 0, multipleRoots, multipleRoots, i === visibleRoots.length - 1, [], multipleRoots])
   }
   const out: FlatNode[] = []
   while (stack.length > 0) {
-    const [id, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild] = stack.pop()!
-    const flatNode = visibleById.get(id)!
+    const popped = stack.pop()
+    if (popped === undefined) break
+    const [id, indent, justBranched, showConnector, isLast, gutters, isVirtualRootChild] = popped
+    const flatNode = visibleById.get(id)
+    if (flatNode === undefined) continue
     flatNode.indent = indent
     flatNode.showConnector = showConnector
     flatNode.isLast = isLast
@@ -1115,7 +1126,7 @@ export function filterTree(
       ? [...gutters, { position: connectorPosition, show: !isLast }]
       : gutters
     for (let i = children.length - 1; i >= 0; i--) {
-      stack.push([children[i]!, childIndent, multipleChildren, multipleChildren, i === children.length - 1, childGutters, false])
+      stack.push([children[i], childIndent, multipleChildren, multipleChildren, i === children.length - 1, childGutters, false])
     }
   }
   return out

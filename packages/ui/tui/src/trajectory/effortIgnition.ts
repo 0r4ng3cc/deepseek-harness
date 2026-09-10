@@ -130,7 +130,7 @@ export function ignitionLineColors(options: {
   if (width <= 0 || !Number.isFinite(elapsed) || elapsed <= 0 || elapsed >= total) return []
   const hue = ignitionHues(onLight)[0]
   const band = onLight ? BAND_LIGHT : BAND_DARK
-  const colors: Array<string | undefined> = new Array(width)
+  const colors: Array<string | undefined> = new Array<string | undefined>(width)
   for (let column = 0; column < width; column++) {
     const weight = sampleColumn(elapsed, column, width)[0]
     if (weight <= 0.01) {

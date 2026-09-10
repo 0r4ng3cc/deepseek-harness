@@ -94,7 +94,7 @@ function rememberFiber(value: unknown, root?: Context): object | undefined {
     if (knownRoot !== undefined && root !== undefined && knownRoot !== root) return
     if (canonical !== undefined && canonical.fiber !== actual) return
     canonicalContexts.set(actual, canonical ?? owner)
-    contextFibers.set(owner as object, actual)
+    contextFibers.set(owner, actual)
     trustedFibers.add(actual)
     if (root !== undefined) fiberRoots.set(actual, root)
     activationGenerations.set(actual, activationGenerations.get(actual) ?? 0)
@@ -107,7 +107,7 @@ function rememberFiber(value: unknown, root?: Context): object | undefined {
     if (!fiberEffects.has(actual)) {
       const effect = (actual as { effect?: unknown }).effect
       if (typeof effect === 'function') {
-        fiberEffects.set(actual, (execute) => Reflect.apply(effect, actual, [execute]))
+        fiberEffects.set(actual, execute => Reflect.apply(effect, actual, [execute]))
       }
     }
     // Cordis reuses the same activation context across a restart and emits
@@ -125,7 +125,7 @@ function rememberFiber(value: unknown, root?: Context): object | undefined {
         writable: false,
         value: function (this: unknown, ...args: unknown[]): unknown {
           const root = fiberRoots.get(actual)
-          if (root !== undefined && rootFibers.get(root as object) === actual) {
+          if (root !== undefined && rootFibers.get(root) === actual) {
             rejectRootCapability(root, 'root.fiber.restart')
           }
           invalidateActivation(actual)
@@ -161,17 +161,17 @@ function trackCompositionRoot(root: Context): void {
     const value = root.fiber
     if (typeof value === 'object' && value !== null) {
       rootFiber = value
-      rootFibers.set(root as object, value)
+      rootFibers.set(root, value)
       fiberRoots.set(value, root)
     }
   } catch {
     // Fall through to the event-listener attempt below.
   }
   rememberFiber(rootFiber, root)
-  if (trackedRoots.has(root as object)) return
-  trackedRoots.add(root as object)
+  if (trackedRoots.has(root)) return
+  trackedRoots.add(root)
   try {
-    root.on('internal/plugin', (fiber) => rememberFiber(fiber, root), { global: true })
+    root.on('internal/plugin', fiber => rememberFiber(fiber, root), { global: true })
     root.on('internal/status', (fiber) => {
       const actual = rememberFiber(fiber, root)
       if (actual === undefined) return
@@ -224,19 +224,26 @@ function runActivation(fiber: object, execute: (...args: unknown[]) => unknown, 
   })
 }
 
+interface FiberWalkNode {
+  runtime?: unknown
+  ctx?: unknown
+  parent?: unknown
+}
+
 function findFiberRoot(value: object): Context | undefined {
-  let fiber: any = value
+  let fiber: unknown = value
   const seen = new Set<object>()
   for (let depth = 0; depth < 64; depth += 1) {
     if (typeof fiber !== 'object' || fiber === null || seen.has(fiber)) return undefined
     seen.add(fiber)
+    const node = fiber as FiberWalkNode
     try {
-      if (fiber.runtime === null) {
-        return Context.is(fiber.ctx) ? fiber.ctx : undefined
+      if (node.runtime === null) {
+        return Context.is(node.ctx) ? node.ctx : undefined
       }
-      const parent = fiber.parent
+      const parent = node.parent
       if (!Context.is(parent)) return undefined
-      fiber = parent.fiber
+      fiber = (parent as { fiber?: unknown }).fiber
     } catch {
       return undefined
     }
@@ -256,10 +263,10 @@ function installGlobalFiberInstrumentation(): void {
   Object.defineProperty(prototype, '_execute', {
     configurable: true,
     writable: true,
-    value: function (this: any, runner: any): unknown {
+    value: function (this: { _runner?: unknown }, runner: unknown): unknown {
       if (runner === this._runner && runner !== null && typeof runner === 'object'
-        && typeof runner.execute === 'function') {
-        wrapRunnerExecute(runner, this as object)
+        && typeof (runner as { execute?: unknown }).execute === 'function') {
+        wrapRunnerExecute(runner, this)
       }
       return Reflect.apply(original, this, [runner])
     },
@@ -270,9 +277,9 @@ function installGlobalFiberInstrumentation(): void {
  * Fiber only when Cordis has already placed that exact identity in this
  * composition's runtime registry (or it is the composition root itself). */
 function fiberBelongsToComposition(fiber: object, root: Context): boolean {
-  if (rootFibers.get(root as object) === fiber) return true
+  if (rootFibers.get(root) === fiber) return true
   try {
-    const registry = concreteService(root.registry as object) as {
+    const registry = concreteService(root.registry) as {
       _internal?: unknown
     }
     const internal = registry._internal
@@ -290,11 +297,11 @@ function fiberBelongsToComposition(fiber: object, root: Context): boolean {
   return false
 }
 
-function currentActivationIsPlugin(root: Context): boolean {
+function currentActivationIsPlugin(_root: Context): boolean {
   if (hostCapabilityStorage.getStore() === true) return false
   const token = activationStorage.getStore()
   if (token === undefined) return false
-  if (rootFibers.get(token.root as object) === token.fiber) return false
+  if (rootFibers.get(token.root) === token.fiber) return false
   // Both active and stale plugin chains are denied. Stale chains will also be
   // rejected by the mediated APIs through their generation check.
   return true
@@ -323,7 +330,7 @@ function callContextOf(receiver: unknown): Context | undefined {
 }
 
 function guardRootCapabilities(root: Context): void {
-  const rootFiber = rootFibers.get(root as object)
+  const rootFiber = rootFibers.get(root)
   if (rootFiber !== undefined && !guardedRootFibers.has(rootFiber)) {
     guardedRootFibers.add(rootFiber)
     guardFiberMethod(rootFiber, 'effect', root, 'root.effect')
@@ -333,9 +340,9 @@ function guardRootCapabilities(root: Context): void {
   }
 
   try {
-    const registry = concreteService(root.registry as object)
-    if (!guardedRootRegistries.has(registry as object)) {
-      guardedRootRegistries.add(registry as object)
+    const registry = concreteService(root.registry)
+    if (!guardedRootRegistries.has(registry)) {
+      guardedRootRegistries.add(registry)
       guardServiceMethod(registry, 'inject', root, 'root.inject', true)
       guardServiceMethod(registry, 'plugin', root, 'root.plugin', true)
       guardServiceMethod(registry, 'delete', root, 'root.registry.delete', true)
@@ -348,9 +355,9 @@ function guardRootCapabilities(root: Context): void {
   }
 
   try {
-    const events = concreteService(root.events as object)
-    if (!guardedRootEvents.has(events as object)) {
-      guardedRootEvents.add(events as object)
+    const events = concreteService(root.events)
+    if (!guardedRootEvents.has(events)) {
+      guardedRootEvents.add(events)
       for (const method of ['on', 'once', 'emit', 'parallel', 'serial', 'bail', 'waterfall', 'register', 'unregister', 'dispatch']) {
         guardServiceMethod(events, method, root, `root.events.${method}`, true)
       }
@@ -360,9 +367,9 @@ function guardRootCapabilities(root: Context): void {
   }
 
   try {
-    const reflect = concreteService(root.reflect as object)
-    if (!guardedRootReflects.has(reflect as object)) {
-      guardedRootReflects.add(reflect as object)
+    const reflect = concreteService(root.reflect)
+    if (!guardedRootReflects.has(reflect)) {
+      guardedRootReflects.add(reflect)
       guardServiceMethod(reflect, 'set', root, 'root.reflect.set', true)
     }
   } catch {
@@ -373,28 +380,30 @@ function guardRootCapabilities(root: Context): void {
 function guardFiberMethod(target: object, method: string, root: Context, capability: string): void {
   const descriptor = Reflect.getOwnPropertyDescriptor(target, method)
   if (descriptor?.configurable === false) return
-  const original = Reflect.get(target, method)
+  const original: unknown = Reflect.get(target, method)
   if (typeof original !== 'function') return
+  const apply = original as (this: unknown, ...args: unknown[]) => unknown
   Object.defineProperty(target, method, {
     configurable: false,
     writable: false,
     value: function (this: unknown, ...args: unknown[]) {
       rejectRootCapability(root, capability)
-      return Reflect.apply(original, this, args)
+      return Reflect.apply(apply, this, args)
     },
   })
 }
 
 function guardServiceMethod(target: object, method: string, root: Context, capability: string, rootOnly: boolean): void {
-  const original = Reflect.get(target, method)
+  const original: unknown = Reflect.get(target, method)
   if (typeof original !== 'function') return
+  const apply = original as (this: unknown, ...args: unknown[]) => unknown
   Object.defineProperty(target, method, {
     configurable: false,
     writable: false,
     value: function (this: unknown, ...args: unknown[]) {
       const callContext = callContextOf(this)
       if (!rootOnly || callContext === root) rejectRootCapability(root, capability)
-      return Reflect.apply(original, this, args)
+      return Reflect.apply(apply, this, args)
     },
   })
 }
@@ -473,10 +482,10 @@ export function activationContext(ctx: Context): Context | undefined {
  * resolving sibling services through an attacker-provided caller shadow. */
 export function compositionRoot(ctx: Context): Context {
   try {
-    const knownFiber = contextFibers.get(ctx as object)
+    const knownFiber = contextFibers.get(ctx)
     const trustedRoot = knownFiber === undefined ? undefined : fiberRoots.get(knownFiber)
     if (trustedRoot !== undefined) {
-      compositionRoots.set(ctx as object, trustedRoot)
+      compositionRoots.set(ctx, trustedRoot)
       return trustedRoot
     }
     const directFiber = ctx.fiber
@@ -484,11 +493,11 @@ export function compositionRoot(ctx: Context): Context {
       ? fiberRoots.get(directFiber)
       : undefined
     if (directRoot !== undefined) {
-      contextFibers.set(ctx as object, directFiber as object)
-      compositionRoots.set(ctx as object, directRoot)
+      contextFibers.set(ctx, directFiber)
+      compositionRoots.set(ctx, directRoot)
       return directRoot
     }
-    const cached = compositionRoots.get(ctx as object)
+    const cached = compositionRoots.get(ctx)
     if (cached !== undefined) {
       trackCompositionRoot(cached)
       return cached
@@ -503,17 +512,17 @@ export function compositionRoot(ctx: Context): Context {
       const currentFiber = current.fiber
       if (typeof currentFiber !== 'object' || currentFiber === null || seen.has(currentFiber)) break
       seen.add(currentFiber)
-      const cached = compositionRoots.get(current as object)
+      const cached = compositionRoots.get(current)
       if (cached !== undefined) {
-        compositionRoots.set(ctx as object, cached)
+        compositionRoots.set(ctx, cached)
         trackCompositionRoot(cached)
         return cached
       }
       if (currentFiber.runtime === null) {
         const root = Context.is(currentFiber.ctx) ? currentFiber.ctx : current
-        compositionRoots.set(current as object, root)
-        compositionRoots.set(ctx as object, root)
-        compositionRoots.set(root as object, root)
+        compositionRoots.set(current, root)
+        compositionRoots.set(ctx, root)
+        compositionRoots.set(root, root)
         trackCompositionRoot(root)
         return root
       }
@@ -524,14 +533,14 @@ export function compositionRoot(ctx: Context): Context {
   } catch {
     // Fall through to the conservative self-root fallback below.
   }
-  compositionRoots.set(ctx as object, ctx)
+  compositionRoots.set(ctx, ctx)
   trackCompositionRoot(ctx)
   return ctx
 }
 
 function assertLiveContext(ctx: Context, capability: string): object {
   try {
-    const known = contextFibers.get(ctx as object)
+    const known = contextFibers.get(ctx)
     const directFiber = ctx.fiber
     if (known !== undefined && directFiber !== known) throw new Error('mutated context fiber')
     const fiber = (known ?? directFiber) as typeof ctx.fiber & { state?: number }
@@ -539,22 +548,23 @@ function assertLiveContext(ctx: Context, capability: string): object {
     // @deepseek-ai/cordis exposes FiberState as a const enum, so it is not a
     // runtime export. LOADING=1 and ACTIVE=2 are the only states in which a
     // caller can still be executing/owning effects; all other states reject.
-    if (fiber.state !== 1 && fiber.state !== 2) {
+    const fiberState: unknown = fiber.state
+    if (fiberState !== 1 && fiberState !== 2) {
       throw new Error('inactive')
     }
     // `Fiber.restart()` invalidates the runner epoch before Cordis updates
     // the public state. Read the runtime-private marker as well so a retained
     // context cannot register an effect during that unload/reload window.
     const runner = (fiber as unknown as { _runner?: { epoch?: unknown } })._runner
-    if (canonicalRunners.get(fiber as object) !== runner) throw new Error('mutated runner')
+    if (canonicalRunners.get(fiber) !== runner) throw new Error('mutated runner')
     if (runner?.epoch === '__INACTIVE__') {
       throw new Error('inactive')
     }
-    if (!trustedFibers.has(fiber as object)) throw new Error('unregistered')
-    const owner = canonicalContexts.get(fiber as object)
+    if (!trustedFibers.has(fiber)) throw new Error('unregistered')
+    const owner = canonicalContexts.get(fiber)
     if (owner === undefined) throw new Error('unowned')
     if ((fiber as unknown as { ctx?: unknown }).ctx !== owner || owner.fiber !== fiber) throw new Error('mutated')
-    let current: object | null = ctx as object
+    let current: object | null = ctx
     let matched = false
     for (let depth = 0; depth < 64 && current !== null; depth += 1) {
       if (current === owner) {
@@ -567,15 +577,15 @@ function assertLiveContext(ctx: Context, capability: string): object {
     const tokenIsCurrent = token !== undefined
       && token.fiber === fiber
       && token.context === owner
-      && token.root === fiberRoots.get(fiber as object)
-      && token.generation === activationGenerations.get(fiber as object)
-      && activationTokens.get(fiber as object) === token
+      && token.root === fiberRoots.get(fiber)
+      && token.generation === activationGenerations.get(fiber)
+      && activationTokens.get(fiber) === token
     if (token !== undefined && !tokenIsCurrent) {
       throw new Error('stale activation')
     }
-    if (!matched || (restartingFibers.has(fiber as object) && !tokenIsCurrent && !executingFibers.has(fiber as object))) throw new Error('inactive')
-    contextFibers.set(ctx as object, fiber as object)
-    return fiber as object
+    if (!matched || (restartingFibers.has(fiber) && !tokenIsCurrent && !executingFibers.has(fiber))) throw new Error('inactive')
+    contextFibers.set(ctx, fiber)
+    return fiber
   } catch {
     // Fall through to the stable public error below.
   }
@@ -612,7 +622,7 @@ export function assertCallerContext(caller: Context, target: Context, capability
   }
   if (caller === target || callerFiber === targetFiber) return
   const root = compositionRoot(caller)
-  if (caller === root || callerFiber === rootFibers.get(root as object)) return
+  if (caller === root || callerFiber === rootFibers.get(root)) return
   throw new Error(`dsh-tui: ${capability} context must be the calling activation`)
 }
 
@@ -630,7 +640,7 @@ export function requirePluginCaller(caller: Context, capability: string, service
   try {
     const callerFiber = assertLiveContext(caller, capability)
     const root = compositionRoot(caller)
-    if (caller === root || callerFiber === rootFibers.get(root as object)) {
+    if (caller === root || callerFiber === rootFibers.get(root)) {
       throw new Error(`dsh-tui: ${capability} requires a non-root calling activation`)
     }
     const ownerRoot = service === undefined ? undefined : serviceCompositionRoot(service)
