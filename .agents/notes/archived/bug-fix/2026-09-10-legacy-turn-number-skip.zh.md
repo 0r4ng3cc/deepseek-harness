@@ -1,6 +1,7 @@
 # Agent Note: 历史 turn 编号跳号
 
 Status: implemented
+Archived: 2026-09-10
 
 [English](2026-09-10-legacy-turn-number-skip.md) | 中文
 

@@ -1,6 +1,7 @@
 # Agent Note: Closed-turn rewind ghost step
 
 Status: implemented
+Archived: 2026-09-10
 
 English | [中文](2026-09-10-closed-turn-rewind-ghost-step.zh.md)
 

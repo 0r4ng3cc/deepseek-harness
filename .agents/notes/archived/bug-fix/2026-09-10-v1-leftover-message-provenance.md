@@ -1,6 +1,7 @@
 # Agent Note: Leftover v1 assistant message provenance
 
 Status: implemented
+Archived: 2026-09-10
 
 English | [中文](2026-09-10-v1-leftover-message-provenance.zh.md)
 

@@ -1,6 +1,7 @@
 # Agent Note: Legacy turn number skip
 
 Status: implemented
+Archived: 2026-09-10
 
 English | [中文](2026-09-10-legacy-turn-number-skip.zh.md)
 
