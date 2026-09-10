@@ -43,11 +43,11 @@ export const PUBLISH_ATTEMPTS = 10
  */
 export const PUBLISH_SPACING_MS = 5_000
 
-/** First `E429` retry backoff. New-package quota recovers slowly; npm also retries 429 internally unless `--fetch-retries` is 0. */
-export const RATE_LIMIT_BACKOFF_MS = 2_700_000
+/** How many `E429` answers one tarball may retry before the job fails. */
+export const RATE_LIMIT_ATTEMPTS = 2
 
-/** Longest `E429` retry backoff. Later attempts stay at this cap so one family can finish across a quota window. */
-export const RATE_LIMIT_BACKOFF_CAP_MS = 5_400_000
+/** First `E429` retry backoff. A second 429 fails the job so a later re-run can skip published members. */
+export const RATE_LIMIT_BACKOFF_MS = 2_000
 
 /** What the registry knows about one version. */
 type RegistryState =
@@ -80,7 +80,7 @@ export function isRateLimited(output: string): boolean {
  */
 export function retryBackoffMs(output: string, tries: number): number {
   if (isRateLimited(output)) {
-    return Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** (tries - 1), RATE_LIMIT_BACKOFF_CAP_MS)
+    return RATE_LIMIT_BACKOFF_MS * 2 ** (tries - 1)
   }
   return PUBLISH_SPACING_MS * 2 ** (tries - 1)
 }
@@ -167,6 +167,13 @@ async function publishTarball(
     }
     if (tries === PUBLISH_ATTEMPTS || !isTransientFailure(output)) {
       throw new Error(`npm publish ${name}@${version} failed:\n${output}`)
+    }
+    if (isRateLimited(output) && tries >= RATE_LIMIT_ATTEMPTS) {
+      throw new Error(
+        `npm publish ${name}@${version} hit the npm new-package write quota (E429). `
+        + 'Re-run this job after the quota window; already-published members are skipped.\n'
+        + output,
+      )
     }
     const backoff = retryBackoffMs(output, tries)
     console.log(
