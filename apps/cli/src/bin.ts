@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { loadLayeredEnv } from '@x1a0f3n9/dsh-app-boot'
+import { loadLayeredEnv, registerOfficialDshPackageResolve } from '@x1a0f3n9/dsh-app-boot'
 import { parseDshArgs } from './args.ts'
 
 // Both the source tree (apps/cli/src) and the bundled bin (apps/cli/lib) sit
@@ -46,6 +46,7 @@ function readVersion(): string {
 export async function runCli(): Promise<void> {
   const invocation = parseDshArgs(process.argv.slice(2), readVersion())
   applyForkDefaults()
+  registerOfficialDshPackageResolve()
 
   switch (invocation.mode) {
     case 'profile': {
