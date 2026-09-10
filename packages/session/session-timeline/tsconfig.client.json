@@ -10,6 +10,7 @@
     "src/client/actions.tsx",
     "src/client/build-info.ts",
     "src/client/candidates.ts",
+    "src/client/compact-button.tsx",
     "src/client/hidden.ts",
     "src/client/locales.ts",
     "src/client/log.ts",

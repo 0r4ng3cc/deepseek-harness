@@ -7,7 +7,7 @@
  * @module @x1a0f3n9/dsh-app-boot/official-package-resolve
  */
 
-import { registerHooks, type ResolveHook } from 'node:module'
+import { registerHooks, type ResolveHookSync } from 'node:module'
 import { forkDshPackageName } from './profile.ts'
 
 /** Whether {@link registerOfficialDshPackageResolve} has already installed the hook. */
@@ -29,7 +29,7 @@ export function remapOfficialDshSpecifier(specifier: string): string | undefined
  * @param nextResolve - next resolver in the hook chain.
  * @returns the next resolver's result for the original or remapped specifier.
  */
-export const resolveOfficialDshPackage: ResolveHook = (specifier, context, nextResolve) => {
+export const resolveOfficialDshPackage: ResolveHookSync = (specifier, context, nextResolve) => {
   const remapped = remapOfficialDshSpecifier(specifier)
   return remapped === undefined ? nextResolve(specifier, context) : nextResolve(remapped, context)
 }
