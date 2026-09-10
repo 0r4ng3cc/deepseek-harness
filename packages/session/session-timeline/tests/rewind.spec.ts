@@ -263,9 +263,10 @@ describe('planRewind', () => {
     expect(plan.shadowedSeqs).toEqual([0, 1, 2, 3, 4, 5])
   })
 
-  it('rejects an injected context user/message as a target', () => {
-    // A plugin-injected `user/message` (source.kind !== 'user') on the surface
-    // is a `context` node, never a user prompt — not a valid rewind boundary.
+  it('walks an injected context user/message back to the human prompt', () => {
+    // A plugin-injected `user/message` (source.kind !== 'user') is not itself a
+    // rewind boundary; targeting it still truncates from the preceding human
+    // prompt, matching assistant-answer and command-card clicks.
     const events = [
       userEvent(0, 'first question'),
       {
@@ -281,7 +282,26 @@ describe('planRewind', () => {
       } as SessionEvent<'user/message'>,
     ]
     const surface = [0, 1]
-    expect(() => planRewind(events, surface, { kind: 'seq', seq: 1 })).toThrowError(/not a human user message/)
+    const plan = planRewind(events, surface, { kind: 'seq', seq: 1 })
+    expect(plan.targetSeq).toBe(0)
+    expect(plan.shadowedSeqs).toEqual([0, 1])
+  })
+
+  it('walks a command/done event back to the human prompt', () => {
+    const events = [
+      userEvent(0, 'first question'),
+      assistantEvent(1, 'first answer'),
+      {
+        type: 'command/done',
+        seq: 2,
+        time: 120_000,
+        data: { commandId: 'cmd-1', kind: 'success' },
+      } as SessionEvent,
+    ]
+    const surface = [0, 1]
+    const plan = planRewind(events, surface, { kind: 'seq', seq: 2 })
+    expect(plan.targetSeq).toBe(0)
+    expect(plan.shadowedSeqs).toEqual([0, 1])
   })
 
   it('rejects a user message shadowed by compaction', () => {
