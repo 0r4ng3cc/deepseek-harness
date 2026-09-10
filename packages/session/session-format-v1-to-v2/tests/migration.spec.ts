@@ -890,6 +890,45 @@ describe('sessionFormatV1ToV2', () => {
     },
   )
 
+  it('keeps a later-step message whose leftover provenance is not an open chunk attempt', () => {
+    const source: SessionFormatArtifact = {
+      header: {
+        version: 1, id: 'v1-leftover-message-provenance', createdAt: 1,
+        isSeeded: false, delegationDepth: 0,
+      },
+      inheritedEventCount: 0,
+      events: [
+        event('turn/start', 0, 1, { turn: 1 }),
+        event('step/start', 1, 2, { turn: 1, step: 1 }),
+        { ...event('user/message', 2, 3, userMessage), surfaceOp: 'append' },
+        event('assistant/chunk', 3, 4, {
+          turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'hello' },
+        }),
+        event('assistant/chunk', 4, 5, {
+          turn: 1, step: 1, chunk: { type: 'finish', reason: { kind: 'stop' } },
+        }),
+        event('step/end', 5, 6, { turn: 1, step: 1 }),
+        event('step/start', 6, 7, { turn: 1, step: 2 }),
+        {
+          ...event('assistant/message', 7, 8, { turn: 1, step: 2, message }),
+          sourceEventSeqs: [2],
+          surfaceOp: 'append',
+        },
+        event('step/end', 8, 9, { turn: 1, step: 2 }),
+        event('turn/end', 9, 10, { turn: 1, reason: { kind: 'completed' } }),
+      ],
+    }
+    const migrated = migrateV1ToV2(source)
+    const later = migrated.events.find(event => (
+      event.type === 'assistant/message'
+      && (event.data as { step?: number }).step === 2
+    ))
+    expect(later).toMatchObject({
+      type: 'assistant/message', data: { stream: [] }, surfaceOp: 'append',
+    })
+    expect(later).not.toHaveProperty('sourceEventSeqs')
+  })
+
   it('refuses missing, partial, or reordered provenance for a present v1 attempt', () => {
     const build = (sourceEventSeqs: readonly number[] | undefined): SessionFormatArtifact => ({
       header: {
