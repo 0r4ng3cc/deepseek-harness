@@ -172,7 +172,7 @@ export class SubagentActivityStore {
         break
       }
       case 'tool/call': {
-        this.recordTool(agentId, { id: data.callId, name: data.name, status: 'running', startedAt: Date.now(), argsPreview: data.arguments })
+        this.recordTool(agentId, { id: data.callId, name: data.name, status: 'running', startedAt: Date.now(), argsPreview: this.previewOf(data.arguments) })
         break
       }
       case 'tool/result': {

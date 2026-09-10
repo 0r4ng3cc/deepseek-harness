@@ -26,6 +26,7 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "./tsconfig.dsh-std.json" },
     { "path": "../../core/agent" },
     { "path": "../../core/tools" },
     { "path": "../../core/session" },

@@ -383,8 +383,8 @@ export function SplitDiffView({
           )
         }
         const syntax = fileSyntax[row.fileIndex]
-        const oldRuns = row.oldIndex !== undefined ? syntax.old[row.oldIndex] : undefined
-        const newRuns = row.newIndex !== undefined ? syntax.next[row.newIndex] : undefined
+        const oldRuns = row.oldIndex !== undefined ? syntax.old?.[row.oldIndex] : undefined
+        const newRuns = row.newIndex !== undefined ? syntax.next?.[row.newIndex] : undefined
         const oldSide = row.oldWords === undefined
           ? undefined
           : { segments: oldRuns !== undefined ? mergeRuns(oldRuns, row.oldWords) : row.oldWords }

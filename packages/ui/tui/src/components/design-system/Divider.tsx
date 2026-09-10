@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react'
 import Box from '../../ink/components/Box.js'
-import Text from '../../ink/components/Text.js'
+import Text from './ThemedText.js'
 import type { DOMElement } from '../../ink/dom.js'
 import measureElement from '../../ink/measure-element.js'
 import { stringWidth } from '../../ink/stringWidth.js'

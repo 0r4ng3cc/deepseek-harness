@@ -275,13 +275,18 @@ function hasAnyTextProps(props: SpanProps): boolean {
     || props.inverse === true
 }
 
+/** Span props that reach Text: callers render `hyperlink` through Link instead. */
+type TextSpanProps = Omit<SpanProps, 'hyperlink'>
+/** What StyledText forwards to Text — the wrapper owns bold/dim exclusivity. */
+type StyledTextRest = Omit<TextSpanProps, 'bold' | 'dim' | 'children'>
+
 // Wrapper component that handles bold/dim mutual exclusivity for Text
-function StyledText(t0: SpanProps & { children?: React.ReactNode }) {
+function StyledText(t0: TextSpanProps & { children?: React.ReactNode }) {
   const $ = _c(14)
   let bold: SpanProps['bold']
   let children: React.ReactNode
   let dim: SpanProps['dim']
-  let rest: SpanProps
+  let rest: StyledTextRest
   if ($[0] !== t0) {
     ({
       bold,
@@ -298,7 +303,7 @@ function StyledText(t0: SpanProps & { children?: React.ReactNode }) {
     bold = $[1] as SpanProps['bold']
     children = $[2] as React.ReactNode
     dim = $[3] as SpanProps['dim']
-    rest = $[4] as SpanProps
+    rest = $[4] as StyledTextRest
   }
   if (dim) {
     let t1

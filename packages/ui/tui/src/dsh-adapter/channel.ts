@@ -2994,6 +2994,14 @@ export function createChannel(
   /** Run one DSH registry command (`/plan`, …) on the live agent; the text
    *  of its result, '' when the result is textless, undefined when the
    *  command is not registered, and the error message when it throws. */
+  /** rc.7/rc.6 `execute()` arity: the signal occupied the 3rd parameter slot
+   *  before rc.8 inserted composer images ahead of it. */
+  type LegacyCommandExecute = (
+    agent: Agent,
+    line: string,
+    signal: AbortSignal,
+  ) => ReturnType<CommandRuntime['execute']>
+
   const executeRegistryCommand = async (name: string, rawInput: string): Promise<string | undefined> => {
     if (!commandService) return undefined
     // Resolve the exact definition that execute() will select for this agent.
@@ -3058,7 +3066,7 @@ export function createChannel(
       // rc.8 moved the signal to the 4th parameter and added composer
       // images; older lines (rc.7/rc.6) take (agent, line, signal).
       const execution = images === undefined
-        ? await commandService.execute(agent, line, signal)
+        ? await (commandService.execute as unknown as LegacyCommandExecute)(agent, line, signal)
         : await commandService.execute(agent, line, images.images, signal)
       if (images !== undefined && images.dropped.length > 0) {
         // Loud-drop policy mirrors the submit pipeline (mentions-missing):

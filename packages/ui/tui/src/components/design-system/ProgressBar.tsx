@@ -1,5 +1,5 @@
 import React from 'react'
-import Text from '../../ink/components/Text.js'
+import Text from './ThemedText.js'
 import type { Theme } from '../../theme.js'
 
 /**

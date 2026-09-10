@@ -1174,9 +1174,6 @@ export default class Ink {
   }
   pause(): void {
     // Flush pending React updates and render before pausing.
-    // Ported CC build: flushSyncFromReconciler exists in react-reconciler 0.31
-    // but not in @types/react-reconciler.
-    // @ts-expect-error -- type drift tolerated
     reconciler.flushSyncFromReconciler()
     this.renderNow()
     this.isPaused = true
@@ -2364,11 +2361,7 @@ export default class Ink {
       </App>
     )
 
-    // Ported CC build: updateContainerSync exists in react-reconciler but not
-    // in @types/react-reconciler.
-    // @ts-expect-error -- type drift tolerated
     reconciler.updateContainerSync(tree, this.container, null, noop)
-    // @ts-expect-error -- ported CC build; type drift tolerated flushSyncWork exists in react-reconciler but not in @types/react-reconciler
     reconciler.flushSyncWork()
   }
   unmount = (error?: Error | number | null): void => {
@@ -2456,11 +2449,7 @@ export default class Ink {
       this.drainTimer = null
     }
 
-    // Ported CC build: updateContainerSync exists in react-reconciler but not
-    // in @types/react-reconciler.
-    // @ts-expect-error -- type drift tolerated
     reconciler.updateContainerSync(null, this.container, null, noop)
-    // @ts-expect-error -- ported CC build; type drift tolerated flushSyncWork exists in react-reconciler but not in @types/react-reconciler
     reconciler.flushSyncWork()
     instances.delete(this.options.stdout)
 

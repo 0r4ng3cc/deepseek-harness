@@ -134,7 +134,7 @@ export function SubagentDetailScene({
   const turnPage = (delta: number): void => {
     const next = (pageIndex + delta + PAGES.length) % PAGES.length
     setPage(PAGES[next])
-    scrollRef.current.scrollTo(0)
+    scrollRef.current?.scrollTo(0)
   }
 
   // tail -f: while the subagent runs and the output page is showing, follow

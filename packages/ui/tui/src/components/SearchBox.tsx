@@ -1,6 +1,6 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import Box from '../ink/components/Box.js'
-import Text from '../ink/components/Text.js'
+import Box from './design-system/ThemedBox.js'
+import Text from './design-system/ThemedText.js'
 import type { DOMElement } from '../ink/dom.js'
 import measureElement from '../ink/measure-element.js'
 import { useDeclaredCursor } from '../ink/hooks/use-declared-cursor.js'

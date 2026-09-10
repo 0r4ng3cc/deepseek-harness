@@ -4,6 +4,8 @@
  * 这些纯函数被 Spinner 组件及若干加载/装饰元素复用。
  */
 
+import type { Color } from '../../ink/styles.js'
+
 export type RGBColor = { r: number; g: number; b: number }
 
 /** Ghostty 终端专属帧序列：星形符号逐帧放大，末帧为实心星。 */
@@ -47,7 +49,7 @@ export function interpolateColor(
 /**
  * 把 RGB 对象格式化为 `rgb(r,g,b)` 字符串，供 Ink 的 Text 组件使用。
  */
-export function toRGBColor(color: RGBColor): string {
+export function toRGBColor(color: RGBColor): Color {
   return `rgb(${color.r},${color.g},${color.b})`
 }
 

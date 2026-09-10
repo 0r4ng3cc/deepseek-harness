@@ -325,7 +325,7 @@ function Box(t0: Props) {
     $[42] = tabIndex
     $[43] = t4
   } else {
-    t4 = $[43]
+    t4 = $[43] as React.ReactNode
   }
   return t4
 }

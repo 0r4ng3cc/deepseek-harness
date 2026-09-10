@@ -1,5 +1,5 @@
 import React from 'react'
-import Text from '../../ink/components/Text.js'
+import Text from '../design-system/ThemedText.js'
 import { stringWidth } from '../../ink/stringWidth.js'
 import { getGraphemeSegmenter } from '../../utils/intl.js'
 import { getTheme, type Theme } from '../../theme.js'

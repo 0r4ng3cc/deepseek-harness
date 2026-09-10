@@ -201,7 +201,7 @@ function Button(t0: Props) {
     $[28] = tabIndex
     $[29] = t11
   } else {
-    t11 = $[29]
+    t11 = $[29] as React.ReactNode
   }
   return t11
 }

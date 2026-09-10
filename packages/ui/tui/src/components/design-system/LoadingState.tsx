@@ -1,6 +1,6 @@
 import React from 'react'
 import Box from '../../ink/components/Box.js'
-import Text from '../../ink/components/Text.js'
+import Text from './ThemedText.js'
 import { useAnimationFrame } from '../../ink/hooks/use-animation-frame.js'
 import { SpinnerGlyph } from '../Spinner/SpinnerGlyph.js'
 import { getDefaultCharacters } from '../Spinner/spinnerUtils.js'

@@ -279,7 +279,7 @@ function installGlobalFiberInstrumentation(): void {
 function fiberBelongsToComposition(fiber: object, root: Context): boolean {
   if (rootFibers.get(root) === fiber) return true
   try {
-    const registry = concreteService(root.registry) as {
+    const registry = concreteService(root.registry) as unknown as {
       _internal?: unknown
     }
     const internal = registry._internal

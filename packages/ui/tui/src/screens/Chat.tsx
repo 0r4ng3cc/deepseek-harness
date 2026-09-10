@@ -2271,7 +2271,7 @@ export function Chat({
     if (unreadFailures === 0) return null
     for (let index = channel.rows.length - 1; index >= 0; index--) {
       const row = channel.rows[index]
-      if (row.kind === 'tool' && row.tool.status === 'error') return row.id
+      if (row.kind === 'tool' && row.tool?.status === 'error') return row.id
     }
     return null
   }, [channel.rows, channel.version, unreadFailures])
