@@ -43,7 +43,9 @@
           "packageName": "@x1a0f3n9/dsh-session-timeline",
           "title": "Session timeline",
           "description": "Rewind, delete, and regenerate conversation turns.",
-          "defaultEnabled": true
+          "defaultEnabled": true,
+          "author": "LunFengChen",
+          "homepage": "https://github.com/LunFengChen/deepseek-harness"
         },
         {
           "id": "plugin-market",
@@ -51,7 +53,9 @@
           "packageName": "dshmarket",
           "title": "Plugin market",
           "description": "Browse and install community dsh plugins.",
-          "defaultEnabled": true
+          "defaultEnabled": true,
+          "author": "dsh-market",
+          "homepage": "https://github.com/dsh-market/dsh-market"
         },
         {
           "id": "reasoning-effort",
@@ -59,7 +63,9 @@
           "packageName": "dsh-reasoning-effort",
           "title": "Reasoning effort",
           "description": "Pick thinking strength in the composer.",
-          "defaultEnabled": true
+          "defaultEnabled": true,
+          "author": "HanaAyane",
+          "homepage": "https://github.com/HanaAyane/dsh-reasoning-effort"
         },
         {
           "id": "dsh-context",
@@ -67,7 +73,9 @@
           "packageName": "dsh-context",
           "title": "Context dashboard",
           "description": "Inspect context composition, compaction, and token use.",
-          "defaultEnabled": true
+          "defaultEnabled": true,
+          "author": "bowenliang123",
+          "homepage": "https://github.com/bowenliang123/dsh-context"
         },
         {
           "id": "better-sidebar",
@@ -75,7 +83,9 @@
           "packageName": "dsh-better-sidebar",
           "title": "Better sidebar",
           "description": "File, terminal, Git, and subagent workbench in the sidebar.",
-          "defaultEnabled": true
+          "defaultEnabled": true,
+          "author": "omdsh-dev",
+          "homepage": "https://github.com/omdsh-dev/DSH-better-sidebar"
         },
         {
           "id": "hindsight",
@@ -83,7 +93,9 @@
           "packageName": "@vectorize-io/hindsight-coding-agents",
           "title": "Hindsight memory",
           "description": "Long-term project memory. Needs a Hindsight server or cloud account.",
-          "defaultEnabled": true
+          "defaultEnabled": true,
+          "author": "vectorize-io",
+          "homepage": "https://github.com/vectorize-io/hindsight/tree/main/hindsight-integrations/coding-agents"
         }
       ]
     }

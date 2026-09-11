@@ -40,7 +40,7 @@ const tmp = (): string => {
 
 /** Stage a fake installed app: package.json with deps and a node_modules holding bundles. */
 function stageInstallation(
-  bundles: Record<string, { patch?: string; deps?: Record<string, string> }>,
+  bundles: Record<string, { patch?: string; deps?: Record<string, string>; plugins?: unknown }>,
   appName = 'dsh-app',
 ): string {
   const root = tmp()
@@ -57,7 +57,14 @@ function stageInstallation(
       type: 'module',
       main: './index.js',
       dependencies: spec.deps ?? {},
-      ...spec.patch === undefined ? {} : { dsh: { bundle: { patch: './cordis.patch.yml' } } },
+      ...spec.patch === undefined && spec.plugins === undefined ? {} : {
+        dsh: {
+          bundle: {
+            ...spec.patch === undefined ? {} : { patch: './cordis.patch.yml' },
+            ...spec.plugins === undefined ? {} : { plugins: spec.plugins },
+          },
+        },
+      },
     }))
     writeFileSync(join(dir, 'index.js'), `export const packageName = ${JSON.stringify(name)}\n`)
     if (spec.patch !== undefined) writeFileSync(join(dir, 'cordis.patch.yml'), spec.patch)
@@ -305,6 +312,44 @@ describe('loadProfile', () => {
     const dir = resolveProfileDir('demo', home)
     initProfile(dir, ['not-a-bundle'])
     expect(() => loadProfile('t', 'demo', anchor, home)).toThrow('declares no dsh.bundle')
+  })
+
+  it('keeps catalog author homepages that are GitHub https URLs', () => {
+    const plugin = {
+      id: 'hindsight',
+      entryId: 'hindsight',
+      packageName: '@vectorize-io/hindsight-coding-agents',
+      title: 'Hindsight memory',
+      author: 'vectorize-io',
+      homepage: 'https://github.com/vectorize-io/hindsight/tree/main/hindsight-integrations/coding-agents',
+      defaultEnabled: true,
+    }
+    const anchor = stageInstallation({
+      'memory-bundle': { patch: '[]\n', plugins: [plugin] },
+    })
+    const home = tmp()
+    const dir = resolveProfileDir('demo', home)
+    initProfile(dir, ['memory-bundle'])
+    expect(loadProfile('t', 'demo', anchor, home).layers[0]?.plugins).toEqual([plugin])
+  })
+
+  it('fails loud when a catalog homepage is not an https GitHub URL', () => {
+    const anchor = stageInstallation({
+      'memory-bundle': {
+        patch: '[]\n',
+        plugins: [{
+          id: 'hindsight',
+          entryId: 'hindsight',
+          packageName: '@vectorize-io/hindsight-coding-agents',
+          author: 'vectorize-io',
+          homepage: 'https://example.com/vectorize-io',
+        }],
+      },
+    })
+    const home = tmp()
+    const dir = resolveProfileDir('demo', home)
+    initProfile(dir, ['memory-bundle'])
+    expect(() => loadProfile('t', 'demo', anchor, home)).toThrow('homepage must be an https://github.com URL')
   })
 })
 
