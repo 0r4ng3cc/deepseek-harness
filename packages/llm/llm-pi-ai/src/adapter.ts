@@ -311,8 +311,9 @@ export class PiAiAdapter extends LlmAdapter {
     const profile = this.profileOf(snapshot, provider)
     const resolvedModel = this.modelOf(snapshot, provider, model)
     const defaultLevel = describableReasoningLevel(resolvedModel, profile.reasoning)
-    // Only a cap the deployment configured is a request default; the
-    // catalog's `maxTokens` sizes the model and stops there.
+    // Send an output cap on every request so a gateway cannot apply its own
+    // smaller default. Explicit profile config wins; otherwise the model's
+    // capability (catalog or route fallback) is the request default.
     const configuredMaxTokens = profile.configuredMaxTokens.get(model)
     return {
       provider,
@@ -320,7 +321,7 @@ export class PiAiAdapter extends LlmAdapter {
       name: resolvedModel.name,
       inputModalities: [...resolvedModel.input],
       context: { contextWindow: resolvedModel.contextWindow },
-      ...configuredMaxTokens === undefined ? {} : { defaultMaxTokens: configuredMaxTokens },
+      defaultMaxTokens: configuredMaxTokens ?? resolvedModel.maxTokens,
       ...reasoningInfo(resolvedModel, defaultLevel),
     }
   }
