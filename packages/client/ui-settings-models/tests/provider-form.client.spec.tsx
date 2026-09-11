@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** Model-list editing, endpoint interrogation, and hand-declared provider creation. */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import { bindSnapshotSelector, RemoteError } from '@x1a0f3n9/dsh-client-test-runtime'
@@ -445,6 +445,200 @@ describe('model list editing', () => {
     await waitFor(() => { expect(mutate).toHaveBeenCalled() })
     expect(firstMutate(mutate).ops)
       .toContainEqual({ op: 'unset', path: ['providers', 'openai', 'models'] })
+  })
+
+  it('writes custom reasoning efforts on a model row', async () => {
+    const { mutate } = await mountSection({
+      providers: { openai: { baseURL: 'https://proxy.example/v1', models: [{ id: 'grok-4.6' }] } },
+    })
+    openEditor('openai')
+    expandModel(1)
+
+    fireEvent.click(screen.getByRole('radio', { name: en.reasoningEffortCustom }))
+    expect(within(screen.getByRole('radiogroup', { name: `${en.reasoningEffort} 1` })).getAllByRole('radio')).toHaveLength(2)
+    expect(screen.queryByText(`${en.model} 1: ${en.modelReasoningEmpty}`)).toBeNull()
+    expect(buttonNamed(en.apply).disabled).toBe(false)
+
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} off 1`))
+    expect(screen.getByText(en.modelReasoningEmpty)).toBeTruthy()
+    expect(buttonNamed(en.apply).disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} off 1`))
+
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} high 1`))
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} xhigh 1`))
+    fireEvent.change(screen.getByLabelText(`${en.reasoningEffortWire} xhigh 1`), { target: { value: 'xhigh' } })
+    expect(screen.queryByText(en.modelReasoningEmpty)).toBeNull()
+    expect(buttonNamed(en.apply).disabled).toBe(false)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{
+      id: 'grok-4.6',
+      reasoningEfforts: { high: 'high', xhigh: 'xhigh' },
+    }])
+  })
+
+  it('refuses a blank wire value and keeps off empty', async () => {
+    const { mutate } = await mountSection({
+      providers: { openai: { baseURL: 'https://proxy.example/v1', models: [{ id: 'grok-4.6' }] } },
+    })
+    openEditor('openai')
+    expandModel(1)
+
+    fireEvent.click(screen.getByRole('radio', { name: en.reasoningEffortCustom }))
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} high 1`))
+    fireEvent.change(screen.getByLabelText(`${en.reasoningEffortWire} high 1`), { target: { value: '   ' } })
+    expect(screen.getByText(`${en.model} 1: ${en.modelReasoningWireRequired}`)).toBeTruthy()
+    expect(buttonNamed(en.apply).disabled).toBe(true)
+
+    fireEvent.change(screen.getByLabelText(`${en.reasoningEffortWire} high 1`), { target: { value: 'high' } })
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} off 1`))
+    fireEvent.change(screen.getByLabelText(`${en.reasoningEffortWire} off 1`), { target: { value: '   ' } })
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{
+      id: 'grok-4.6',
+      reasoningEfforts: { high: 'high', off: null },
+    }])
+  })
+
+  it('unchecks a level and reindexes customizing after a removal', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        openai: {
+          baseURL: 'https://proxy.example/v1',
+          models: [{ id: 'first' }, { id: 'second', reasoningEfforts: { high: 'high', low: 'low' } }],
+        },
+      },
+    })
+    openEditor('openai')
+    fireEvent.click(screen.getByLabelText(`${en.removeModel} 1`))
+    expandModel(1)
+
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: en.reasoningEffortCustom }).checked).toBe(true)
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} low 1`))
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{
+      id: 'second',
+      reasoningEfforts: { high: 'high' },
+    }])
+  })
+
+
+  it('drops customizing when the custom row itself is removed', async () => {
+    await mountSection({
+      providers: {
+        openai: {
+          baseURL: 'https://proxy.example/v1',
+          models: [
+            { id: 'custom', reasoningEfforts: { high: 'high' } },
+            { id: 'kept' },
+          ],
+        },
+      },
+    })
+    openEditor('openai')
+    fireEvent.click(screen.getByLabelText(`${en.removeModel} 1`))
+    expandModel(1)
+    const group = within(screen.getByRole('radiogroup', { name: `${en.reasoningEffort} 1` }))
+    expect(group.getByRole<HTMLInputElement>('radio', { name: en.reasoningEffortNone }).checked).toBe(true)
+    expect(screen.queryByLabelText(`${en.reasoningEffort} high 1`)).toBeNull()
+  })
+
+  it('keeps an earlier custom row and writes beside an untouched neighbour', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        openai: {
+          baseURL: 'https://proxy.example/v1',
+          models: [
+            { id: 'first', reasoningEfforts: { high: 'high' } },
+            { id: 'second' },
+          ],
+        },
+      },
+    })
+    openEditor('openai')
+    expandModel(1)
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} xhigh 1`))
+    fireEvent.click(screen.getByLabelText(`${en.removeModel} 2`))
+    const group = within(screen.getByRole('radiogroup', { name: `${en.reasoningEffort} 1` }))
+    expect(group.getByRole<HTMLInputElement>('radio', { name: en.reasoningEffortCustom }).checked).toBe(true)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{
+      id: 'first',
+      reasoningEfforts: { high: 'high', xhigh: 'xhigh' },
+    }])
+  })
+
+  it('fills a missing custom map when a wire value is typed', async () => {
+    const { mutate } = await mountSection({
+      providers: { openai: { baseURL: 'https://proxy.example/v1', models: [{ id: 'grok-4.6' }] } },
+    })
+    openEditor('openai')
+    expandModel(1)
+    fireEvent.click(screen.getByRole('radio', { name: en.reasoningEffortCustom }))
+    fireEvent.click(screen.getByLabelText(`${en.reasoningEffort} high 1`))
+    expect(buttonNamed(en.apply).disabled).toBe(false)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{
+      id: 'grok-4.6',
+      reasoningEfforts: { high: 'high' },
+    }])
+  })
+
+  it('treats a stored empty map as custom and false as default none', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        openai: {
+          baseURL: 'https://proxy.example/v1',
+          models: [
+            { id: 'empty-custom', reasoningEfforts: {} },
+            { id: 'explicit-none', reasoningEfforts: false },
+          ],
+        },
+      },
+    })
+    openEditor('openai')
+    expandModel(1)
+    const first = within(screen.getByRole('radiogroup', { name: `${en.reasoningEffort} 1` }))
+    expect(first.getByRole<HTMLInputElement>('radio', { name: en.reasoningEffortCustom }).checked).toBe(true)
+    expect(screen.getByText(`${en.model} 1: ${en.modelReasoningEmpty}`)).toBeTruthy()
+    expect(buttonNamed(en.apply).disabled).toBe(true)
+
+    fireEvent.click(screen.getByLabelText(`${en.modelAdvanced} 1`))
+    expandModel(2)
+    const second = within(screen.getByRole('radiogroup', { name: `${en.reasoningEffort} 2` }))
+    expect(second.getByRole<HTMLInputElement>('radio', { name: en.reasoningEffortNone }).checked).toBe(true)
+    expect(screen.queryByLabelText(`${en.reasoningEffort} high 2`)).toBeNull()
+    expect(mutate).not.toHaveBeenCalled()
+  })
+
+  it('drops reasoning efforts when the row returns to default none', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        openai: {
+          baseURL: 'https://proxy.example/v1',
+          models: [{ id: 'grok-4.6', reasoningEfforts: { high: 'high' } }],
+        },
+      },
+    })
+    openEditor('openai')
+    expandModel(1)
+
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: en.reasoningEffortCustom }).checked).toBe(true)
+    expect(screen.getByLabelText<HTMLInputElement>(`${en.reasoningEffort} high 1`).checked).toBe(true)
+    fireEvent.click(screen.getByRole('radio', { name: en.reasoningEffortNone }))
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([{ id: 'grok-4.6' }])
   })
 
 })

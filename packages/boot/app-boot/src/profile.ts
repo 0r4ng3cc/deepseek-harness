@@ -911,6 +911,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+/**
+ * True when value is an https GitHub URL with a repository path and no credentials.
+ * @param value - candidate homepage string from package.json.
+ * @returns whether the string is a credential-free https://github.com URL with a path.
+ */
+function isGithubHomepage(value: string): boolean {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    return false
+  }
+  return url.protocol === 'https:'
+    && url.username === ''
+    && url.password === ''
+    && url.hostname === 'github.com'
+    && url.pathname.length > 1
+}
+
 /** Parse package-owned catalog metadata at the durable package.json boundary. */
 function parsePluginCatalog(
   binName: string, packageName: string, raw: unknown,
@@ -937,6 +956,12 @@ function parsePluginCatalog(
     if (value.description !== undefined && typeof value.description !== 'string') {
       throw new Error(`${binName}: bundle plugin catalog entry ${JSON.stringify(value.id)} description must be a string`)
     }
+    if (value.author !== undefined && (typeof value.author !== 'string' || value.author.length === 0)) {
+      throw new Error(`${binName}: bundle plugin catalog entry ${JSON.stringify(value.id)} author must be a non-empty string`)
+    }
+    if (value.homepage !== undefined && (typeof value.homepage !== 'string' || !isGithubHomepage(value.homepage))) {
+      throw new Error(`${binName}: bundle plugin catalog entry ${JSON.stringify(value.id)} homepage must be an https://github.com URL`)
+    }
     if (value.required !== undefined && typeof value.required !== 'boolean') {
       throw new Error(`${binName}: bundle plugin catalog entry ${JSON.stringify(value.id)} required must be a boolean`)
     }
@@ -951,6 +976,8 @@ function parsePluginCatalog(
       packageName: value.packageName,
       ...value.title === undefined ? {} : { title: value.title },
       ...value.description === undefined ? {} : { description: value.description },
+      ...value.author === undefined ? {} : { author: value.author },
+      ...value.homepage === undefined ? {} : { homepage: value.homepage },
       ...value.required === undefined ? {} : { required: value.required },
       ...value.defaultEnabled === undefined ? {} : { defaultEnabled: value.defaultEnabled },
     }

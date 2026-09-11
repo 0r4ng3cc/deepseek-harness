@@ -85,6 +85,8 @@ function catalogEntries(ctx: Context): PluginInventoryCatalogEntry[] {
         packageName: plugin.packageName,
         ...plugin.title === undefined ? {} : { title: plugin.title },
         ...plugin.description === undefined ? {} : { description: plugin.description },
+        ...plugin.author === undefined ? {} : { author: plugin.author },
+        ...plugin.homepage === undefined ? {} : { homepage: plugin.homepage },
         required: plugin.required ?? false,
         defaultEnabled: plugin.required || plugin.defaultEnabled === true,
         installed: entry !== undefined,

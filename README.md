@@ -22,8 +22,9 @@ The rows below summarize the fork's user-visible and release-impacting changes; 
 | Web port | `xfdsh web` listens on `127.0.0.1:7777`. Official `dsh web` stays on `3080`. | Both UIs can run at the same time. |
 | Session timeline | Preinstalled, disableable plugin: rewind, delete, regenerate, and a composer compact button. Delete truncates the selected turn and every later event. Compact lands a truncated thinking-model summary instead of leaving the conversation unchanged. | Unwanted answers leave the UI and later model requests. One click runs `/compact`. |
 | Plugin market | `dshmarket` is preinstalled and disableable. Official `@deepseek-ai/dsh-*` plugins remap into this runtime. | Community plugins install with `xfdsh plugin --profile web add`. |
-| Reasoning effort | Preinstalled, disableable plugin `dsh-reasoning-effort@v0.7.1`. | The composer can pick thinking strength. Disable it from Settings → Plugins. |
-| Context dashboard | Preinstalled, disableable plugin `dsh-context@0.48.0`. | A Context tab and `/context` command show composition, compaction, and token use. |
+| Plugin authors | Optional-plugin cards show the catalog author as a GitHub link. | Settings → Plugins opens the plugin repository instead of leaving the package name as the only byline. |
+| Reasoning effort | Preinstalled slider `dsh-reasoning-effort@v0.7.1`. Settings → Models lets each custom model choose Default (none) or Custom `reasoningEfforts`. | The composer can pick thinking strength after a custom model declares levels. Disable the slider from Settings → Plugins. |
+| Context dashboard | Preinstalled, disableable plugin `github:LunFengChen/dsh-context#v0.49.6`. Version detection reads this fork, not a leftover official CLI. | A Context tab and `/context` command show composition, compaction, and token use. |
 | Better sidebar | Preinstalled, disableable plugin `dsh-better-sidebar@0.19.0-alpha.1`. | Files, terminal, Git, and subagents live in the sidebar workbench. |
 | Hindsight memory | Preinstalled, disableable plugin `@vectorize-io/hindsight-coding-agents@0.5.2`. | Long-term project memory is available after a Hindsight Cloud account or local server is configured in `~/.hindsight/coding-agent.json`. |
 | Session utilities | Workspace rows can copy the session id. | Session ids are easier to share and debug. |

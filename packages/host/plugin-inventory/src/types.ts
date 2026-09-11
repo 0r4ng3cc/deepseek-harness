@@ -29,6 +29,8 @@ export interface PluginInventoryCatalogEntry {
   readonly packageName: string
   readonly title?: string
   readonly description?: string
+  readonly author?: string
+  readonly homepage?: string
   readonly required: boolean
   readonly defaultEnabled: boolean
   readonly installed: boolean

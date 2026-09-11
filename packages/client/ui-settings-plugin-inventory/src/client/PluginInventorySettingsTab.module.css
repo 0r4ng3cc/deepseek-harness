@@ -451,6 +451,26 @@
   line-height: 16px;
 }
 
+.catalogAuthor {
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a.catalogAuthor {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a.catalogAuthor:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
 .catalogDescription {
   margin: 3px 0 0;
   color: var(--dsw-alias-label-secondary);
