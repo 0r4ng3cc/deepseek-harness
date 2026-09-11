@@ -64,7 +64,7 @@ export const DEFAULT_REQUEST_IMAGE_MAX_BYTES = 1024 * 1024
 export const DEFAULT_CONTEXT_WINDOW = 262_144
 
 /** Output capability assumed for a model neither configuration nor the catalog sizes. */
-export const DEFAULT_MAX_TOKENS = 32_768
+export const DEFAULT_MAX_TOKENS = 256_000
 
 /**
  * Modalities assumed for a model neither configuration nor the catalog
@@ -132,8 +132,8 @@ export interface PiAiProviderProfile {
   defaultContextWindow?: number
   /**
    * Output capability for a model this route lists that neither the entry nor
-   * the installed catalog sizes (default 32,768). This sizes the model; it
-   * never becomes a per-request cap on its own.
+   * the installed catalog sizes (default 256,000). This sizes the model and
+   * is also the per-request default when the caller names no cap.
    */
   defaultMaxTokens?: number
   /**
@@ -213,8 +213,8 @@ export interface ResolvedPiAiProviderProfile
   modelErrors: ReadonlyMap<string, string>
   /**
    * Per-request output caps this profile explicitly configured, by model id.
-   * The seam materializes one only into a request that names no cap of its
-   * own, so a catalog capability must not appear here.
+   * Explicit values win over the model's capability when the seam materializes
+   * `defaultMaxTokens` for a request that names no cap of its own.
    */
   configuredMaxTokens: ReadonlyMap<string, number>
 }

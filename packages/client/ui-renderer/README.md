@@ -29,7 +29,7 @@ This package is infrastructure: the web shell and the boot kernel are its only d
 
 ### What mounting does
 
-`mount(container)` installs the slot renderer, hydrates the existing boot DOM when present, renders the assembled application into the container before the next paint, and returns a disposer that unmounts the React root. The renderer performs the sole context-level `renderSlot('root')` call; the registered root occupant owns product layout and document metadata.
+`mount(container)` installs the slot renderer, hydrates the existing boot DOM when present, keeps that boot page until a layout entry occupies `root`, then renders the assembled application, and returns a disposer that unmounts the React root. The renderer performs the sole context-level `renderSlot('root')` call; the registered root occupant owns product layout and document metadata.
 
 ### For business plugins
 
@@ -47,7 +47,7 @@ The package realizes one boundary: the object layer (runtime, React-free) owns b
 
 ### Activation and mount
 
-The plugin activates after `slots`, `sessions`, and `layout`; it installs `createSlotRenderer()` and reflects the `uiRenderer` service. `mountApp` looks for the boot kernel's `[data-dsh-boot]` element: when present it hydrates through `BootHandoff` (a one-frame pass-through that preserves the loading DOM), otherwise it creates a fresh root and flushes the render synchronously.
+The plugin installs `createSlotRenderer()` and reflects the `uiRenderer` service. `mountApp` looks for the boot kernel's `[data-dsh-boot]` element: when present it hydrates through `BootHandoff`, which keeps the loading DOM until `root` has a live registration; otherwise it creates a fresh root and flushes the render synchronously.
 
 ### Slot bindings
 

@@ -16,7 +16,7 @@ Status: implemented
 
 **boot kernel 在 `uiRenderer` 一出现就开始 hydrate。** `loader.create` 先跑 immediately 层。`mountApp` 与这一波并发注册 `uiRenderer` inject 等待，因此 React 可以在延迟 combo 开始前 hydrate。immediately 波结束后才创建延迟 entry。`run()` 仍等待完整名册，任一 entry 未激活仍会使启动审计失败。
 
-**root outlet 等待第一次有效注册。** 渐进挂载可能早于 layout。空的 root 是等待，不是 boot-order 抛错。已 abdicate 的 root 注册仍渲染崩溃面。
+**root outlet 等待第一次有效注册。** `BootHandoff` 会 hydrate 启动 DOM，并在 `slots.entries('root')` 非空之前停在那里。渐进挂载可能早于 layout。挂载时的空 root 是等待；空着调用 `renderSlot('root')` 仍会抛错。已 abdicate 的 root 注册仍渲染崩溃面。
 
 ## Alternatives considered
 
@@ -34,3 +34,8 @@ Status: implemented
 - 首屏可以在文档预览、市场等延迟 combo 解析完成前出现。
 - 随后的 FAILED fiber 仍会在这次首屏之后用启动失败报告替换页面。
 - 原先假定每个 application combo 都会预加载的测试，现在要区分 immediately 层 batch。
+- `BootHandoff` 会在有效的 `root` 注册到来前保持 `[data-dsh-boot]`。
+
+## Testing
+
+[UI renderer 插件 spec](../../../../packages/client/ui-renderer/tests/ui-renderer.client.spec.tsx) 会在空 `root` 上 hydrate 启动页，然后再占用它。空着直接调用 `renderSlot('root')` 仍会在 [registry spec](../../../../packages/client/ui-renderer/tests/registry.client.spec.ts) 中抛错。

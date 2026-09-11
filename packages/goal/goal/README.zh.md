@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-goal` 让一个长期完成目标在多轮、会话 resume（恢复）、fork 与进程重启后持续存在。用户与 agent 可以 create、edit、pause、resume、complete、block 或 clear 该目标；比较并设置的更新会拒绝陈旧视图。可配置的 Round 上限（默认 256）约束自动续行，被阻塞的 goal 会保留稳定的策略代码和面向人的说明。本包存储 goal 状态但不调度工作，续行权限是进程本地的而非持久状态。单个目标需要横跨多轮时选择本包；常规单轮工作或并行目标不要使用。
+`dsh-goal` 让一个长期完成目标在多轮、会话 resume（恢复）、fork 与进程重启后持续存在。用户与 agent 可以 create、edit、pause、resume、complete、block 或 clear 该目标；比较并设置的更新会拒绝陈旧视图。可配置的 Round 上限（默认 100000）约束自动续行，被阻塞的 goal 会保留稳定的策略代码和面向人的说明。本包存储 goal 状态但不调度工作，续行权限是进程本地的而非持久状态。单个目标需要横跨多轮时选择本包；常规单轮工作或并行目标不要使用。
 
 ## 目录
 
@@ -38,12 +38,12 @@ goal 适合一个需要跨自动 Goal Round 持续的长期完成目标——例
 ```yaml
 - name: '@x1a0f3n9/dsh-goal'
   config:
-    defaultMaxGoalRounds: 256
+    defaultMaxGoalRounds: 100000
 ```
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `defaultMaxGoalRounds` | `256` | 当 create 请求省略上限时应用的 Round 上限 |
+| `defaultMaxGoalRounds` | `100000` | 当 create 请求省略上限时应用的 Round 上限 |
 
 `defaultMaxGoalRounds` 必须是正的安全整数；指定了自身上限的 create 请求会覆盖它。生成的[配置目录](../../../docs/config-catalog.zh.md#x1a0f3n9dsh-goal)是每个受支持字段的穷尽式真源。
 

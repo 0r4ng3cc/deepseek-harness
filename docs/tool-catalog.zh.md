@@ -1067,10 +1067,6 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
     "objective": {
       "type": "string",
       "description": "The concrete completion objective inferred from the direct human request."
-    },
-    "max_goal_rounds": {
-      "type": "number",
-      "description": "Optional positive safe-integer limit on automatic continuation rounds."
     }
   },
   "required": [
@@ -1124,10 +1120,6 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
     "objective": {
       "type": "string",
       "description": "Replacement objective; valid only with action edit."
-    },
-    "max_goal_rounds": {
-      "type": "number",
-      "description": "Replacement cap; valid only with action edit."
     },
     "blocked_reason": {
       "type": "string",

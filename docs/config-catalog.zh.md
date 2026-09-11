@@ -1160,8 +1160,8 @@ export interface PiAiProviderProfile {
   defaultContextWindow?: number
   /**
    * Output capability for a model this route lists that neither the entry nor
-   * the installed catalog sizes (default 32,768). This sizes the model; it
-   * never becomes a per-request cap on its own.
+   * the installed catalog sizes (default 256,000). This sizes the model and
+   * is also the per-request default when the caller names no cap.
    */
   defaultMaxTokens?: number
   /**

@@ -55,10 +55,16 @@ interface BootSnapshot {
   html: string
 }
 
-/** Hydrate the kernel-owned loading DOM before replacing it with the application. */
-function BootHandoff(props: { app: () => ReactNode; boot: BootSnapshot }): ReactNode {
+/** Hydrate the kernel-owned loading DOM until a layout entry occupies `root`. */
+function BootHandoff(props: { app: () => ReactNode; boot: BootSnapshot; slots: SlotRegistry }): ReactNode {
   const [ready, setReady] = useState(false)
-  useLayoutEffect(() => { setReady(true) }, [])
+  useLayoutEffect(() => {
+    const syncReady = (): void => {
+      setReady(props.slots.entries('root').length > 0)
+    }
+    syncReady()
+    return props.slots.subscribe('root', syncReady)
+  }, [props.slots])
   if (ready) return props.app()
   return createElement('div', {
     className: props.boot.className,
@@ -68,12 +74,13 @@ function BootHandoff(props: { app: () => ReactNode; boot: BootSnapshot }): React
 }
 
 /** Mount React while preserving the framework-free boot DOM through hydration. */
-function mountApp(container: HTMLElement, app: () => ReactNode): Root {
+function mountApp(container: HTMLElement, app: () => ReactNode, slots: SlotRegistry): Root {
   const boot = container.querySelector<HTMLElement>(':scope > [data-dsh-boot]')
   if (boot !== null) {
     return hydrateRoot(container, createElement(BootHandoff, {
       app,
       boot: { className: boot.className, html: boot.innerHTML },
+      slots,
     }))
   }
   const root = createRoot(container)
@@ -90,7 +97,7 @@ export function apply(ctx: Context): void {
   slots.install(createSlotRenderer())
   ctx.reflect.provide('uiRenderer', {
     mount: (container: HTMLElement): (() => void) => {
-      const root = mountApp(container, buildRenderApp({ ctx }))
+      const root = mountApp(container, buildRenderApp({ ctx }), slots)
       return () => { root.unmount() }
     },
   })

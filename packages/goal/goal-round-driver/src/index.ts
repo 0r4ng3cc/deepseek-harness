@@ -243,11 +243,6 @@ export function apply(ctx: Context): void {
   // One composite effect keeps the step fence installed until this
   // plugin's own scheduling tasks settle.
   ctx.effect(function* () {
-    ctx.on('agent/error', ({ agent }) => {
-      const state = stateFor(agent)
-      disarm(state)
-    })
-
     ctx.on('agent/created', ({ agent }) => { stateFor(agent) })
     ctx.on('agent/disposed', ({ agent }) => { states.delete(agent) })
     ctx.on('agent/session-start', ({ agent }) => {
@@ -327,10 +322,6 @@ export function apply(ctx: Context): void {
           }
           return
         case 'turn/end':
-          if (event.data.reason.kind === 'max-tokens') {
-            disarm(state)
-            return
-          }
           if (event.data.reason.kind !== 'aborted') return
           if (state.attempt?.phase === 'claimed' || state.attempt?.phase === 'admitted') {
             state.attempt.cancelled = true
@@ -386,11 +377,11 @@ export function apply(ctx: Context): void {
         decision = await next()
       } catch (error: unknown) {
         if (signal.aborted) throw error
-        // A throwing downstream hook drops the whole step proposal. Clear the
-        // reservation before the balanced no-step turn returns to idle so the
-        // next drive pass can reschedule the round.
+        // A throwing downstream hook drops the whole step proposal. Fail
+        // closed: this is a plugin fault, not a model-turn error, so do not
+        // reschedule automatic continuation.
         state.attempt = undefined
-        requestDrive(state)
+        disarm(state)
         throw error
       }
       if (signal.aborted) {
