@@ -24,7 +24,7 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 | 插件市场 | 预装 `dshmarket`，可关闭。官方 `@deepseek-ai/dsh-*` 插件会 remap 进这一套运行时。 | 社区插件用 `xfdsh plugin --profile web add` 安装。 |
 | 插件作者 | 可选插件卡片会显示作者，并链到 GitHub。 | Settings → Plugins 能打开插件仓库，不再只剩包名。 |
 | 思考强度 | 预装滑条 `dsh-reasoning-effort@v0.7.1`。Settings → Models 里每个自定义模型可选默认（无）或自定义 `reasoningEfforts`。 | 自定义模型声明档位后，输入框才能选思考强度。滑条可在 Settings → Plugins 关闭。 |
-| 上下文面板 | 预装且可关闭：`dsh-context@0.48.0`。 | Context 页和 `/context` 命令能看组成、压缩和 token 用量。 |
+| 上下文面板 | 预装且可关闭：`github:LunFengChen/dsh-context#v0.49.6`。版本探测读本 fork，不读残留的官方 CLI。 | Context 页和 `/context` 命令能看组成、压缩和 token 用量。 |
 | Better sidebar | 预装且可关闭：`dsh-better-sidebar@0.19.0-alpha.1`。 | 文件、终端、Git 和子代理都在侧边栏工作台里。 |
 | Hindsight 记忆 | 预装且可关闭：`@vectorize-io/hindsight-coding-agents@0.5.2`。 | 配好 Hindsight Cloud 或本地服务（`~/.hindsight/coding-agent.json`）后才有长期项目记忆。 |
 | 会话工具 | 工作区列表可以复制 session id。 | 方便分享和排障。 |

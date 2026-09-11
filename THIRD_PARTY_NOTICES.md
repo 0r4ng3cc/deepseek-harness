@@ -68,7 +68,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
-| [`dsh-context`](https://github.com/bowenliang123/dsh-context) | Apache-2.0 |
+| [`dsh-context`](https://github.com/LunFengChen/dsh-context) | Apache-2.0 |
 | [`dsh-reasoning-effort`](https://github.com/HanaAyane/dsh-reasoning-effort) | MIT |
 | [`dshmarket`](https://github.com/dsh-market/dsh-market) | MIT |
 | [`e2b`](https://github.com/e2b-dev/e2b) | MIT |
