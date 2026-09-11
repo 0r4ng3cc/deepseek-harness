@@ -157,7 +157,8 @@ function loadWorkspaceManifests(): { manifests: Map<string, Manifest>; names: Se
   const manifests = new Map<string, Manifest>()
   const names = new Set<string>()
   for (const pattern of patterns) {
-    for (const path of globSync(pattern, { cwd: root })) {
+    // globSync order is filesystem-dependent; resolution here must be stable across hosts.
+    for (const path of globSync(pattern, { cwd: root }).sort()) {
       const normalized = path.replaceAll('\\', '/')
       const manifest = readManifest(normalized)
       manifests.set(normalized, manifest)
@@ -256,7 +257,8 @@ export function virtualManifest(
   expectedVersion?: string,
 ): VirtualManifest | undefined {
   const prefix = `${name.replace('/', '+')}@`
-  const entries = readdirSync(virtual)
+  // readdirSync order is filesystem-dependent; resolution here must be stable across hosts.
+  const entries = readdirSync(virtual).sort()
   for (const entry of entries.filter(dir => dir.startsWith(prefix))) {
     const manifest = JSON.parse(readFileSync(resolve(virtual, entry, 'node_modules', name, 'package.json'), 'utf8')) as VirtualManifest
     if (expectedVersion === undefined || manifest.version === expectedVersion) return manifest
