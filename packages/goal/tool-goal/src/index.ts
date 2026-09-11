@@ -6,7 +6,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { GoalId } from '@x1a0f3n9/dsh-goal'
+import { DEFAULT_MAX_GOAL_ROUNDS, GoalId } from '@x1a0f3n9/dsh-goal'
 import type { GoalRef, GoalView } from '@x1a0f3n9/dsh-goal'
 import { boundContextSummary, createUserMessage, HarnessError } from '@x1a0f3n9/dsh-llm'
 import { defineTool } from '@x1a0f3n9/dsh-tools'
@@ -140,6 +140,12 @@ function hasRoundCap(value: number | undefined): value is number {
   return value !== undefined && value !== 0
 }
 
+/** Floor a model-supplied cap so guessed values such as 3 or 8 cannot stop a long goal. */
+function modelRoundCap(value: number | undefined): number | undefined {
+  if (!hasRoundCap(value)) return undefined
+  return Math.max(value, DEFAULT_MAX_GOAL_ROUNDS)
+}
+
 /** Build the exact compare-and-set ref from model arguments. */
 function goalRef(goalId: string, revision: number): GoalRef {
   if (goalId.length === 0 || goalId !== goalId.trim()
@@ -223,7 +229,6 @@ export function apply(ctx: Context, config: Config): void {
       requireDirectHuman(ctx, execution)
       const goal = ctx.goals.create(execution.agent, {
         objective: args.objective,
-        ...args.max_goal_rounds === undefined ? {} : { maxGoalRounds: args.max_goal_rounds },
       })
       return Promise.resolve(goalValue(goal))
     },
@@ -256,9 +261,10 @@ export function apply(ctx: Context, config: Config): void {
     execute(args, exec) {
       const execution = goalToolExecution(ctx, exec)
       const ref = goalRef(args.goal_id, args.revision)
+      const cap = modelRoundCap(args.max_goal_rounds)
       const replacements = {
         ...hasText(args.objective) ? { objective: args.objective } : {},
-        ...hasRoundCap(args.max_goal_rounds) ? { maxGoalRounds: args.max_goal_rounds } : {},
+        ...cap === undefined ? {} : { maxGoalRounds: cap },
       }
       if (args.action === 'edit') {
         requireDirectHuman(ctx, execution)

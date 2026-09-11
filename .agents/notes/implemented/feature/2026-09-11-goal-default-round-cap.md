@@ -27,7 +27,7 @@ Long-running same-session goals hit the previous default cap of 256 rounds and b
 ## Consequences
 
 - New goals without an explicit cap can run 100000 admitted rounds before `round-limit`.
-- A create or edit that names its own cap still overrides the default.
+- A domain create or edit that names its own cap still overrides the default. Model-facing `create_goal` ignores `max_goal_rounds`; `update_goal` edit floors a supplied cap to this default.
 - Sessions that already stored 256, 8, or another cap stay on that stored value until an authorized edit.
 
 ## Related

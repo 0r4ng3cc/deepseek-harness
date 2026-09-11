@@ -168,6 +168,9 @@ export const goalProjectionDefinition = {
   stateVersion: 6,
 } satisfies ProjectionDefinition<'goal', GoalProjectionState>
 
+/** Round budget used when a create request omits its own cap. */
+export const DEFAULT_MAX_GOAL_ROUNDS = 100000
+
 /** Deployment defaults for goal creation. */
 export interface Config {
   /** Total rounds used when a create request omits its own cap. */
@@ -241,7 +244,7 @@ export class GoalService extends TypertRemoteService {
   static inject = ['agents', 'sessionProjections']
 
   static Config: z<Config> = z.object({
-    defaultMaxGoalRounds: z.number().default(100000),
+    defaultMaxGoalRounds: z.number().default(DEFAULT_MAX_GOAL_ROUNDS),
   })
 
   private readonly resolved: ResolvedConfig
@@ -250,7 +253,7 @@ export class GoalService extends TypertRemoteService {
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'goals')
     this.resolved = {
-      defaultMaxGoalRounds: resolveMaxGoalRounds(config.defaultMaxGoalRounds ?? 100000),
+      defaultMaxGoalRounds: resolveMaxGoalRounds(config.defaultMaxGoalRounds ?? DEFAULT_MAX_GOAL_ROUNDS),
     }
     ctx.on('agent/session-start', ({ agent }) => {
       this.setActivation(agent.session, 'disarmed')
