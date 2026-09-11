@@ -27,7 +27,7 @@ Status: implemented
 ## Consequences
 
 - 未显式指定上限的新目标可以在 `round-limit` 之前运行 100000 个已接纳 Round。
-- 自行指定上限的 create 或 edit 仍然覆盖默认值。
+- 领域层自行指定上限的 create 或 edit 仍然覆盖默认值。面向模型的 `create_goal` 会忽略 `max_goal_rounds`；`update_goal` 的 edit 会把模型给出的上限抬到该默认值。
 - 已经存成 256、8 或其他上限的会话，在授权编辑之前保持该存储值。
 
 ## Related
