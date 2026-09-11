@@ -25,10 +25,11 @@ import { packedIdentity, readPublishOrder } from './tarball.ts'
 /**
  * Registry codes that answer a write which did not settle, rather than a
  * rejection of what was sent. `E409 Failed to save packument` is a packument
- * race from back-to-back writes. `E429` is npm refusing further writes after a
- * burst, especially new package names. A rejected payload (`E403` over an
- * existing version, a malformed manifest) never clears on a retry and must
- * surface.
+ * race from back-to-back writes and may retry. `E429` is npm refusing further
+ * writes after a burst, especially new package names; it is classified here so
+ * the job can fail with the quota message, not retried. A rejected payload
+ * (`E403` over an existing version, a malformed manifest) never clears on a
+ * retry and must surface.
  */
 const TRANSIENT_PUBLISH_CODES = ['E409', 'E429', 'E500', 'E502', 'E503', 'E504', 'ETIMEDOUT', 'ECONNRESET', 'EAI_AGAIN'] as const
 
@@ -36,18 +37,24 @@ const TRANSIENT_PUBLISH_CODES = ['E409', 'E429', 'E500', 'E502', 'E503', 'E504',
 export const PUBLISH_ATTEMPTS = 10
 
 /**
- * Shortest gap between two publishes, and the first `E409` retry backoff.
+ * Shortest gap between two PUTs, and the first `E409` retry backoff.
  *
  * The registry needs a moment to commit a packument before the next write; back
- * to back publishes are what produce `E409`.
+ * to back publishes are what produce `E409`. The same gap applies before the
+ * first PUT after a skip-path `npm view` burst.
  */
 export const PUBLISH_SPACING_MS = 5_000
 
-/** First `E429` retry backoff. New-package quota recovers slowly; npm also retries 429 internally unless `--fetch-retries` is 0. */
-export const RATE_LIMIT_BACKOFF_MS = 2_700_000
+/**
+ * Shortest gap before every `npm view`. Skip-path probes with no delay spend
+ * the same write-adjacent quota the first PUT needs.
+ */
+export const REGISTRY_PROBE_SPACING_MS = 1_000
 
-/** Longest `E429` retry backoff. Later attempts stay at this cap so one family can finish across a quota window. */
-export const RATE_LIMIT_BACKOFF_CAP_MS = 5_400_000
+/** How many `E429` answers one tarball may retry before the job fails. */
+export const RATE_LIMIT_ATTEMPTS = 1
+
+let lastRegistryCallAt = 0
 
 /** What the registry knows about one version. */
 type RegistryState =
@@ -73,16 +80,26 @@ export function isRateLimited(output: string): boolean {
 }
 
 /**
- * How long to wait before the next publish attempt after a transient failure.
+ * How long to wait before the next publish attempt after a packument race.
+ * `E429` never reaches this helper: the job fails on the first rate limit.
  * @param output - combined npm output of the failed attempt.
  * @param tries - 1-based attempt that just failed.
  * @returns Backoff in milliseconds.
  */
 export function retryBackoffMs(output: string, tries: number): number {
-  if (isRateLimited(output)) {
-    return Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** (tries - 1), RATE_LIMIT_BACKOFF_CAP_MS)
-  }
+  void output
   return PUBLISH_SPACING_MS * 2 ** (tries - 1)
+}
+
+/**
+ * Wait until `minGapMs` has passed since the previous registry call, then mark
+ * the next call as started.
+ * @param minGapMs - shortest allowed gap before this call.
+ */
+async function spaceRegistryCall(minGapMs: number): Promise<void> {
+  const wait = lastRegistryCallAt + minGapMs - Date.now()
+  if (wait > 0) await sleep(wait)
+  lastRegistryCallAt = Date.now()
 }
 
 /**
@@ -120,7 +137,8 @@ function integrityOf(tarball: string): string {
  * @param version - package version.
  * @returns The registry state for that version.
  */
-function registryState(name: string, version: string): RegistryState {
+async function registryState(name: string, version: string): Promise<RegistryState> {
+  await spaceRegistryCall(REGISTRY_PROBE_SPACING_MS)
   const result = attempt('npm', ['view', `${name}@${version}`, 'dist.integrity', '--json'])
   if (result.status !== 0) {
     const output = `${result.stdout}${result.stderr}`
@@ -156,17 +174,25 @@ async function publishTarball(
     // No --access: every release member declares its own publishConfig, and
     // a command-line flag would override it. check-workspace-constraints
     // requires a public access level on every release member.
+    await spaceRegistryCall(PUBLISH_SPACING_MS)
     const result = attemptEchoed('npm', ['publish', tarball, ...tagArgs, '--fetch-retries', '0'])
     const output = `${result.stdout}${result.stderr}`
     if (result.status === 0) return
 
-    const settled = registryState(name, version)
+    const settled = await registryState(name, version)
     if (settled.kind === 'present' && settled.integrity === integrityOf(tarball)) {
       console.log(`release publish: ${name}@${version} landed despite a reported failure, continuing`)
       return
     }
     if (tries === PUBLISH_ATTEMPTS || !isTransientFailure(output)) {
       throw new Error(`npm publish ${name}@${version} failed:\n${output}`)
+    }
+    if (isRateLimited(output) && tries >= RATE_LIMIT_ATTEMPTS) {
+      throw new Error(
+        `npm publish ${name}@${version} hit the npm new-package write quota (E429). `
+        + 'Re-run this job after the quota window; already-published members are skipped.\n'
+        + output,
+      )
     }
     const backoff = retryBackoffMs(output, tries)
     console.log(
@@ -201,7 +227,7 @@ async function main(): Promise<void> {
     const progress = `[${String(index + 1)}/${total}]`
     const tarball = join(directory, filename)
     const { name, version } = packedIdentity(tarball)
-    const state = registryState(name, version)
+    const state = await registryState(name, version)
     if (state.kind === 'present') {
       const local = integrityOf(tarball)
       const allowRef = process.env.RELEASE_PUBLISH_ALLOW_REF?.trim() ?? ''
@@ -223,9 +249,6 @@ async function main(): Promise<void> {
       skipped += 1
       continue
     }
-    // Space out the writes: the gap belongs between publishes, so a run that
-    // only skips does not wait at all.
-    if (published > 0) await sleep(PUBLISH_SPACING_MS)
     await publishTarball(tarball, name, version, family.distTagForVersion(version))
     console.log(`release publish: ${progress} ${name}@${version} published`)
     published += 1

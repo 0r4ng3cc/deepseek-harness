@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-client-ui-renderer` mounts the assembled dsh web client GUI: after the complete client plugin roster settles, the boot kernel calls `ctx.uiRenderer.mount(container)`, which hydrates the framework-free boot page and switches to the full React application before the next paint. Business plugins stay plain React components that receive session and workspace data through typed props and never wire subscriptions themselves — the renderer binds the runtime's bare observable sources into selector hooks at the slot outlets. The web shell and the boot kernel are its only direct consumers, so a composition needs it exactly when it wants a React-rendered GUI.
+`dsh-client-ui-renderer` mounts the assembled dsh web client GUI: once `uiRenderer` exists, the boot kernel calls `ctx.uiRenderer.mount(container)`, which hydrates the framework-free boot page and switches to the React application; the root outlet waits if layout has not registered yet. Business plugins stay plain React components that receive session and workspace data through typed props and never wire subscriptions themselves — the renderer binds the runtime's bare observable sources into selector hooks at the slot outlets. The web shell and the boot kernel are its only direct consumers, so a composition needs it exactly when it wants a React-rendered GUI.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-This package is infrastructure: the web shell and the boot kernel are its only direct consumers. A composition needs it whenever it wants a React-rendered GUI — `dsh-client-web` loads the roster, waits for every entry to activate, then calls `ctx.uiRenderer.mount(container)`.
+This package is infrastructure: the web shell and the boot kernel are its only direct consumers. A composition needs it whenever it wants a React-rendered GUI — `dsh-client-web` starts the roster and calls `ctx.uiRenderer.mount(container)` as soon as that service exists.
 
 ### What mounting does
 
@@ -90,8 +90,8 @@ None; this package neither assembles nor sends a provider request.
 
 These limits define when the application frame appears and how far per-region readiness goes; they are current package constraints.
 
-- **The first application frame waits for every client entry** — the boot kernel hands over the mount point only after the loader roster settles; per-region readiness remains deferred.
-- **Slot rendering has no Suspense integration or per-entry lazy loading** — the complete plugin roster settles before the renderer mounts the root.
+- **Mount proceeds when `uiRenderer` exists** — the boot kernel hands over the mount point then; the root outlet waits for the first live registration.
+- **Slot rendering has no Suspense integration or per-entry lazy loading** — remaining plugins still arrive as ordinary Cordis entries after mount.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -31,7 +31,7 @@ kind: "package-library"
 
 ### 启动过程是怎样的
 
-启动分两个阶段：模块阶段接纳 parser 已加载的 bootstrap 批次，从 Host 提供的启动图构建模块系统，并通过只执行一次的共享 application 批次 URL 预取 `immediately` 层级。插件阶段随后激活每个图 entry 并等待全部就绪，之后才把带标记的启动 DOM 交给 UI 渲染器，由它 hydrate 并切换到完整 UI。
+启动分两个阶段：模块阶段接纳 parser 已加载的 bootstrap 批次，从 Host 提供的启动图构建模块系统，并通过该层的 application combo URL 预取 `immediately` 层级。插件阶段随后创建 immediately 层 entry，并在 `uiRenderer` 一出现就把带标记的启动 DOM 交给 UI 渲染器；延迟 entry 在这一波之后开始。
 
 ### 启动页
 
@@ -57,11 +57,11 @@ kind: "package-library"
 
 ### 设计理念
 
-内核恰好拥有三样东西：模块系统、Cordis Loader 与启动页。Graph、批次 preload 与 loader facade 归 Host 所有，因此 `AppWebEntry` 永不感知 bootstrap package id，也不解析协议格式。动态 UI 渲染器只在每个客户端 entry 激活后收到挂载点。
+内核恰好拥有三样东西：模块系统、Cordis Loader 与启动页。Graph、批次 preload 与 loader facade 归 Host 所有，因此 `AppWebEntry` 永不感知 bootstrap package id，也不解析协议格式。动态 UI 渲染器在 `uiRenderer` 一出现就收到挂载点；其余 entry 可能仍在到达。
 
 ### 两阶段启动
 
-`run()` 调用 Host 安装的 `window.__ModuleLoader__.create({ boot, staticModules, ...seams })`；facade 接纳 parser 已加载的 bootstrap 批次后返回构造好的模块系统与已解析 manifest。模块阶段通过一个共享的 application 批次 URL 预取 `immediately` 层级。插件阶段挂载 Loader、把 `loader.internal` 赋为 `modules`、统一创建全部图 entry、等待完全停稳，然后审计激活：任何导入失败、因缺失服务而 pending，或落入其他非 active 状态的 entry，都会抛出一个聚合错误，点名每个失败 entry。
+`run()` 调用 Host 安装的 `window.__ModuleLoader__.create({ boot, staticModules, ...seams })`；facade 接纳 parser 已加载的 bootstrap 批次后返回构造好的模块系统与已解析 manifest。模块阶段通过该层的 application combo URL 预取 `immediately` 层级。插件阶段挂载 Loader、把 `loader.internal` 赋为 `modules`、先创建 immediately 层 entry、在 `uiRenderer` 出现后 hydrate、再创建延迟 entry、等待完全停稳，然后审计激活：任何导入失败、因缺失服务而 pending，或落入其他非 active 状态的 entry，都会抛出一个聚合错误，点名每个失败 entry。
 
 ### 启动页机制
 
@@ -110,7 +110,7 @@ kind: "package-library"
 
 这些限制说明启动内核不支持什么。它们是当前包约束，不是任务积压。
 
-- **应用会等待完整名册**——只要一个 entry 失败，无框架启动页就会保留并逐项报告；不支持部分 UI 可用。
+- **失败的 entry 仍会使启动审计失败**——首屏可以在 `uiRenderer` 出现后绘制，但随后的 FAILED fiber 仍会在启动页报告；root outlet 会等待第一次有效注册，而不是抛错。
 
 <a id="dev-note"></a>
 ### 开发备注
