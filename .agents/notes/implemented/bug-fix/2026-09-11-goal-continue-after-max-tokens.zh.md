@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-max-token 的 `turn/end` 结束已接纳的 Round。驱动器不会解除激活。如果目标仍是 active 且 armed，下一次 idle 驱动会排队 `roundsStarted + 1`。速率限制、提供方错误、取消、持久性失败，以及模型报告的 `blocked` 仍然会停止续行。
+max-token 的 `turn/end` 结束已接纳的 Round。驱动器不会解除激活。如果目标仍是 active 且 armed，下一次 idle 驱动会排队 `roundsStarted + 1`。取消、持久性检查点失败，以及模型报告的 `blocked` 仍然会停止续行。
 
 ## Verification
 

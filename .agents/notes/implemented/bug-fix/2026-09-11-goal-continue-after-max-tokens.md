@@ -10,7 +10,7 @@ English | [中文](2026-09-11-goal-continue-after-max-tokens.zh.md)
 
 ## Decision
 
-A max-token `turn/end` completes the admitted round. The driver does not disarm. If the goal remains active and armed, the next idle drive queues `roundsStarted + 1`. Rate limits, provider errors, cancellation, durability failures, and model-reported `blocked` still stop continuation.
+A max-token `turn/end` completes the admitted round. The driver does not disarm. If the goal remains active and armed, the next idle drive queues `roundsStarted + 1`. Cancellation, durability checkpoint failures, and model-reported `blocked` still stop continuation.
 
 ## Verification
 
