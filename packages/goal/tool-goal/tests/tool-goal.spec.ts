@@ -150,6 +150,9 @@ describe('goal tool registration and presentation', () => {
       expect(ctx.tools.executionMode({ signal: testToolSignal, callId: ToolCallId(name), name, arguments: {} }))
         .toEqual({ kind: 'exclusive' })
     }
+    const schemas = Object.fromEntries(ctx.tools.schemas().map(schema => [schema.name, schema]))
+    expect(schemas['create_goal']?.parameters).not.toHaveProperty(['properties', 'max_goal_rounds'])
+    expect(schemas['update_goal']?.parameters).not.toHaveProperty(['properties', 'max_goal_rounds'])
     const section = (await ctx.systemPrompt.assemble()).sections.find(item => item.name === 'tool:goal')
     expect(section?.text).toContain('infer goal intent')
     expect(section?.text).toContain('at least 5 consecutive goal rounds')
@@ -177,7 +180,7 @@ describe('goal tool registration and presentation', () => {
     expect(ctx.tools.get('update_goal')?.presentCall?.({
       goal_id: 'goal-1', revision: 2, action: 'edit',
       objective: '', max_goal_rounds: 8, blocked_reason: '',
-    })).toEqual({ card: 'generic', title: 'Edit goal', kind: 'other', rawInput: 8 })
+    })).toEqual({ card: 'generic', title: 'Edit goal', kind: 'other', rawInput: 'goal-1' })
     expect(ctx.tools.get('update_goal')?.presentCall?.({
       goal_id: 'goal-1', revision: 2, action: 'resume',
       objective: '', max_goal_rounds: 0, blocked_reason: '',
@@ -353,17 +356,42 @@ describe('goal tool execution authority', () => {
 })
 
 describe('goal tool state transitions', () => {
-  it('floors a model-supplied edit cap up to the harness default', async () => {
+  it('ignores a model-supplied extra round cap on edit', async () => {
     const { ctx, root } = await harness()
     openTurn(root, { kind: 'user' })
     const created = ctx.goals.create(root.agent, { objective: 'undersized', maxGoalRounds: 8 })
     const edited = await execute(ctx, 'update_goal', {
       goal_id: created.id, revision: created.revision, action: 'edit',
-      objective: '', max_goal_rounds: 8,
+      objective: 'undersized', max_goal_rounds: 8,
     }, root.agent)
     expect(resultGoal(edited)).toMatchObject({
-      objective: 'undersized', revision: 2, maxGoalRounds: 100000,
+      objective: 'undersized', revision: 2, maxGoalRounds: 8,
     })
+  })
+
+  it('ignores extra max_goal_rounds on pause, resume, and complete', async () => {
+    const { ctx, root } = await harness()
+    openTurn(root, { kind: 'user' })
+    let goal = ctx.goals.create(root.agent, { objective: 'keep going' })
+    const paused = await execute(ctx, 'update_goal', {
+      goal_id: goal.id, revision: goal.revision, action: 'pause', max_goal_rounds: 2,
+    }, root.agent)
+    expect(resultGoal(paused)).toMatchObject({ phase: 'paused', maxGoalRounds: 100000 })
+    expect(paused.error).toBeUndefined()
+    goal = ctx.goals.get(root.agent)!
+    goal = ctx.goals.resume(root.agent, { id: goal.id, revision: goal.revision })
+    goal = ctx.goals.disarm(root.agent)!
+    const resumed = await execute(ctx, 'update_goal', {
+      goal_id: goal.id, revision: goal.revision, action: 'resume', max_goal_rounds: 2,
+    }, root.agent)
+    expect(resultGoal(resumed)).toMatchObject({ phase: 'active', maxGoalRounds: 100000 })
+    expect(resumed.error).toBeUndefined()
+    goal = ctx.goals.get(root.agent)!
+    const completed = await execute(ctx, 'update_goal', {
+      goal_id: goal.id, revision: goal.revision, action: 'complete', max_goal_rounds: 2,
+    }, root.agent)
+    expect(resultGoal(completed)).toMatchObject({ phase: 'complete', maxGoalRounds: 100000 })
+    expect(completed.error).toBeUndefined()
   })
 
   it('reads null, then edits and pauses by exact revision in one human turn', async () => {
@@ -488,7 +516,7 @@ describe('goal tool state transitions', () => {
       goal_id: created.id,
       revision: created.revision,
       action: 'complete',
-      max_goal_rounds: 2,
+      objective: 'not valid for complete',
     }, root.agent)
     expect(terminalUpdate.error?.info?.code).toBe('GOAL_TOOL_INVALID_UPDATE')
     const blockedWithoutReason = await execute(ctx, 'update_goal', {
@@ -531,17 +559,6 @@ describe('goal tool state transitions', () => {
       blocked_reason: '',
     }, root.agent)
     expect(resultGoal(edited)).toMatchObject({ objective: 'edited' })
-    goal = ctx.goals.get(root.agent)!
-
-    const capped = await execute(ctx, 'update_goal', {
-      goal_id: goal.id,
-      revision: goal.revision,
-      action: 'edit',
-      objective: '',
-      max_goal_rounds: 8,
-      blocked_reason: '',
-    }, root.agent)
-    expect(resultGoal(capped)).toMatchObject({ objective: 'edited', maxGoalRounds: 100000 })
     goal = ctx.goals.get(root.agent)!
 
     const paused = await execute(ctx, 'update_goal', {

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-11-model-goal-round-cap.md
-2026-09-11-model-goal-round-cap.md: a65a243ccceef080d4b89254417c85643f156342
-2026-09-11-model-goal-round-cap.zh.md: 49e090b7693a7706285e24b12ccd04a6e42f19ea
+2026-09-11-model-goal-round-cap.md: a5c0396344342604272b836d8d769beb32a93a8e
+2026-09-11-model-goal-round-cap.zh.md: 4a852f3b3ee3a8e24bc838223d9a3f1709f84739

@@ -126,7 +126,7 @@ Command discovery, mutations, and direct output do not affect the cache. Later c
 These limits define when the command is a poor fit or needs special care. They are current package constraints, not a task backlog.
 
 - **Plain-text interaction only** — the generic command registry has no modal edit form or replacement-confirmation callback; inline edit and explicit clear keep destructive intent deterministic across adapters.
-- **No per-command round-cap argument** — `defaultMaxGoalRounds` remains deployment config, while a direct human request may ask the model to edit `max_goal_rounds` through the separately authorized goal tool.
+- **No per-command round-cap argument** — `defaultMaxGoalRounds` remains deployment config. Model-facing goal tools do not expose a round-cap parameter.
 - **No continuous status widget** — bare `/goal` is the portable observation API; no adapter-specific badges or reconnectable command output are provided.
 - **Web command adapter only in the shipped apps** — headless, ACP automation, and JSON-RPC adapters do not consume `ctx.commands`. Ordinary prompts can still authorize model-facing goal tools when those are composed.
 

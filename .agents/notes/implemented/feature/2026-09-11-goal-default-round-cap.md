@@ -10,7 +10,7 @@ Long-running same-session goals hit the previous default cap of 256 rounds and b
 
 ## Decision
 
-`defaultMaxGoalRounds` remains a positive safe integer and still applies only when a create request omits its own cap. The deployment default is `100000`. `0` stays invalid: the goal tool treats a missing or zero `max_goal_rounds` as schema filler, not unlimited. Existing persisted goals keep the cap stored in their `goal/change` snapshots.
+`defaultMaxGoalRounds` remains a positive safe integer and still applies only when a create request omits its own cap. The deployment default is `100000`. `0` stays invalid for domain create/edit. Model-facing `create_goal` and `update_goal` omit `max_goal_rounds`; extra arguments of that name are ignored. Existing persisted goals keep the cap stored in their `goal/change` snapshots.
 
 ## Verification
 
@@ -27,7 +27,7 @@ Long-running same-session goals hit the previous default cap of 256 rounds and b
 ## Consequences
 
 - New goals without an explicit cap can run 100000 admitted rounds before `round-limit`.
-- A domain create or edit that names its own cap still overrides the default. Model-facing `create_goal` ignores `max_goal_rounds`; `update_goal` edit floors a supplied cap to this default.
+- A domain create or edit that names its own cap still overrides the default. Model-facing `create_goal` and `update_goal` omit `max_goal_rounds` and ignore extra arguments of that name.
 - Sessions that already stored 256, 8, or another cap stay on that stored value until an authorized edit.
 
 ## Related
