@@ -46,7 +46,7 @@ GitHub 默认分支是 `dev-x1a0f3n9`。不带 `-b` 克隆也会落到这条 for
 2. 把这次的 `master` 合进 `dev-x1a0f3n9`。冲突在 fork 线上解，不要解在 `master`。
 3. 从 `dev-x1a0f3n9` 拉出 `feat/<topic>` 或 `fix/<topic>`。
 4. `--no-ff` 合回 `dev-x1a0f3n9`。这些短分支不要合进 `master`。
-5. 本地用 `xfdsh web` 测 `dev-x1a0f3n9`。
+5. 本地用 `pnpm xfdsh web` 测 `dev-x1a0f3n9`。
 6. 推送 `dev-x1a0f3n9`。CI 会编译并发布 `@x1a0f3n9/*`。
 7. 功能够多后，再把 `dev-x1a0f3n9` 合进 `master`，走 `@xfcodeai/*` 这条线。
 
@@ -77,10 +77,10 @@ git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
-pnpm dsh --profile web
+pnpm xfdsh web
 ```
 
-`pnpm dsh` 用 tsx 启动当前仓库。`pnpm run build` 之后可以用 `pnpm exec xfdsh web` 跑编好的 `xfdsh`。
+`pnpm xfdsh web` 用 tsx 启动当前仓库。之后每次启动不用再编译。克隆后、拉取大改动后，或使用 `pnpm exec xfdsh` 时才需要重新 `pnpm run build`。PATH 上的裸 `xfdsh web` 来自 `npm install --global @x1a0f3n9/dsh`。
 
 不装全局包的一次性运行：
 
@@ -123,10 +123,10 @@ git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
-pnpm exec xfdsh web
+pnpm xfdsh web
 ```
 
-`pnpm run build` 会准备仓库产物。`pnpm exec xfdsh web` 会直接使用这些已构建产物，不会重新构建。
+日常启动用 `pnpm xfdsh web`，不会重新编译。`pnpm exec xfdsh web` 走编好的 bin，需要当前的 `lib/`。
 
 ## 社区与支持
 

@@ -46,7 +46,7 @@ GitHub's default branch is `dev-x1a0f3n9`. Clone without `-b` already lands on t
 2. Merge that `master` into `dev-x1a0f3n9`. Resolve conflicts on the fork line, not on `master`.
 3. Cut `feat/<topic>` or `fix/<topic>` from `dev-x1a0f3n9`.
 4. Merge `--no-ff` back into `dev-x1a0f3n9`. Do not merge those short-lived branches into `master`.
-5. Test `dev-x1a0f3n9` locally with `xfdsh web`.
+5. Test `dev-x1a0f3n9` locally with `pnpm xfdsh web`.
 6. Push `dev-x1a0f3n9`. CI builds and publishes `@x1a0f3n9/*`.
 7. When the fork set is ready, merge `dev-x1a0f3n9` into `master` for the `@xfcodeai/*` line.
 
@@ -77,10 +77,10 @@ git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
-pnpm dsh --profile web
+pnpm xfdsh web
 ```
 
-`pnpm dsh` launches this checkout through tsx. After `pnpm run build`, `pnpm exec xfdsh web` uses the built `xfdsh` bin.
+`pnpm xfdsh web` launches this checkout through tsx. Later launches do not need another compile. Rebuild after a fresh clone, after pulling large changes, or when using `pnpm exec xfdsh`. A bare `xfdsh web` on PATH comes from `npm install --global @x1a0f3n9/dsh`.
 
 For one-off use without a global install:
 
@@ -119,10 +119,10 @@ git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
-pnpm exec xfdsh web
+pnpm xfdsh web
 ```
 
-`pnpm run build` prepares the repository artifacts. `pnpm exec xfdsh web` uses those built artifacts without rebuilding.
+Daily launches are `pnpm xfdsh web` and do not rebuild. `pnpm exec xfdsh web` uses the built bin and needs a current `lib/`.
 
 ## Community and support
 
