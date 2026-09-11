@@ -158,15 +158,15 @@ describe('DeepSeek plugin package inventory', () => {
     ])
   })
 
-  it('fails when a Loader-resolved bare entry has no package manifest', async () => {
+  it('omits a Loader-resolved bare entry whose package manifest is not on the search path', async () => {
     const { ctx } = await harness()
     ctx.loader.internal = {
       version: 'v2',
       import: async () => ({ default: () => {} }),
     } as unknown as NonNullable<typeof ctx.loader.internal>
     await ctx.loader.create({ name: 'missing-package' })
-    await expect(ctx.deepseekLlmApiExtensions.prepare({ body: { messages: [] }, signal: SIGNAL }))
-      .rejects.toThrow(/cannot resolve active package/)
+    const prepared = await ctx.deepseekLlmApiExtensions.prepare({ body: { messages: [] }, signal: SIGNAL })
+    expect(prepared.fields.dsh_plugin_packages).toEqual({ version: 1, packages: [] })
   })
 
   it('supports a direct embedding whose context has no base URL', async () => {

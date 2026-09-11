@@ -633,7 +633,12 @@ export class DeepSeekAdapter extends LlmAdapter {
           ...options.purpose === undefined ? {} : { purpose: options.purpose },
         })
       } catch (error) {
-        throw new LlmError('DeepSeek request extension preparation failed', 'REQUEST_EXTENSION', { cause: error })
+        const detail = error instanceof Error && error.message.length > 0 ? error.message : String(error)
+        throw new LlmError(
+          `DeepSeek request extension preparation failed: ${detail}`,
+          'REQUEST_EXTENSION',
+          { cause: error },
+        )
       }
       for (const field of Object.keys(extensions.fields)) {
         if (Object.hasOwn(body, field)) {
