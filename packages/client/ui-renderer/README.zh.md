@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ### 挂载做什么
 
-`mount(container)` 会安装 slot 渲染器、在存在时 hydrate 现有启动 DOM、在下一次绘制前把组装后的应用渲染进容器，并返回一个卸载 React 根的 disposer。渲染器执行全程序唯一一次上下文级 `renderSlot('root')` 调用；注册的根占用方拥有产品布局与文档元数据。
+`mount(container)` 会安装 slot 渲染器、在存在时 hydrate 现有启动 DOM、在 layout 条目占用 `root` 之前保持该启动页、然后再渲染组装后的应用，并返回一个卸载 React 根的 disposer。渲染器执行全程序唯一一次上下文级 `renderSlot('root')` 调用；注册的根占用方拥有产品布局与文档元数据。
 
 ### 对业务插件
 
@@ -47,7 +47,7 @@ kind: "package-reference"
 
 ### 激活与挂载
 
-插件在 `slots`、`sessions` 与 `layout` 就绪后激活；它安装 `createSlotRenderer()` 并 reflect `uiRenderer` 服务。`mountApp` 会查找启动内核的 `[data-dsh-boot]` 元素：存在时经 `BootHandoff`（一个保留加载 DOM 的单帧透传）hydrate，否则创建全新 root 并同步 flush 渲染。
+插件安装 `createSlotRenderer()` 并 reflect `uiRenderer` 服务。`mountApp` 会查找启动内核的 `[data-dsh-boot]` 元素：存在时经 `BootHandoff` hydrate，并在 `root` 出现有效注册前保持加载 DOM；否则创建全新 root 并同步 flush 渲染。
 
 ### Slot 绑定
 
