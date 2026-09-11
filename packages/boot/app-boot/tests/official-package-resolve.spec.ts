@@ -15,6 +15,8 @@ import {
 
 describe('official dsh package resolve', () => {
   it('remaps official dsh specifiers including subpaths', () => {
+    expect(remapOfficialDshSpecifier('@deepseek-ai/dsh')).toBe('@x1a0f3n9/dsh')
+    expect(remapOfficialDshSpecifier('@deepseek-ai/dsh/package.json')).toBe('@x1a0f3n9/dsh/package.json')
     expect(remapOfficialDshSpecifier('@deepseek-ai/dsh-session')).toBe('@x1a0f3n9/dsh-session')
     expect(remapOfficialDshSpecifier('@deepseek-ai/dsh-session/types')).toBe('@x1a0f3n9/dsh-session/types')
     expect(remapOfficialDshSpecifier('@deepseek-ai/cordis')).toBeUndefined()

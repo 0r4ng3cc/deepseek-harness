@@ -73,15 +73,27 @@ export interface ProfileManifest {
 /** The upstream product package namespace accepted by profile plugins. */
 export const OFFICIAL_DSH_PACKAGE_PREFIX = '@deepseek-ai/dsh-'
 
+/** The official CLI package; it does not use the `dsh-` suffix. */
+const OFFICIAL_DSH_CLI_PACKAGE = '@deepseek-ai/dsh'
+
 /** The package namespace shipped by this development fork. */
 export const FORK_DSH_PACKAGE_PREFIX = '@x1a0f3n9/dsh-'
 
+/** The CLI package shipped by this development fork. */
+const FORK_DSH_CLI_PACKAGE = '@x1a0f3n9/dsh'
+
 /**
  * Return the fork package corresponding to an official dsh package name.
+ * Maps the CLI package `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` libraries,
+ * including subpaths. `@deepseek-ai/dsh-session` stays a library name, not a
+ * CLI subpath.
  * @param packageName - package name from a plugin manifest or module request.
  * @returns the fork name for an official dsh package, or `undefined` for other packages.
  */
 export function forkDshPackageName(packageName: string): string | undefined {
+  if (packageName === OFFICIAL_DSH_CLI_PACKAGE || packageName.startsWith(`${OFFICIAL_DSH_CLI_PACKAGE}/`)) {
+    return FORK_DSH_CLI_PACKAGE + packageName.slice(OFFICIAL_DSH_CLI_PACKAGE.length)
+  }
   return packageName.startsWith(OFFICIAL_DSH_PACKAGE_PREFIX)
     ? FORK_DSH_PACKAGE_PREFIX + packageName.slice(OFFICIAL_DSH_PACKAGE_PREFIX.length)
     : undefined
