@@ -207,12 +207,10 @@ export const Config: Schema<Config> = Schema.object({
  * @returns a promise settling when the TUI teardown completes.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  // Upstream drift is NO LONGER spammed to stderr here: per-package
-  // console.warn lines interleave with the TUI frame redraw and arrive
-  // garbled (typewriter animation repaints over them). The merged,
-  // natural-language notice now renders in the logo header under the
-  // startup tip (LogoV2 ← upstreamDriftSummary); CI keeps the hard gate
-  // via scripts/verify-upstream-contract.ts.
+  // Upstream drift is not printed to stderr here: per-package console.warn
+  // lines interleave with the TUI frame redraw and arrive garbled. The
+  // merged natural-language notice renders in the logo header under the
+  // startup tip (LogoV2 ← upstreamDriftSummary).
   const { apply: ccTuiApply } = await import('./plugin.js')
   return ccTuiApply(ctx, config)
 }

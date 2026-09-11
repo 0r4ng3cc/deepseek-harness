@@ -30,6 +30,8 @@ const SUBPATH_RUNTIME_ENTRIES = [
   'src/plugin-host.ts',
   'src/extensions.ts',
   'src/test-utils.ts',
+  'src/working-activity.ts',
+  'src/jsx-runtime.ts',
 ]
 
 export default defineConfig([

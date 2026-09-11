@@ -21,8 +21,8 @@
  * re-read (cordis.yml root config, frozen fullscreen layout, newly built
  * code) is the job of `/restart`.
  *
- * Pure and injectable so scripts/verify-reload.ts can exercise every branch
- * without a UI or a file system.
+ * Pure and injectable so every branch can be exercised without a UI or a
+ * file system.
  */
 
 import type { Lang } from './i18n.js'

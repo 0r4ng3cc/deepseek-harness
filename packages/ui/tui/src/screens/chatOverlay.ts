@@ -19,8 +19,8 @@
  *      (e.g. `/effort`'s listEfforts resolving after the user opened
  *      `/model`) now REPLACES it instead of stacking two panels — the
  *      stacked rendering was an unreachable-by-keyboard race, not a feature.
- *   2. Pure and total: the reducer is a plain function, unit-tested by
- *      scripts/verify-chat-overlay.ts without a renderer. Actions that no
+ *   2. Pure and total: the reducer is a plain function that can be
+ *      exercised without a renderer. Actions that no
  *      longer apply (an async result landing after the overlay changed) are
  *      ignored rather than writing orphan state.
  *   3. Async data caches (model list, preset roster, …) stay OUTSIDE the

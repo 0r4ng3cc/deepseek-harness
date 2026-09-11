@@ -7,10 +7,9 @@
  * package this adapter touches is blessed here; anything else must go
  * through upstream channels or the adapter, never the UI.
  *
- * `upstreamDrift()` powers the CI gate (scripts/verify-upstream-contract.ts)
- * so a mismatched install fails in CI before it fails on a user's machine.
- * `upstreamDriftSummary()` collapses the per-package entries into the
- * single natural-language boot notice the logo header shows (see LogoV2).
+ * `upstreamDrift()` feeds the boot notice in the logo header.
+ * `upstreamDriftSummary()` collapses the per-package entries into that
+ * single natural-language line (see LogoV2).
  */
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'

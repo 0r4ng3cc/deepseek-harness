@@ -20,7 +20,7 @@
  *
  * Reachability note: the MCP SDK spawns via `cross-spawn`, which reads
  * `child_process.spawn` off the CJS exports object at call time, so this
- * patch covers it (verified by scripts/verify-child-stderr.tsx). A consumer
+ * patch covers it. A consumer
  * holding a snapshotted ESM named import (`import { spawn } from
  * 'node:child_process'`) would bypass the patch — no known consumer in the
  * dependency tree does that.

@@ -21,8 +21,6 @@
  * The dictionary shape is enforced at compile time (`satisfies` below):
  * every entry carries zh, and en is optional only for the `cmd-desc-*`
  * family whose en truth lives in the command registry (see {@link tOr}).
- * scripts/verify-i18n.ts adds the checks types cannot express: placeholder
- * parity between languages, single-brace typos, and dead keys.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -397,7 +395,7 @@ const dict = {
   'plan-mode-off-desc': { zh: '退出计划模式，恢复正常执行', en: 'Exit plan mode, back to normal execution' },
   'hooks-not-mounted': { zh: 'DSH hooks（dsh-hooks-claude / dsh-hooks-codex）未在本 leaf 挂载。', en: 'DSH hooks (dsh-hooks-claude / dsh-hooks-codex) are not mounted in this leaf.' },
   'hooks-mount-hint': { zh: '需要时可在 cordis.yml 挂载对应 hooks 插件。', en: 'Mount the matching hooks plugin in cordis.yml when needed.' },
-  'update-unavailable': { zh: '当前运行方式不支持自动更新（需经 dsh --profile 启动），请在终端执行 dsh plugin --profile <name> update @x1a0f3n9/dsh-tui', en: 'Automatic update is unavailable in this launch mode (needs dsh --profile). Run dsh plugin --profile <name> update @x1a0f3n9/dsh-tui in a terminal.' },
+  'update-unavailable': { zh: '当前运行方式不支持自动更新（需经 dsh --profile tui 启动），请在终端执行 dsh plugin --profile <name> update @x1a0f3n9/dsh-tui', en: 'Automatic update is unavailable in this launch mode (needs dsh --profile tui). Run dsh plugin --profile <name> update @x1a0f3n9/dsh-tui in a terminal.' },
   'update-working': { zh: '当前回合仍在运行，请等待完成后再更新 TUI。', en: 'The current turn is still running. Wait for it to finish before updating the TUI.' },
   'update-starting': { zh: '正在更新 @x1a0f3n9/dsh-tui，完成后会自动重启并恢复当前会话……', en: 'Updating @x1a0f3n9/dsh-tui. The TUI will restart and resume this session when finished…' },
   'update-available': { zh: '发现新版本：v{{latest}}（当前 v{{current}}）· 输入 /update 更新 TUI', en: 'New version available: v{{latest}} (current v{{current}}) · type /update to update the TUI' },
@@ -405,9 +403,6 @@ const dict = {
   'update-check-failed': { zh: '无法确认新版本（网络或 registry 不可达），已尝试直接更新……', en: 'Could not confirm a newer version (network or registry unreachable); attempting the update anyway…' },
   'update-refused-deadlock': { zh: '已取消更新：镜像 registry 目前只能装到 v{{latest}}，而该版本在旧全局启动器的 patch 下会启动死锁（#183/#307）；官方最新为 v{{authoritative}}，待镜像同步后再 /update。', en: 'Update cancelled: the mirror registry can only serve v{{latest}}, which deadlocks boot under older global-launcher patches (#183/#307); official latest is v{{authoritative}} — retry /update after the mirror syncs.' },
   'update-mirror-lag': { zh: '镜像 registry 滞后：本次安装 v{{latest}}；官方最新 v{{authoritative}}，镜像同步后可再 /update。', en: 'Mirror registry lag: installing v{{latest}} now; official latest is v{{authoritative}} — run /update again once the mirror syncs.' },
-  'update-standalone-available': { zh: '发现便携包新版本：v{{latest}}（当前 v{{current}}）· 输入 /update 自动更新', en: 'New standalone version available: v{{latest}} (current v{{current}}) · type /update to update' },
-  'update-standalone-no-checksum': { zh: '该版本未发布 SHA256 校验和，更新包完整性无法验证', en: 'this release publishes no SHA256 checksums; the update payload cannot be integrity-verified' },
-  'update-standalone-starting': { zh: '正在下载便携包新版本并自动替换，完成后会自动重启并恢复当前会话……', en: 'Downloading and replacing standalone binary. The TUI will restart and resume this session when finished…' },
   // ── /reload (pi-style soft reload) ────────────────────────────────────
   'reload-header': { zh: '已重读偏好文件：', en: 'Preferences reloaded:' },
   'reload-applied': { zh: '{{kind}}  {{from}} → {{to}}（已应用）', en: '{{kind}}  {{from}} → {{to}} (applied)' },
@@ -1357,7 +1352,7 @@ export function tOr(key: string, fallback: string, params: I18nParams = {}): str
   return substitute(pickText(entry?.[activeLang], params) ?? fallback, params)
 }
 
-/** Read-only view of the dictionary for audits (scripts/verify-i18n.ts). */
+/** Read-only view of the dictionary for audits. */
 export const i18nDict: Readonly<Record<string, { readonly zh?: I18nText; readonly en?: I18nText }>> = dict
 
 // ── persistence (~/.dsh-tui/lang.json) ─────────────────────────────────

@@ -3479,7 +3479,7 @@ importers:
         version: 18.3.7(@types/react@18.3.31)
       '@types/use-sync-external-store':
         specifier: ^1.5.0
-        version: 1.5.0
+        version: 1.7.0
       '@x1a0f3n9/dsh-client-test-runtime':
         specifier: workspace:^
         version: link:../../test-support/client-runtime
@@ -10445,12 +10445,6 @@ importers:
       '@x1a0f3n9/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
-      '@x1a0f3n9/dsh-llm-pi-ai':
-        specifier: workspace:^
-        version: link:../../llm/llm-pi-ai
-      '@x1a0f3n9/dsh-persona':
-        specifier: workspace:^
-        version: link:../../preset/persona
       '@x1a0f3n9/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
@@ -10472,21 +10466,9 @@ importers:
       '@x1a0f3n9/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt
-      '@x1a0f3n9/dsh-terminal':
-        specifier: workspace:^
-        version: link:../../terminal/terminal
-      '@x1a0f3n9/dsh-terminal-bash':
-        specifier: workspace:^
-        version: link:../../terminal/terminal-bash
       '@x1a0f3n9/dsh-tool-ask-user':
         specifier: workspace:^
         version: link:../../interaction/tool-ask-user
-      '@x1a0f3n9/dsh-tool-bash-persistent':
-        specifier: workspace:^
-        version: link:../../shell/tool-bash-persistent
-      '@x1a0f3n9/dsh-tool-cordis':
-        specifier: workspace:^
-        version: link:../../extensions/tool-cordis
       '@x1a0f3n9/dsh-tool-subagent':
         specifier: workspace:^
         version: link:../../subagent/tool-subagent
@@ -10617,6 +10599,24 @@ importers:
       '@types/semver':
         specifier: ^7.0.0
         version: 7.8.0
+      '@x1a0f3n9/dsh-llm-pi-ai':
+        specifier: workspace:^
+        version: link:../../llm/llm-pi-ai
+      '@x1a0f3n9/dsh-persona':
+        specifier: workspace:^
+        version: link:../../preset/persona
+      '@x1a0f3n9/dsh-terminal':
+        specifier: workspace:^
+        version: link:../../terminal/terminal
+      '@x1a0f3n9/dsh-terminal-bash':
+        specifier: workspace:^
+        version: link:../../terminal/terminal-bash
+      '@x1a0f3n9/dsh-tool-bash-persistent':
+        specifier: workspace:^
+        version: link:../../shell/tool-bash-persistent
+      '@x1a0f3n9/dsh-tool-cordis':
+        specifier: workspace:^
+        version: link:../../extensions/tool-cordis
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -15040,8 +15040,8 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
-  '@types/use-sync-external-store@1.5.0':
-    resolution: {integrity: sha512-5dyB8nLC/qogMrlCizZnYWQTA4lnb/v+It+sqNl5YnSRAPMlIqY/X0Xn+gZw8vOL+TgTTr28VEbn3uf8fUtAkw==}
+  '@types/use-sync-external-store@1.7.0':
+    resolution: {integrity: sha512-v8435kzWm3FuxyUa4r8o4sG6b0D+r+uOrzF5MXHxZKW4Haoo6txu/lq56Vio45e2i1nkmFPA+R7myWcmV7Z7Bg==}
 
   '@types/web-bluetooth@0.0.21':
     resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
@@ -22555,7 +22555,7 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@types/use-sync-external-store@1.5.0': {}
+  '@types/use-sync-external-store@1.7.0': {}
 
   '@types/web-bluetooth@0.0.21': {}
 

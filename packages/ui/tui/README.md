@@ -75,6 +75,7 @@ A patch replaces the targeted row's whole `config`, so each TUI row restates eve
 | [`cordis.patch.yml`](cordis.patch.yml) | The tui patch: restated base values, TUI host rows, agent plane behind presets |
 | [`vendor/dsh-std/`](vendor/dsh-std/) | Embedded `dsh-std` protocol snapshot; tsdown inlines `@dsh-std/*` into published entries |
 | [`tests/tui.spec.ts`](tests/tui.spec.ts) | Bundle patch declaration and profile-row contract |
+| [`scripts/generate-pet-frames.mjs`](scripts/generate-pet-frames.mjs) | Regenerates `src/components/petFrames.ts` from the packaged whale GIFs |
 
 ### Invariant ownership
 
@@ -84,7 +85,7 @@ No invariant companion is published because Ink UI, the resume marker, and plugi
 
 `vendor/dsh-std` is an in-package snapshot of the DSH Standard protocol workspace, not a root [`vendor/`](../../../vendor/README.md) entry. There is no upstream git SHA recorded in this tree. Seven protocol packages are linked from the repo `pnpm-workspace.yaml` so TypeScript and tsdown can resolve them; they are not published as harness packages. Updating the snapshot is local to this package.
 
-The package-local TypeScript config keeps looser flags for the ported Ink renderer (`src/ink`). Coverage excludes `packages/ui/tui/src/**/*` for the same reason.
+The package-local TypeScript config keeps looser flags for this ported terminal surface (`src`). oxlint turns off `typescript/no-unnecessary-condition` on that tree because those flags make the rule's premise false. Coverage excludes `packages/ui/tui/src/**/*` for the same reason.
 
 </details>
 
@@ -130,6 +131,8 @@ These limits tell you what to expect in a terminal, on Windows, or when composin
 - **Windows has no sandbox confinement backend** — the patch selects `danger-full-access` and `approval: never` on `win32` so bash can run.
 - **Coverage does not gate this tree** — `packages/ui/tui/src/**/*` is excluded from the per-file 100% gate because the ported Ink core is third-party code under looser TypeScript flags.
 - **`dsh-std` is an embedded snapshot** — there is no upstream SHA in this tree; protocol updates are local to this package and are inlined at pack time.
+- **Package scripts are local helpers** — `clean`, `build:dsh-std`, and `generate-pet-frames`. Typecheck, lint, pack, and publish run from the repository root.
+- **Standalone `/update` is refused** — this package does not publish `dsh-tui-standalone-*` GitHub assets. Use `dsh --profile tui` and `dsh plugin --profile <name> update @x1a0f3n9/dsh-tui`.
 
 <a id="dev-note"></a>
 ### Dev Note

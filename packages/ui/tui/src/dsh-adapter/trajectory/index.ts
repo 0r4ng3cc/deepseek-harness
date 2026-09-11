@@ -2,9 +2,9 @@
  * Trajectory projection — the adapter-side barrel.
  *
  * This directory is the only part of the trajectory feature allowed to import
- * `@deepseek-ai/*` (enforced by `verify-adapter-boundary`). The scene, the
- * ledger, the wave band and the hotspot view are pure UI over the types and
- * functions re-exported here; they never touch a session event directly.
+ * `@deepseek-ai/*`. The scene, the ledger, the wave band and the hotspot view
+ * are pure UI over the types and functions re-exported here; they never touch
+ * a session event directly.
  *
  * @module @x1a0f3n9/dsh-tui/trajectory
  */

@@ -379,8 +379,7 @@ export function Chat({
    * The transient-dialog layer (every picker/dialog `<OverlayAbove>` hosts,
    * plus /tips) as ONE value: mutual exclusion between the panels is
    * structural instead of emerging from "an open picker makes the prompt
-   * inert". Transitions live in the pure reducer (chatOverlay.ts), which
-   * scripts/verify-chat-overlay.ts pins without a renderer. Async data the
+   * inert". Transitions live in the pure reducer (chatOverlay.ts). Async data the
    * pickers show (model list, preset roster, …) stays in the caches below —
    * it persists across open/close so a reopened picker paints the previous
    * list while the fresh one loads, exactly as the boolean era did.

@@ -1404,9 +1404,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         } catch {
           // Resume persistence is best effort and must never block an update.
         }
-        const hintText = isStandaloneRuntime()
-          ? t('update-standalone-starting')
-          : t('update-starting')
+        const hintText = t('update-starting')
         void finishExit(
           ctx,
           mounted.current,
@@ -1513,9 +1511,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       handleExit()
     },
     // Only a `dsh --profile <name>` launch has a profile installation for
-    // `/update` to act on; source checkouts and `--config` overlays get the
-    // unavailable notice instead.
-    onUpdate: profile === undefined ? undefined : () => {
+    // `/update` to act on. Source checkouts, `--config` overlays, and
+    // standalone/portable binaries get the unavailable notice instead —
+    // this package does not publish GitHub standalone assets.
+    onUpdate: profile === undefined || isStandaloneRuntime() ? undefined : () => {
       if (exited || updateRequested) return
       // Confirm the target version before tearing the TUI down: on an
       // already-latest install, an unconditional update+restart would churn
@@ -1546,11 +1545,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           }
           updateTargetVersion = target.latest
         }
-        if (isStandaloneRuntime()) {
-          channel.notify(t('update-standalone-starting'))
-        } else {
-          channel.notify(t('update-starting'))
-        }
+        channel.notify(t('update-starting'))
         updateRequested = true
         handleExit()
       })
@@ -1619,16 +1614,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // command remains available regardless of network access.
   void checkForTuiUpdate().then((update) => {
     if (update === undefined || exited || updateRequested) return
-    const key = update.isStandalone ? 'update-standalone-available' : 'update-available'
-    // A standalone release without a SHA256SUMS asset (published before the
-    // checksum workflow landed) still updates, but the notice must say the
-    // package's integrity cannot be verified — silent degradation is exactly
-    // how the unverified-download window went unnoticed.
-    const suffix = update.isStandalone && update.checksumUrl === undefined
-      ? ` ${t('update-standalone-no-checksum')}`
-      : ''
     channel.notify(
-      `${t(key, { current: update.current, latest: update.latest })}${suffix}`,
+      t('update-available', { current: update.current, latest: update.latest }),
       { color: 'warning', timeoutMs: 12000 },
     )
   })
@@ -1796,7 +1783,7 @@ async function resolveAgent(
  *
  * `markTeardown` must run before the unmount that settles the exit promise
  * (the settle reaches `handleExit` through a microtask, so a same-tick flag
- * is always observed). Exported for scripts/verify-teardown-exit.tsx.
+ * is always observed).
  */
 export function createExitFunnel(deps: { onUserExit: (error?: unknown) => void }): {
   handleExit: (error?: unknown) => void
@@ -1826,7 +1813,7 @@ export function createExitFunnel(deps: { onUserExit: (error?: unknown) => void }
  * resume path just wrote (boot empty → /resume into history) or rewriting it
  * to a fresh empty session (boot with history → /new). `liveAgent` is the
  * registry lookup of channel.agentId; it falls back to the captured agent
- * when the lookup misses. Exported for scripts/verify-exit-resume-marker.
+ * when the lookup misses.
  */
 export function isExitResumable(deps: {
   pendingCount: number
@@ -1858,7 +1845,6 @@ type InkShutdownState = {
 
 /**
  * Finish terminal I/O before handing control to a process-level exit action.
- * Exported for scripts/verify-shutdown-fallback.
  */
 export async function finishExit(
   ctx: Context,

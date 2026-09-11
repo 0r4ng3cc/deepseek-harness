@@ -75,6 +75,7 @@ dsh --profile tui --resume
 | [`cordis.patch.yml`](cordis.patch.yml) | tui patch：重述的 base 取值、TUI host 配置项、交给 preset 的 agent 平面 |
 | [`vendor/dsh-std/`](vendor/dsh-std/) | 嵌入的 `dsh-std` 协议快照；tsdown 把 `@dsh-std/*` 内联进已发布入口 |
 | [`tests/tui.spec.ts`](tests/tui.spec.ts) | 组合包 patch 声明与 profile 配置项约定 |
+| [`scripts/generate-pet-frames.mjs`](scripts/generate-pet-frames.mjs) | 从打包的鲸 GIF 重生 `src/components/petFrames.ts` |
 
 ### 不变式归属
 
@@ -84,7 +85,7 @@ dsh --profile tui --resume
 
 `vendor/dsh-std` 是 DSH Standard 协议工作区的包内快照，不是根目录 [`vendor/`](../../../vendor/README.md) 清单中的条目。本树未记录上游 git SHA。仓库 `pnpm-workspace.yaml` 链接了七个协议包，供 TypeScript 与 tsdown 解析；它们不会作为 harness 包发布。更新该快照只发生在本包内。
 
-包级 TypeScript 配置为移植的 Ink 渲染器（`src/ink`）保留更宽松的开关。覆盖率出于同一原因排除 `packages/ui/tui/src/**/*`。
+包级 TypeScript 配置为本移植终端表层（`src`）保留更宽松的开关。oxlint 对该树关闭 `typescript/no-unnecessary-condition`，因为这些开关使该规则的前提不成立。覆盖率出于同一原因排除 `packages/ui/tui/src/**/*`。
 
 </details>
 
@@ -130,6 +131,8 @@ dsh --profile tui --resume
 - **Windows 尚无沙箱隔离后端**——patch 在 `win32` 上选择 `danger-full-access` 与 `approval: never`，以便 bash 能够运行。
 - **覆盖率不门禁本树**——`packages/ui/tui/src/**/*` 被排除在逐文件 100% 门禁之外，因为移植的 Ink 核心是第三方代码，使用更宽松的 TypeScript 开关。
 - **`dsh-std` 是嵌入快照**——本树没有上游 SHA；协议更新只发生在本包内，并在打包时内联。
+- **包脚本只是本地助手**——`clean`、`build:dsh-std` 与 `generate-pet-frames`。类型检查、lint、打包与发布从仓库根目录运行。
+- **便携包 `/update` 会被拒绝**——本包不发布 `dsh-tui-standalone-*` GitHub 资源。请使用 `dsh --profile tui` 与 `dsh plugin --profile <name> update @x1a0f3n9/dsh-tui`。
 
 <a id="dev-note"></a>
 ### 开发备注

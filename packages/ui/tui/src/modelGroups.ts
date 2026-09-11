@@ -1,8 +1,8 @@
 /**
  * Pure derivation for the two-level `/model` picker: providers as top-level
  * groups, their models one level down, with a pinned "recently used"
- * pseudo-group first. Kept free of React/channel/i18n state so
- * `scripts/verify-model-picker-groups.mjs` can drive it headless; the
+ * pseudo-group first. Kept free of React/channel/i18n state so it can be
+ * driven without a renderer; the
  * recents row's localized label is resolved at render time (its `label`
  * field is the {@link RECENTS_LABEL_PLACEHOLDER} sentinel).
  *

@@ -12,7 +12,7 @@ Status: implemented
 
 `@x1a0f3n9/dsh-tui` 放在 `packages/ui/tui`。它声明 `dsh.bundle.patch`，并且是 [`PROFILE_TEMPLATES`](../../../../packages/boot/app-boot/src/profile.ts) 里 `tui` profile 的模式组合包。`packages/bundle/` 继续只放薄粘合层。新建的 `ui` 组 README 映射该包；[`GROUPS_WITHOUT_SUBSYSTEM_PAGE`](../../../../scripts/verify-subsystem-pages.ts) 豁免 `ui`，因为交互约定由包 README 负责。
 
-覆盖率排除 `packages/ui/tui/src/**/*`：移植的 Ink 核心是第三方代码，使用更宽松的 TypeScript 开关，对该树做逐文件 100% 不是 harness 不变式。本包省略 `./invariant`，因为 Ink UI、resume 标记和 plugin-host grant 随 fiber dispose（资源释放）；会话记录位于 `dsh-session-persistence-jsonl`，各关系的不变式由拥有该关系的 registry 包承担。
+覆盖率排除 `packages/ui/tui/src/**/*`：移植的 Ink 核心是第三方代码，使用更宽松的 TypeScript 开关，对该树做逐文件 100% 不是 harness 不变式。oxlint 对该树关闭 `typescript/no-unnecessary-condition`，因为这些开关使该规则的前提不成立。本包省略 `./invariant`，因为 Ink UI、resume 标记和 plugin-host grant 随 fiber dispose（资源释放）；会话记录位于 `dsh-session-persistence-jsonl`，各关系的不变式由拥有该关系的 registry 包承担。
 
 `dsh-std` 是嵌在 `packages/ui/tui/vendor/dsh-std` 的快照，不是根目录 [`vendor/README.md`](../../../../vendor/README.md) 清单中的条目。tsdown 把 `@dsh-std/*` 内联进已发布的运行时入口，以便在本仓 isolated linker 下能够 `pnpm pack`。
 

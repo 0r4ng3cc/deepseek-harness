@@ -13,8 +13,8 @@
  *             the derived `<ROUTE>_API_KEY` env-style ref the profile's
  *             `apiKeyEnv` points at
  *
- * The module is React-free so `scripts/verify-provider-wizard.mjs` can drive
- * it headless with a stubbed host and scripted answers.
+ * The module is React-free so a stubbed host and scripted answers can drive
+ * it without a renderer.
  */
 
 import { t } from '../i18n.js'

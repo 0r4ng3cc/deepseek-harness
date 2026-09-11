@@ -5,7 +5,7 @@
  * sessions are stored: the persistence service's shape, the log's frame
  * container, the header's lineage fields. The browser screen and its
  * components are pure UI over the types re-exported here and never touch a
- * session log directly, which is what `verify-adapter-boundary` enforces.
+ * session log directly.
  *
  * @module @x1a0f3n9/dsh-tui/sessions
  */

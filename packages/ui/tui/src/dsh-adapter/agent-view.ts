@@ -1,8 +1,7 @@
 /**
  * Agent view (CC `claude agents`) derivation helpers — pure functions over
  * session events that the channel folds into {@link AgentViewRow}s. Kept in
- * their own module so the focused regression (`scripts/verify-agent-view.mjs`)
- * can import them without spinning up a composition.
+ * their own module so they can be imported without spinning up a composition.
  *
  * @module @x1a0f3n9/dsh-tui/agent-view
  */

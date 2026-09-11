@@ -8925,9 +8925,8 @@ function normalizeCwd(path: string, caseInsensitive: boolean): string {
  * They belong to the same workspace, so they stay listed. Comparison follows
  * the platform's filesystem semantics (case-insensitive on Windows — a
  * pre-upgrade header may record `C:\Repo` where the current launch resolves
- * `c:\repo`). `caseInsensitive` is a parameter (not a platform read) so the
- * verifier can exercise both modes on any host. Exported for
- * scripts/verify-session-cwd.mjs.
+ * `c:\repo`). `caseInsensitive` is a parameter (not a platform read) so both
+ * modes can be exercised on any host.
  *
  * Boundary rule (issue #153): container directories are nobody's workspace.
  * $HOME and the Windows root forms — plain drive roots (`C:`), UNC share
@@ -9060,8 +9059,7 @@ async function listFilesDeepCandidates(fs: FileSuggestionFs | undefined, root: s
   let dirCount = 0
   // Round-robin: each directory yields ONE non-skipped entry per visit before
   // it re-queues, so a large early sibling (e.g. `generated/` with 120 files)
-  // cannot starve `src/` out of the per-kind budgets. This is the regression
-  // contract pinned by scripts/verify-file-completion.mjs.
+  // cannot starve `src/` out of the per-kind budgets.
   while (queue.length && fileCount < maxFiles && dirCount < maxDirectories) {
     if (signal?.aborted) return []
     const current = queue.shift()

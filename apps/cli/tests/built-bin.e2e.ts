@@ -1046,6 +1046,21 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       expect(existsSync(join(home, 'profiles', 'rescue'))).toBe(false)
     }, SPAWN_TIMEOUT_MS + 30_000)
 
+    it('prints the tui profile over dsh-base without Host or browser layers', async () => {
+      const { stdout, code, stderr } = await runBuiltBin(
+        ['--profile', 'tui', '--dump-default-config'],
+        { DSH_HOME: home },
+      )
+      expect(code).toBe(0)
+      expect(stderr).toBe('')
+      expect(stdout).toContain('# == @x1a0f3n9/dsh-base')
+      expect(stdout).toContain('# == @x1a0f3n9/dsh-tui')
+      expect(stdout).toContain("name: '@x1a0f3n9/dsh-tui'")
+      expect(stdout).not.toContain("name: '@x1a0f3n9/dsh-web-app'")
+      expect(stdout).not.toMatch(/name: '@deepseek-ai\/dsh-host-/)
+      expect(stdout).not.toMatch(/name: '@deepseek-ai\/dsh-client-/)
+    }, SPAWN_TIMEOUT_MS + 30_000)
+
     it('prints the headless profile without Host or browser layers', async () => {
       const { stdout, code, stderr } = await runBuiltBin(
         ['--profile', 'headless', '--dump-default-config'],

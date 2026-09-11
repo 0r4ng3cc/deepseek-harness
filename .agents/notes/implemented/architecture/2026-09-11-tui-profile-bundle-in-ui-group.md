@@ -12,7 +12,7 @@ The shipped `tui` profile is `dsh-base` plus one mode bundle, the same compositi
 
 `@x1a0f3n9/dsh-tui` lives at `packages/ui/tui`. It declares `dsh.bundle.patch` and is the `tui` profile's mode bundle in [`PROFILE_TEMPLATES`](../../../../packages/boot/app-boot/src/profile.ts). `packages/bundle/` stays thin glue. The new `ui` group README maps the package; [`GROUPS_WITHOUT_SUBSYSTEM_PAGE`](../../../../scripts/verify-subsystem-pages.ts) exempts `ui` because the package README owns the interactive contract.
 
-Coverage excludes `packages/ui/tui/src/**/*`: the ported Ink core is third-party code under looser TypeScript flags, and per-file 100% on that tree is not a harness invariant. The package omits `./invariant` because Ink UI, the resume marker, and plugin-host grants dispose with the fiber; session records live in `dsh-session-persistence-jsonl`, and each owning registry package carries that relation's invariant.
+Coverage excludes `packages/ui/tui/src/**/*`: the ported Ink core is third-party code under looser TypeScript flags, and per-file 100% on that tree is not a harness invariant. oxlint turns off `typescript/no-unnecessary-condition` for the same tree because those flags make the rule's premise false. The package omits `./invariant` because Ink UI, the resume marker, and plugin-host grants dispose with the fiber; session records live in `dsh-session-persistence-jsonl`, and each owning registry package carries that relation's invariant.
 
 `dsh-std` is an embedded snapshot at `packages/ui/tui/vendor/dsh-std`, not an entry in the root [`vendor/README.md`](../../../../vendor/README.md) manifest. tsdown inlines `@dsh-std/*` into the published runtime entries so the package can pack under the repo's isolated linker.
 
