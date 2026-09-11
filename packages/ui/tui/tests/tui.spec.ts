@@ -85,7 +85,9 @@ describe('session browser empty list', () => {
 })
 
 function reasoningRow(id: number, durationMs?: number): ChatRow {
-  return { id, kind: 'reasoning', text: 'think', durationMs }
+  return durationMs === undefined
+    ? { id, kind: 'reasoning', text: 'think' }
+    : { id, kind: 'reasoning', text: 'think', durationMs }
 }
 
 function toolRow(id: number, name: string, status: 'running' | 'ok' | 'error' = 'ok'): ChatRow {
