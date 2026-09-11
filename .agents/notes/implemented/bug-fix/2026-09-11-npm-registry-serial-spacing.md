@@ -10,7 +10,7 @@ Publishing a large new-name family probes every member with `npm view` and then 
 
 ## Decision
 
-Space registry calls from one shared timestamp: 1s before every `npm view`, 5s before every `npm publish` PUT, including the first PUT after a skip-path probe. Fail the job on the first `E429`. Keep `--fetch-retries 0` and keep pack `--concurrency 8` — pack is local disk work.
+Space registry calls from one shared timestamp: 1s before every `npm view`, 5s before every `npm publish` PUT, including the first PUT after a skip-path probe. Do not retry `E429`. Keep `--fetch-retries 0` and keep pack `--concurrency 8` — pack is local disk work.
 
 ## Verification
 
@@ -30,8 +30,9 @@ Space registry calls from one shared timestamp: 1s before every `npm view`, 5s b
 
 - A skip-only run waits about 1s per member.
 - A publish waits at least 5s before each PUT.
-- The first `E429` fails the job so a later re-run can skip already-published members.
+- The first `E429` stops further PUTs in this run. [Branch publish pauses on npm new-name quota](../process/2026-09-11-branch-publish-quota-pause.md) owns whether that exit is 0.
 
 ## Related
 
 [npm publish must not retry 429 internally](2026-09-10-npm-publish-fetch-retries.md) still owns `--fetch-retries 0`.
+[Branch publish pauses on npm new-name quota](../process/2026-09-11-branch-publish-quota-pause.md) owns branch vs tagged exits.

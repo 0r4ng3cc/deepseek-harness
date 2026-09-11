@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-用同一个时间戳间隔 registry 调用：每次 `npm view` 前等 1 秒，每次 `npm publish` PUT 前等 5 秒，包括 skip 探测之后的第一次 PUT。第一次 `E429` 就让 job 失败。保留 `--fetch-retries 0`，也保留 pack `--concurrency 8` —— pack 是本地磁盘工作。
+用同一个时间戳间隔 registry 调用：每次 `npm view` 前等 1 秒，每次 `npm publish` PUT 前等 5 秒，包括 skip 探测之后的第一次 PUT。不重试 `E429`。保留 `--fetch-retries 0`，也保留 pack `--concurrency 8` —— pack 是本地磁盘工作。
 
 ## Verification
 
@@ -30,8 +30,9 @@ Status: implemented
 
 - 纯 skip 的一次运行大约每个成员等 1 秒。
 - 发布在每次 PUT 前至少等 5 秒。
-- 第一次 `E429` 让 job 失败，后续重跑可以跳过已发布成员。
+- 第一次 `E429` 停掉这一轮后续 PUT。[分支发布遇到 npm 新包名额度时暂停](../process/2026-09-11-branch-publish-quota-pause.zh.md) 负责这次退出是不是 0。
 
 ## Related
 
 [npm publish 不得在内部重试 429](2026-09-10-npm-publish-fetch-retries.zh.md) 仍然负责 `--fetch-retries 0`。
+[分支发布遇到 npm 新包名额度时暂停](../process/2026-09-11-branch-publish-quota-pause.zh.md) 负责分支和带 tag 的退出。

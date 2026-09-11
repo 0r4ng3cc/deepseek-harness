@@ -72,7 +72,7 @@ npx --package @x1a0f3n9/dsh xfdsh web
 
 `xfdsh` 的插件和 profile 放在 `~/.xfdsh`，不会写 `~/.dsh/profiles`。会话、分组、附件、settings 和 API key 仍在 `~/.dsh`，所以两套 CLI 看到同一份历史。预装的 timeline、插件市场、思考强度、上下文面板、better-sidebar 和 hindsight 可以在 Settings → Plugins 关闭。
 
-推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
+推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。遇到 npm 新包名额度会暂停这一轮但不把 job 判失败，下次再推会继续发剩下的名字。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
 
 ### 分支约定
 
