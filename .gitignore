@@ -43,4 +43,13 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+.dsh-std-types/
 native/system/test/bin/
+
+# The upstream spec repository is embedded as a runtime payload; only the
+# directories package.json publishes are tracked.
+packages/ui/tui/dsh-ecosystem-spec/*
+!packages/ui/tui/dsh-ecosystem-spec/LICENSE
+!packages/ui/tui/dsh-ecosystem-spec/registry
+!packages/ui/tui/dsh-ecosystem-spec/protocols
+!packages/ui/tui/dsh-ecosystem-spec/schemas

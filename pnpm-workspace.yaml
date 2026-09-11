@@ -1,5 +1,12 @@
 packages:
   - vendor/*
+  - packages/ui/tui/vendor/dsh-std/packages/command
+  - packages/ui/tui/vendor/dsh-std/packages/connection
+  - packages/ui/tui/vendor/dsh-std/packages/core
+  - packages/ui/tui/vendor/dsh-std/packages/manifest
+  - packages/ui/tui/vendor/dsh-std/packages/messages
+  - packages/ui/tui/vendor/dsh-std/packages/presentation
+  - packages/ui/tui/vendor/dsh-std/packages/storage
   - packages/*/*
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/system.

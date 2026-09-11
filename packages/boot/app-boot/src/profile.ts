@@ -217,6 +217,10 @@ export const PROFILE_TEMPLATES: Record<string, ProfileTemplate> = {
     bundles: ['@x1a0f3n9/dsh-base', '@x1a0f3n9/dsh-acp-app'],
     patchReload: 'startup',
   },
+  tui: {
+    bundles: ['@x1a0f3n9/dsh-base', '@x1a0f3n9/dsh-tui'],
+    patchReload: 'startup',
+  },
   web: {
     bundles: ['@x1a0f3n9/dsh-base', '@x1a0f3n9/dsh-web-app'],
     patchReload: 'live',

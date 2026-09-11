@@ -37,6 +37,16 @@
       "@deepseek-ai/cordis-plugin-timer": ["./vendor/timer/src"],
       "@deepseek-ai/cordis-plugin-hmr": ["./vendor/hmr/src"],
       "@deepseek-ai/cordis-plugin-logger-console": ["./vendor/logger-console/src"],
+      // dsh-std is workspace-vendored but publishes types at lib/index.d.ts,
+      // which is absent on a clean source tree. Point at src so type-aware
+      // gates resolve the same graph the TUI runtime imports.
+      "@dsh-std/core": ["./packages/ui/tui/vendor/dsh-std/packages/core/src/index.ts"],
+      "@dsh-std/manifest": ["./packages/ui/tui/vendor/dsh-std/packages/manifest/src/index.ts"],
+      "@dsh-std/command": ["./packages/ui/tui/vendor/dsh-std/packages/command/src/index.ts"],
+      "@dsh-std/storage": ["./packages/ui/tui/vendor/dsh-std/packages/storage/src/index.ts"],
+      "@dsh-std/messages": ["./packages/ui/tui/vendor/dsh-std/packages/messages/src/index.ts"],
+      "@dsh-std/presentation": ["./packages/ui/tui/vendor/dsh-std/packages/presentation/src/index.ts"],
+      "@dsh-std/connection": ["./packages/ui/tui/vendor/dsh-std/packages/connection/src/index.ts"],
       "@deepseek-ai/node-addon-system/landlock-run": ["./native/system/packages/entry/src/index.ts"],
       "@deepseek-ai/node-addon-system/flock": ["./native/system/packages/entry/src/flock.ts"],
       "@x1a0f3n9/dsh-invariants": ["./packages/runtime-diagnostics/invariants/src/index.ts"],
@@ -249,6 +259,17 @@
       // util/ folders are role-named without the util- prefix their npm names carry,
       // so these aliases stay hand-written like dsh-util-crypto above.
       "@x1a0f3n9/dsh-util-time": ["./packages/util/time/src"],
+      // dsh-tui's profile patch mounts these subpaths as bare plugin names. The
+      // generated region maps bare specifiers only, so without these the
+      // source launch would resolve them through the workspace symlink to
+      // built lib/ instead of source.
+      "@x1a0f3n9/dsh-tui/command-trees": ["./packages/ui/tui/src/command-trees.ts"],
+      "@x1a0f3n9/dsh-tui/extensions": ["./packages/ui/tui/src/extensions.ts"],
+      "@x1a0f3n9/dsh-tui/plugin-host": ["./packages/ui/tui/src/plugin-host.ts"],
+      "@x1a0f3n9/dsh-tui/scenes": ["./packages/ui/tui/src/scenes.ts"],
+      "@x1a0f3n9/dsh-tui/settings-sections": ["./packages/ui/tui/src/settings-sections.ts"],
+      "@x1a0f3n9/dsh-tui/working-activity": ["./packages/ui/tui/src/working-activity.ts"],
+      "@x1a0f3n9/dsh-tui/workspaces": ["./packages/ui/tui/src/workspaces.ts"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@x1a0f3n9/dsh-acp": ["./packages/acp/acp/src"],
       "@x1a0f3n9/dsh-acp-app": ["./packages/bundle/acp-app/src"],
@@ -437,6 +458,7 @@
       "@x1a0f3n9/dsh-tool-workflow/invariant": ["./packages/workflow/tool-workflow/src/invariant.ts"],
       "@x1a0f3n9/dsh-tools": ["./packages/core/tools/src"],
       "@x1a0f3n9/dsh-tools/invariant": ["./packages/core/tools/src/invariant.ts"],
+      "@x1a0f3n9/dsh-tui": ["./packages/ui/tui/src"],
       "@x1a0f3n9/dsh-user-approval": ["./packages/interaction/user-approval/src"],
       "@x1a0f3n9/dsh-user-approval/invariant": ["./packages/interaction/user-approval/src/invariant.ts"],
       "@x1a0f3n9/dsh-user-questions": ["./packages/interaction/user-questions/src"],

@@ -23,6 +23,7 @@
     "packages/typert/generator/tests/fixtures/type-model/**", // tsgolint rejects this fixture's preserved project shapes before rules run.
     "website/.generated/**",
     "vendor/**", // Vendored source keeps upstream style and idioms.
+    "packages/ui/tui/**/vendor/**", // The same dsh-std source vendored one level deeper, where the root-anchored pattern above does not reach.
     "native/**", // The imported landlock-run subtree has its own gates; see native/README.md.
     "**/*.js",
     "**/*.mjs",
@@ -209,6 +210,22 @@
         "typescript/only-throw-error": "off", // Tests deliberately exercise non-Error throws.
         "typescript/require-await": "off", // Mock execute() implementations must retain async signatures.
         "typescript/restrict-template-expressions": "off"
+      },
+      "plugins": [
+        "typescript"
+      ]
+    },
+    {
+      "files": [
+        "packages/ui/tui/src/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        // This package compiles with noUncheckedIndexedAccess off (see its
+        // tsconfig) and narrows values arriving from Cordis internals, argv,
+        // and the session log. Conditions the local types call impossible are
+        // the runtime guards that keep those reads from throwing, so the rule's
+        // premise does not hold here.
+        "typescript/no-unnecessary-condition": "off"
       },
       "plugins": [
         "typescript"
