@@ -113,9 +113,6 @@ class PackageIdentityResolver {
     let manifest: string | undefined
     if (packageName !== undefined) {
       manifest = barePackageManifest(packageName, anchors)
-      if (manifest === undefined) {
-        throw new Error(`plugin-package-inventory-deepseek: cannot resolve active package ${JSON.stringify(packageName)}`)
-      }
     } else if (!entry.options.name.startsWith('cordis:')) {
       const moduleUrl = isAbsolute(entry.options.name)
         ? pathToFileURL(entry.options.name)
