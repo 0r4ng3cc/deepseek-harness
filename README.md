@@ -32,7 +32,25 @@ The rows below summarize the fork's user-visible and release-impacting changes; 
 | Web search | Default provider order is Perplexity, then Exa. DeepSeek search remains selectable. | Search does not always bill DeepSeek. |
 | Multi-answer / session git graph | Not implemented. Follow-up work on `dsh-session-timeline` after the rewind UI is done. | Documented and deferred. |
 
-### Install this fork
+## Branches
+
+GitHub's default branch is `dev-x1a0f3n9`. Clone without `-b` already lands on the fork line. Do not commit fork features onto `master`.
+
+| Branch | Role | npm |
+| --- | --- | --- |
+| `master` | Tracks upstream dsh. Sync upstream here. | Does not publish this fork today. |
+| `dev-x1a0f3n9` | Fork integration. Test here, then push. | Push publishes `@x1a0f3n9/*`. |
+| `feat/<topic>` or `fix/<topic>` | One small change, cut from `dev-x1a0f3n9`. | None. Merge `--no-ff` into `dev-x1a0f3n9`. |
+
+1. Update `master` from upstream `deepseek-ai/deepseek-harness`.
+2. Merge that `master` into `dev-x1a0f3n9`. Resolve conflicts on the fork line, not on `master`.
+3. Cut `feat/<topic>` or `fix/<topic>` from `dev-x1a0f3n9`.
+4. Merge `--no-ff` back into `dev-x1a0f3n9`. Do not merge those short-lived branches into `master`.
+5. Test `dev-x1a0f3n9` locally with `xfdsh web`.
+6. Push `dev-x1a0f3n9`. CI builds and publishes `@x1a0f3n9/*`.
+7. When the fork set is ready, merge `dev-x1a0f3n9` into `master` for the `@xfcodeai/*` line.
+
+## Install this fork
 
 There are two supported install paths for this fork. Both start `xfdsh web` at `http://127.0.0.1:7777`. Official `dsh` is a separate product and does not need a history migration.
 
@@ -55,7 +73,7 @@ xfdsh web
 **Fork source checkout:**
 
 ```sh
-git clone https://github.com/LunFengChen/deepseek-harness.git
+git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
@@ -73,12 +91,6 @@ npx --package @x1a0f3n9/dsh xfdsh web
 `xfdsh` keeps plugins and profiles in `~/.xfdsh` and never writes `~/.dsh/profiles`. Sessions, workspace groups, attachments, settings, and API keys stay in `~/.dsh`, so both CLIs see the same history. Preinstalled timeline, plugin-market, reasoning-effort, context, better-sidebar, and hindsight entries can be disabled from Settings → Plugins.
 
 Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. An npm new-name quota pause stops that run without failing it; the next push continues remaining names. `master` currently tracks upstream and does not publish this fork. A later stable fork publish uses `@xfcodeai/*`.
-
-### Branch convention
-
-- `master` tracks upstream dsh. Do not commit fork features directly onto `master`.
-- Each small change lands on a `features/` or `fix/` branch, then merges `--no-ff` into `dev-x1a0f3n9`.
-- Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. When the fork set is ready, merge `dev-x1a0f3n9` into `master` to publish `@xfcodeai/*`.
 
 ## Developer preview
 
@@ -103,7 +115,7 @@ The command starts the Web UI at `http://127.0.0.1:7777` by default and opens it
 To run from a repository checkout:
 
 ```sh
-git clone https://github.com/LunFengChen/deepseek-harness.git
+git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build

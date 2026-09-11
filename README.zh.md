@@ -32,7 +32,25 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 | Web 搜索 | 默认顺序是 Perplexity，然后 Exa。DeepSeek 搜索仍可选手动选择。 | 搜索不会总是去打 DeepSeek 账单。 |
 | 多回答 / session git graph | 还没做。等 timeline 回退 UI 完成后再扩展。 | 只记在文档里，本轮不做。 |
 
-### 安装这个 fork
+## 分支
+
+GitHub 默认分支是 `dev-x1a0f3n9`。不带 `-b` 克隆也会落到这条 fork 线。fork 功能不要直接提交到 `master`。
+
+| 分支 | 作用 | npm |
+| --- | --- | --- |
+| `master` | 跟踪上游 dsh。在这里同步上游。 | 当前不发布这个 fork。 |
+| `dev-x1a0f3n9` | fork 集成线。在这里测试，再推送。 | 推送后发布 `@x1a0f3n9/*`。 |
+| `feat/<topic>` 或 `fix/<topic>` | 一个小改动，从 `dev-x1a0f3n9` 拉出。 | 不发布。完成后 `--no-ff` 合回 `dev-x1a0f3n9`。 |
+
+1. 从上游 `deepseek-ai/deepseek-harness` 更新 `master`。
+2. 把这次的 `master` 合进 `dev-x1a0f3n9`。冲突在 fork 线上解，不要解在 `master`。
+3. 从 `dev-x1a0f3n9` 拉出 `feat/<topic>` 或 `fix/<topic>`。
+4. `--no-ff` 合回 `dev-x1a0f3n9`。这些短分支不要合进 `master`。
+5. 本地用 `xfdsh web` 测 `dev-x1a0f3n9`。
+6. 推送 `dev-x1a0f3n9`。CI 会编译并发布 `@x1a0f3n9/*`。
+7. 功能够多后，再把 `dev-x1a0f3n9` 合进 `master`，走 `@xfcodeai/*` 这条线。
+
+## 安装这个 fork
 
 这个 fork 支持两种安装方式。都会在 `http://127.0.0.1:7777` 启动 `xfdsh web`。官方 `dsh` 是另一套产品，不需要做历史迁移。
 
@@ -55,7 +73,7 @@ xfdsh web
 **fork 源码：**
 
 ```sh
-git clone https://github.com/LunFengChen/deepseek-harness.git
+git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
@@ -73,12 +91,6 @@ npx --package @x1a0f3n9/dsh xfdsh web
 `xfdsh` 的插件和 profile 放在 `~/.xfdsh`，不会写 `~/.dsh/profiles`。会话、分组、附件、settings 和 API key 仍在 `~/.dsh`，所以两套 CLI 看到同一份历史。预装的 timeline、插件市场、思考强度、上下文面板、better-sidebar 和 hindsight 可以在 Settings → Plugins 关闭。
 
 推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。遇到 npm 新包名额度会暂停这一轮但不把 job 判失败，下次再推会继续发剩下的名字。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
-
-### 分支约定
-
-- `master` 跟踪上游 dsh。fork 功能不要直接提交到 `master`。
-- 每个小功能开 `features/` 或 `fix/` 分支，完成后 `--no-ff` 合并到 `dev-x1a0f3n9`。
-- 推送 `dev-x1a0f3n9` 发布 `@x1a0f3n9/*`；功能够多后再把 `dev-x1a0f3n9` 合进 `master`，发布 `@xfcodeai/*`。
 
 ## 开发者预览
 
@@ -107,7 +119,7 @@ npx --package @x1a0f3n9/dsh xfdsh web
 如需从仓库源码运行：
 
 ```sh
-git clone https://github.com/LunFengChen/deepseek-harness.git
+git clone -b dev-x1a0f3n9 https://github.com/LunFengChen/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
