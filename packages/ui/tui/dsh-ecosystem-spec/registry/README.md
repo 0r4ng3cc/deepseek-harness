@@ -1,14 +1,16 @@
 # dsh-TUI Admission Protocol Profile
 
-[`registry-0.15.json`](registry-0.15.json) 不是全局协议注册表。它描述本 TUI admission profile 使用的 definition 集合：
+English | [中文](README.zh.md)
 
-- `imports` 引用固定 dsh-std revision 已提供的 definitions；
-- `definitions` 只收录 dsh-TUI 私有 definitions。
+[`registry-0.15.json`](registry-0.15.json) is not the global protocol registry. It describes the definition set this TUI admission profile uses:
 
-导入条目不复制 dsh-std 的 schema 或 contract 正文。Community v0.15 的 `Command`、`LocalStorage`、`MessageObserver`、Presentation 与 Workspace 定义分别由 `@dsh-std/command`、`@dsh-std/storage`、`@dsh-std/messages`、`@dsh-std/presentation` 与 `@dsh-std/workspace` 注册。
+- `imports` reference definitions a pinned dsh-std revision already provides;
+- `definitions` hold only dsh-TUI private definitions.
 
-本地 definition 的 contract profile 使用 SHA-256 固定。修改 profile 内容必须更新 digest，并按兼容性决定保留坐标或发布新 `apiVersion`。digest 只证明字节一致，不证明发布者身份。
+Import entries do not copy dsh-std schema or contract bodies. Community v0.15 registers the `Command`, `LocalStorage`, `MessageObserver`, Presentation, and Workspace definitions through `@dsh-std/command`, `@dsh-std/storage`, `@dsh-std/messages`, `@dsh-std/presentation`, and `@dsh-std/workspace`.
 
-`tui.dsh/*` 是 dsh-TUI 私有 namespace。私有 definition 与公共 definition 一样注册到 dsh-std `ProtocolCatalog`；目录收录本身不产生 live support。
+Local definition contract profiles are pinned by SHA-256. Changing profile content must update its digest, and compatibility decides whether the coordinates stay or a new `apiVersion` is published. A digest proves byte equality only, never publisher identity.
 
-权限目录仍是 TUI authorization policy 的输入。permission grant 与 protocol support 分开判断，安装 definition 不自动授权操作。
+`tui.dsh/*` is the dsh-TUI private namespace. Private definitions register into the dsh-std `ProtocolCatalog` like public ones; catalog admission alone grants no live support.
+
+The permission catalog stays the input to TUI authorization policy. Permission grants and protocol support are decided separately; installing a definition authorizes no operation by itself.

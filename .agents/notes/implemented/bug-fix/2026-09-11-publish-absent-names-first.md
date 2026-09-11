@@ -34,4 +34,5 @@ Probe every packed member, then publish in two passes. Pass one publishes every 
 ## Related
 
 [npm registry calls must be spaced and fail on first 429](2026-09-11-npm-registry-serial-spacing.md) still owns probe and PUT gaps.
+
 [npm release sequences](../process/2026-08-10-npm-release-sequences.md) still owns family versioning.

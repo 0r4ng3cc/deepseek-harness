@@ -344,11 +344,47 @@ export type TuiCompactDecision =
 
 declare module '@deepseek-ai/cordis' {
   interface Events {
+    /**
+     * Fired before user-typed text is delivered to the model. A listener may
+     * rewrite, consume, or drop the line; the first valid decision wins.
+     * @param event - the pending input and its followup/steer delivery.
+     * @mode serial
+     */
     'tui/input'(event: TuiInputEvent): TuiInputDecision | Promise<TuiInputDecision>
+    /**
+     * Fired when rewind confirms a message, before the fork. A listener may
+     * abort or offer extra rewind modes; the first valid decision wins.
+     * @param event - the picked message text and session seq.
+     * @mode serial
+     */
     'tui/rewind-prompt'(event: TuiRewindPromptEvent): TuiRewindPromptDecision | Promise<TuiRewindPromptDecision>
+    /**
+     * Fired after rewind completed and the forked session is live. The first
+     * non-empty string is toasted as the post-rewind summary.
+     * @param event - the completed rewind, including mode and child session.
+     * @mode serial
+     */
     'tui/rewind-done'(event: TuiRewindDoneEvent): string | undefined | Promise<string | undefined>
+    /**
+     * Fired before `/new` or `/resume` replaces the live session. A listener
+     * may abort the switch; the first valid decision wins.
+     * @param event - the pending switch kind and optional resume target.
+     * @mode serial
+     */
     'tui/session-switch'(event: TuiSessionSwitchEvent): TuiSessionSwitchDecision | Promise<TuiSessionSwitchDecision>
+    /**
+     * Notification after the live session changed. Listener errors are logged
+     * and never propagated; rebind per-session state here.
+     * @param event - the session that just went live and its predecessor.
+     * @mode parallel
+     */
     'tui/session-switched'(event: TuiSessionSwitchedEvent): void | Promise<void>
+    /**
+     * Fired before manual `/compact` runs. A listener may abort compaction;
+     * the first valid decision wins.
+     * @param event - the live session about to compact.
+     * @mode serial
+     */
     'tui/compact'(event: TuiCompactEvent): TuiCompactDecision | Promise<TuiCompactDecision>
   }
 }

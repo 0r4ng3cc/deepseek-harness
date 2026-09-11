@@ -827,7 +827,7 @@ const APP_EXAMPLES = [
     title: 'DSH Base Composition',
     label: 'packages/bundle/base/cordis.patch.yml',
     config: 'packages/bundle/base/cordis.patch.yml',
-    summary: 'The dsh-base bundle patch shared by the web, headless, sdk, and acp profiles; their mode bundles and user layers patch over it, while sdk-minimal owns a separate standalone tree.',
+    summary: 'The dsh-base bundle patch shared by the web, headless, sdk, acp, and tui profiles; their mode bundles and user layers patch over it, while sdk-minimal owns a separate standalone tree.',
   },
 ]
 
@@ -1014,22 +1014,32 @@ export class EventRelationCollector {
               this.addDispatcher(name, source.pkg, 'emitAgentEvent')
             }
           }
-        } else if (ts.isPropertyAccessExpression(node.expression) && EVENT_API_METHODS.has(node.expression.name.text)) {
-          const receiverKind = this.receiverKind(node.expression.expression)
-          const method = node.expression.name.text
-          if (receiverKind === 'events-service' && method === 'dispatch') {
-            const argumentList = node.arguments[1]
-            if (argumentList) {
-              for (const event of this.eventNamesFromArgumentList(argumentList, new Set())) {
-                this.addDispatcher(event, source.pkg, 'events.dispatch')
+        } else {
+          const tuiDispatcher = this.tuiDecisionDispatcher(node.expression)
+          if (tuiDispatcher !== undefined) {
+            const event = node.arguments[1]
+            if (event) {
+              for (const name of this.finiteStringValues(event) ?? []) {
+                this.addDispatcher(name, source.pkg, tuiDispatcher)
               }
             }
-          } else if (receiverKind === 'context' || receiverKind === 'agent-dispatch') {
-            const eventNames = this.eventNamesFromCall(node, receiverKind)
-            if (method === 'on' || method === 'once') {
-              for (const event of eventNames) this.ensure(event).listeners.add(source.pkg)
-            } else if (method === 'emit' || method === 'parallel' || method === 'serial' || method === 'waterfall') {
-              for (const event of eventNames) this.addDispatcher(event, source.pkg, method)
+          } else if (ts.isPropertyAccessExpression(node.expression) && EVENT_API_METHODS.has(node.expression.name.text)) {
+            const receiverKind = this.receiverKind(node.expression.expression)
+            const method = node.expression.name.text
+            if (receiverKind === 'events-service' && method === 'dispatch') {
+              const argumentList = node.arguments[1]
+              if (argumentList) {
+                for (const event of this.eventNamesFromArgumentList(argumentList, new Set())) {
+                  this.addDispatcher(event, source.pkg, 'events.dispatch')
+                }
+              }
+            } else if (receiverKind === 'context' || receiverKind === 'agent-dispatch') {
+              const eventNames = this.eventNamesFromCall(node, receiverKind)
+              if (method === 'on' || method === 'once') {
+                for (const event of eventNames) this.ensure(event).listeners.add(source.pkg)
+              } else if (method === 'emit' || method === 'parallel' || method === 'serial' || method === 'waterfall') {
+                for (const event of eventNames) this.addDispatcher(event, source.pkg, method)
+              }
             }
           }
         }
@@ -1053,6 +1063,35 @@ export class EventRelationCollector {
         && declaration.name?.text === 'emitAgentEvent'
         && this.project.relativePath(declaration.getSourceFile()) === 'packages/core/agent/src/dispatch.ts'
     })
+  }
+
+  /**
+   * Match TUI decision/notification helpers that dispatch named events without
+   * going through `ctx.emit` — the host-mediated DecisionEvents registry owns
+   * crash isolation and deadlines, so the semantic scan must treat these as
+   * dispatch sites the same way it treats `emitAgentEvent`.
+   */
+  private tuiDecisionDispatcher(
+    expression: ts.Expression,
+  ): 'dispatchTuiDecision' | 'dispatchTuiNotification' | undefined {
+    if (!ts.isIdentifier(expression)) return undefined
+    const local = this.project.checker.getSymbolAtLocation(expression)
+    if (!local) return undefined
+    const symbol = local.flags & ts.SymbolFlags.Alias
+      ? this.project.checker.getAliasedSymbol(local)
+      : local
+    for (const declaration of symbol.declarations ?? []) {
+      if (!ts.isFunctionDeclaration(declaration)) continue
+      const name = declaration.name?.text
+      if (
+        (name === 'dispatchTuiDecision' || name === 'dispatchTuiNotification')
+        && this.project.relativePath(declaration.getSourceFile())
+          === 'packages/ui/tui/src/dsh-adapter/extension-events.ts'
+      ) {
+        return name
+      }
+    }
+    return undefined
   }
 
   /** Classify a receiver using assignability to the repository's actual event API types. */

@@ -217,7 +217,7 @@
     },
     {
       "files": [
-        "packages/ui/tui/src/**/*.{ts,tsx}"
+        "packages/ui/tui/src/ink/**/*.{ts,tsx}"
       ],
       "rules": {
         // This package compiles with noUncheckedIndexedAccess off (see its

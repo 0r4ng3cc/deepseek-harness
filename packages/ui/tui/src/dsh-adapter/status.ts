@@ -39,7 +39,7 @@ export class TuiStatusStore {
   private snapshot: readonly TuiStatusEntry[] = []
 
   /** Set or clear (undefined/empty) one key. */
-  set(key: string, text: string | undefined, token = 0, owner: object = HOST_STATUS_OWNER): void {
+  set(key: string, text: string | undefined, token: number = 0, owner: object = HOST_STATUS_OWNER): void {
     const had = this.entries.has(key)
     if (text === undefined || text === '') {
       if (!had) return

@@ -188,7 +188,7 @@ export class TuiWorkspaceRuntime extends Service {
   }
 
   /** Resolve a URI, briefly allowing concurrently mounted providers to register. */
-  async resolve(reference: string, currentCwd = process.cwd(), signal?: AbortSignal): Promise<TuiWorkspaceTarget | undefined> {
+  async resolve(reference: string, currentCwd: string = process.cwd(), signal?: AbortSignal): Promise<TuiWorkspaceTarget | undefined> {
     const owner = workspaceCaller(this, 'tuiWorkspaces.resolve')
     return resolveWorkspace(this, reference, currentCwd, signal, owner)
   }

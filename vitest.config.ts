@@ -252,6 +252,9 @@ export default defineConfig({
         'packages/client/ui-layout/src/*',
         'packages/client/web/src/*',
         'packages/host/webserver/src/*',
+        // TUI sources are an imported interactive surface; coverage is owned
+        // by the package's verify:* scripts, not the per-file 100% host gate.
+        'packages/ui/tui/src/**/*',
         // The browser-worker runtime and its image packer: the executing
         // composition is a real dedicated Worker driven by the web browser lane
         // (apps/web/tests/preview-boot.e2e.ts), which unit-process V8 coverage

@@ -14,8 +14,6 @@
     "types": ["node", "react"],
     "rootDir": "src",
     "outDir": "lib/types",
-    // The ported Ink core is third-party code written against looser flags;
-    // keep the vendored renderer compiling without a rewrite.
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
@@ -42,7 +40,6 @@
     { "path": "../../storage/storage" },
     { "path": "../../workspace/workspace" },
     { "path": "../../extensions/cordis-host-runner" },
-    { "path": "../../runtime-diagnostics/invariants" },
     { "path": "../../util/atomic-write" }
   ]
 }

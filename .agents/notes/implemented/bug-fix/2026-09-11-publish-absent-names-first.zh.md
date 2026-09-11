@@ -34,4 +34,5 @@ Status: implemented
 ## Related
 
 [npm registry 调用必须间隔，第一次 429 即失败](2026-09-11-npm-registry-serial-spacing.zh.md) 仍然负责探测和 PUT 间隔。
+
 [npm 发布序列](../process/2026-08-10-npm-release-sequences.zh.md) 仍然负责家族版本。

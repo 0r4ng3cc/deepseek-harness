@@ -154,9 +154,6 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../vendor/cordis
-      '@deepseek-ai/cordis-plugin-group':
-        specifier: workspace:^
-        version: link:../../vendor/group
       '@deepseek-ai/cordis-plugin-hmr':
         specifier: workspace:^
         version: link:../../vendor/hmr
@@ -169,9 +166,6 @@ importers:
       '@deepseek-ai/cordis-plugin-timer':
         specifier: workspace:^
         version: link:../../vendor/timer
-      '@deepseek-ai/cosmokit':
-        specifier: link:../../vendor/cosmokit
-        version: link:../../vendor/cosmokit
       '@deepseek-ai/schemastery':
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
@@ -10424,38 +10418,32 @@ importers:
       '@alcalzone/ansi-tokenize':
         specifier: ^0.3.0
         version: 0.3.0
-      '@deepseek-ai/cordis':
-        specifier: workspace:*
-        version: link:../../../vendor/cordis
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
       '@x1a0f3n9/dsh-agent':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core/agent
       '@x1a0f3n9/dsh-agent-instructions':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../context/agent-instructions
       '@x1a0f3n9/dsh-agent-presets':
         specifier: workspace:^
         version: link:../../preset/agent-presets
       '@x1a0f3n9/dsh-atomic-write':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../util/atomic-write
       '@x1a0f3n9/dsh-code-runtime-worker-thread':
         specifier: workspace:^
         version: link:../../code-runtime/code-runtime-worker-thread
       '@x1a0f3n9/dsh-commands':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../interaction/commands
       '@x1a0f3n9/dsh-cordis-host-runner':
         specifier: workspace:^
         version: link:../../extensions/cordis-host-runner
-      '@x1a0f3n9/dsh-invariants':
-        specifier: workspace:*
-        version: link:../../runtime-diagnostics/invariants
       '@x1a0f3n9/dsh-llm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../llm/llm
       '@x1a0f3n9/dsh-llm-pi-ai':
         specifier: workspace:^
@@ -10464,13 +10452,13 @@ importers:
         specifier: workspace:^
         version: link:../../preset/persona
       '@x1a0f3n9/dsh-session':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core/session
       '@x1a0f3n9/dsh-settings':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../settings/settings
       '@x1a0f3n9/dsh-skill':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../skill/skill
       '@x1a0f3n9/dsh-storage':
         specifier: workspace:^
@@ -10482,7 +10470,7 @@ importers:
         specifier: workspace:^
         version: link:../../storage/storage-json
       '@x1a0f3n9/dsh-system-prompt':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core/system-prompt
       '@x1a0f3n9/dsh-terminal':
         specifier: workspace:^
@@ -10491,7 +10479,7 @@ importers:
         specifier: workspace:^
         version: link:../../terminal/terminal-bash
       '@x1a0f3n9/dsh-tool-ask-user':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../interaction/tool-ask-user
       '@x1a0f3n9/dsh-tool-bash-persistent':
         specifier: workspace:^
@@ -10503,13 +10491,13 @@ importers:
         specifier: workspace:^
         version: link:../../subagent/tool-subagent
       '@x1a0f3n9/dsh-user-approval':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../interaction/user-approval
       '@x1a0f3n9/dsh-user-questions':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../interaction/user-questions
       '@x1a0f3n9/dsh-workspace':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../workspace/workspace
       auto-bind:
         specifier: ^4.0.0 || ^5.0.0
@@ -10587,26 +10575,32 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1
     devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
       '@dsh-std/command':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/command
       '@dsh-std/connection':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/connection
       '@dsh-std/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/core
       '@dsh-std/manifest':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/manifest
       '@dsh-std/messages':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/messages
       '@dsh-std/presentation':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/presentation
       '@dsh-std/storage':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:vendor/dsh-std/packages/storage
       '@types/lodash-es':
         specifier: ^4.17.0

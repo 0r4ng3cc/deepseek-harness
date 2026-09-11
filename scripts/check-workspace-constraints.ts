@@ -185,6 +185,14 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // through a hashed chunk. The committed bin.js is the link target pnpm can
   // resolve at install time, before the build produces lib/bin.js.
   '@x1a0f3n9/dsh-experimental-webworker-packer': ['bin.js', 'lib/repository-*.js'],
+  // Plugin protocol payloads and packaged TUI presets travel beside the
+  // runtime; they are not TypeScript emit and cannot ride inside lib/.
+  '@x1a0f3n9/dsh-tui': [
+    'dsh-ecosystem-spec/registry',
+    'dsh-ecosystem-spec/protocols',
+    'dsh-ecosystem-spec/schemas',
+    'presets',
+  ],
 }
 
 function sameStringList(actual: readonly string[] | undefined, expected: readonly string[]): boolean {

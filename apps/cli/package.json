@@ -29,12 +29,10 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/cordis-plugin-group": "workspace:^",
     "@deepseek-ai/cordis-plugin-hmr": "workspace:^",
     "@deepseek-ai/cordis-plugin-include": "workspace:^",
     "@deepseek-ai/cordis-plugin-loader": "workspace:^",
     "@deepseek-ai/cordis-plugin-timer": "workspace:^",
-    "@deepseek-ai/cosmokit": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "@x1a0f3n9/dsh-acp-app": "workspace:^",
     "@x1a0f3n9/dsh-agent-instructions": "workspace:^",

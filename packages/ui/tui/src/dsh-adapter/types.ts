@@ -13,7 +13,6 @@ export type { CommandRuntime } from '@x1a0f3n9/dsh-commands'
 export type { ApprovalOutcome, ApprovalRequest } from '@x1a0f3n9/dsh-user-approval'
 export type { AgentSetup } from '@x1a0f3n9/dsh-agent'
 export type { Context } from '@deepseek-ai/cordis'
-export type { InvariantInstaller } from '@x1a0f3n9/dsh-invariants'
 
 /**
  * Trajectory projection types. Not upstream types, but the same rule applies:

@@ -216,6 +216,10 @@ describe('loadProfile', () => {
       bundles: ['@x1a0f3n9/dsh-base', '@x1a0f3n9/dsh-acp-app'],
       patchReload: 'startup',
     })
+    expect(PROFILE_TEMPLATES.tui).toEqual({
+      bundles: ['@x1a0f3n9/dsh-base', '@x1a0f3n9/dsh-tui'],
+      patchReload: 'startup',
+    })
     expect(PROFILE_TEMPLATES.sdk).toEqual({
       bundles: ['@x1a0f3n9/dsh-base', '@x1a0f3n9/dsh-sdk-app'],
       patchReload: 'startup',

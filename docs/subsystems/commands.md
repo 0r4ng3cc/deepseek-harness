@@ -132,6 +132,17 @@ Human-command registry. Plain-context definitions are global; definitions regist
 
 ```ts cordis-catalog
 /**
+ * Abort every in-flight `execute` for one agent.
+ *
+ * Session pause/stop cancels the live turn but does not abort the RPC that
+ * owns `invocation.signal`. Rewind and other long commands must see that
+ * pause, or they keep mutating after the user asked them to stop.
+ * @param agent - agent whose in-flight commands should stop.
+ * @param reason - abort reason copied onto each invocation signal.
+ */
+abortInflight(agent: Agent, reason: unknown = new Error('session cancelled')): void
+
+/**
  * Register a global or calling-agent-scoped command.
  * @param definition - discovery metadata and direct UI handler.
  * @returns the exact effect disposer that unregisters this definition.
@@ -167,7 +178,9 @@ find(agent: Agent, name: string): CommandDefinition | undefined
  * before the handler is invoked and `command/done` after settlement (a
  * thrown or aborted handler settles as `kind: 'error'`). Both are direct
  * log-only appends — no turn wraps them, and persistence drains them at
- * ordinary checkpoints. Admission misses (syntax or unknown name) log
+ * ordinary checkpoints. If the handler truncated the matching
+ * `command/run` out of the log, `command/done` is skipped so the pair
+ * cannot become an orphan. Admission misses (syntax or unknown name) log
  * nothing — they never entered a handler. A `command/run` append failure
  * fails the execution loud; a `command/done` append failure on the
  * handler-failure path is contained so the handler's own error stays the

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-11-publish-absent-names-first.md
-2026-09-11-publish-absent-names-first.md: ee14cbe0e52fe58ba27b18c89dd15efc6d3572a6
-2026-09-11-publish-absent-names-first.zh.md: c1e3e7edee284125fe64c1060e436ab6ce11b206
+2026-09-11-publish-absent-names-first.md: 3f1d86fb3fc92e19e9857755272e4ae146d65b79
+2026-09-11-publish-absent-names-first.zh.md: 224261f9e9ef5e056a56b76fc540bd3d633b64f8

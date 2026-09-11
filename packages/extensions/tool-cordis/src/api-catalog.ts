@@ -671,6 +671,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Human-command registry. Plain-context definitions are global; definitions registered through a command-injected child of an agent context shadow globals for that agent.',
     methods: [
       {
+        signature: 'abortInflight(agent: Agent, reason: unknown = new Error(\'session cancelled\')): void',
+        description: 'Abort every in-flight `execute` for one agent.\n\nSession pause/stop cancels the live turn but does not abort the RPC that owns `invocation.signal`. Rewind and other long commands must see that pause, or they keep mutating after the user asked them to stop.',
+        parameters: [{ name: 'agent', description: 'agent whose in-flight commands should stop.' }, { name: 'reason', description: 'abort reason copied onto each invocation signal.' }],
+      },
+      {
         signature: 'register(definition: CommandDefinition): () => void',
         description: 'Register a global or calling-agent-scoped command.',
         parameters: [{ name: 'definition', description: 'discovery metadata and direct UI handler.' }],
@@ -696,7 +701,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote async execute( agent: Agent, line: string, submittedAttachments: readonly CommandSubmitAttachment[], signal: AbortSignal, ): Promise<CommandExecution | undefined>',
-        description: 'Parse and execute a known command without sending it to the model.\n\nA resolved command\'s lifecycle is logged: `command/run` is appended before the handler is invoked and `command/done` after settlement (a thrown or aborted handler settles as `kind: \'error\'`). Both are direct log-only appends — no turn wraps them, and persistence drains them at ordinary checkpoints. Admission misses (syntax or unknown name) log nothing — they never entered a handler. A `command/run` append failure fails the execution loud; a `command/done` append failure on the handler-failure path is contained so the handler\'s own error stays the reported failure.\n\nAttachment admission is enforced here, not in the composer: attachments sent to a command that does not declare `input.attachments`, an absent attachment store, and an exceeded image limit each settle as an error result before the handler runs. Validation rejection starts no attachment writes; a storage failure can leave only unreachable content-addressed objects for deferred collection.',
+        description: 'Parse and execute a known command without sending it to the model.\n\nA resolved command\'s lifecycle is logged: `command/run` is appended before the handler is invoked and `command/done` after settlement (a thrown or aborted handler settles as `kind: \'error\'`). Both are direct log-only appends — no turn wraps them, and persistence drains them at ordinary checkpoints. If the handler truncated the matching `command/run` out of the log, `command/done` is skipped so the pair cannot become an orphan. Admission misses (syntax or unknown name) log nothing — they never entered a handler. A `command/run` append failure fails the execution loud; a `command/done` append failure on the handler-failure path is contained so the handler\'s own error stays the reported failure.\n\nAttachment admission is enforced here, not in the composer: attachments sent to a command that does not declare `input.attachments`, an absent attachment store, and an exceeded image limit each settle as an error result before the handler runs. Validation rejection starts no attachment writes; a storage failure can leave only unreachable content-addressed objects for deferred collection.',
         parameters: [{ name: 'agent', description: 'exact receiving agent.' }, { name: 'line', description: 'complete slash-command line.' }, { name: 'submittedAttachments', description: 'encoded images and staged file receipts accompanying the line, in submission order; empty for a plain invocation.' }, { name: 'signal', description: 'cancellation signal owned by the UI request.' }],
         returns: 'the settled execution (result + lifecycle pairing id), or `undefined` when syntax or name does not resolve.',
       },
@@ -1519,6 +1524,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the new Session identity.',
       },
       {
+        signature: '@Remote(\'deleteFrom\') deleteFrom(request: SessionDeleteFromRequest): Promise<SessionDeleteFromValue>',
+        description: 'Permanently remove the selected turn and every later event from a Session.',
+        parameters: [{ name: 'request', description: 'Session identity and visible event sequence in the turn.' }],
+        returns: 'acknowledgement after the durable log has been rewritten.',
+      },
+      {
         signature: '@Remote(\'prompt\') prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue>',
         description: 'Admit one prompt after explicitly resuming its Session.',
         parameters: [{ name: 'request', description: 'Session identity, prompt content, source metadata, and delivery mode.' }, { name: 'signal', description: 'caller cancellation before prompt admission begins.' }],
@@ -1590,8 +1601,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'sessionPersistence',
-    summary: 'Durable append-only session storage addressed through per-session handles.',
-    description: 'Durable append-only session storage addressed through per-session handles.\n\nStorage semantics shared by every backend: events are contiguous from seq 0 and never rewritten; a torn physical tail is never returned to a reader and is truncated by the write path before its first append; reads validate current-format records only and refuse unknown vocabulary fail-closed. `append` persists best-effort; `flush` — per handle or service-wide — is the durability barrier.\n\nVisibility: a created session is observable through `stat`/`list`/`open` in this process from the moment `create` resolves, even while a backend defers physical materialization (a pure optimization); other processes see the session only once it materializes, and a session that never materialized before a crash never existed. `SessionHandle.flush` forces materialization.\n\nFreshness: once an `append` or `flush` resolves, reads started afterwards on this backend instance observe at least that prefix.',
+    summary: 'Durable session storage addressed through per-session handles.',
+    description: 'Durable session storage addressed through per-session handles. Normal writes append to a contiguous log; an explicit destructive tail truncation may rewrite the retained prefix when a backend supports it.\n\nStorage semantics shared by every backend: events are contiguous from seq 0; a torn physical tail is never returned to a reader and is truncated by the write path before its first append; reads validate current-format records only and refuse unknown vocabulary fail-closed. `append` persists best-effort; `flush` — per handle or service-wide — is the durability barrier.\n\nVisibility: a created session is observable through `stat`/`list`/`open` in this process from the moment `create` resolves, even while a backend defers physical materialization (a pure optimization); other processes see the session only once it materializes, and a session that never materialized before a crash never existed. `SessionHandle.flush` forces materialization.\n\nFreshness: once an `append` or `flush` resolves, reads started afterwards on this backend instance observe at least that prefix.',
     methods: [
       {
         signature: 'abstract create(header: SessionHeader, options?: SessionPersistenceCreateOptions): Promise<SessionHandle>',
@@ -1625,6 +1636,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'List every stored session visible to this process, in no promised order.',
         parameters: [{ name: 'options', description: 'optional cancellation.' }],
         returns: 'one snapshot per stored session.',
+      },
+      {
+        signature: 'truncate(_id: SessionId, _length: SessionLogOffset): Promise<void>',
+        description: 'Permanently replace one session\'s durable event log with an earlier prefix. The caller must apply the matching in-memory truncation only after this promise resolves. Backends that do not support rewriting reject loudly.',
+        parameters: [{ name: '_id', description: 'the live session whose durable log is being rewritten.' }, { name: '_length', description: 'number of events to retain.' }],
+        returns: 'resolution after the retained prefix is durable.',
+      },
+      {
+        signature: 'readHistorySuffix( _id: SessionId, _options: SessionHistorySuffixOptions, ): Promise<SessionHistorySuffix | undefined>',
+        description: 'Read a contiguous tail covering one history page without restoring the whole log. Backends that cannot cheaply decode a suffix return `undefined` so callers fall back to a full observation.',
+        parameters: [{ name: '_id', description: 'the stored session to read.' }, { name: '_options', description: 'page bounds and cancellation.' }],
+        returns: 'the suffix, or `undefined` when this backend has no suffix reader or the stored generation must be migrated first.',
       },
     ],
   },
@@ -2758,7 +2781,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'web',
     summary: 'The web access service.',
-    description: 'The web access service. Registered as `ctx.web` (one instance per context).\n\nSelection semantics (resolved at execution time, never order-dependent):\n\n- A configured id that is registered and `available()` → that provider.\n- A configured id not registered → `WEB_PROVIDER_CONFIGURED_MISSING`.\n- A configured id registered but unavailable → `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`.\n- No id configured, exactly one registered usable provider → that provider.\n- No id configured, multiple usable providers → `WEB_PROVIDER_AMBIGUOUS`.\n- No id configured, no usable provider → `WEB_PROVIDER_UNAVAILABLE`.',
+    description: 'The web access service. Registered as `ctx.web` (one instance per context).\n\nSelection semantics (resolved at execution time, never order-dependent):\n\n- A configured id that is registered and `available()` → that provider.\n- A configured id not registered → `WEB_PROVIDER_CONFIGURED_MISSING`.\n- A configured id registered but unavailable → `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`.\n- No id configured, an ordered provider is registered and usable → the first such provider.\n- No id configured, no order matches and exactly one usable provider → that provider.\n- No id configured, no order matches and multiple usable providers → `WEB_PROVIDER_AMBIGUOUS`.\n- No id configured, no usable provider → `WEB_PROVIDER_UNAVAILABLE`.',
     methods: [
       {
         signature: 'registerSearchProvider(provider: WebSearchProvider): () => void',
@@ -3499,6 +3522,54 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'exec', description: 'the execution object that traversed the pipeline.' }, { name: 'result', description: 'a deep-frozen snapshot of the final returned result.' }],
   },
   {
+    name: 'tui/compact',
+    mode: 'serial',
+    signature: '\'tui/compact\'(event: TuiCompactEvent): TuiCompactDecision | Promise<TuiCompactDecision>',
+    summary: 'Fired before manual `/compact` runs.',
+    description: 'Fired before manual `/compact` runs. A listener may abort compaction; the first valid decision wins.',
+    parameters: [{ name: 'event', description: 'the live session about to compact.' }],
+  },
+  {
+    name: 'tui/input',
+    mode: 'serial',
+    signature: '\'tui/input\'(event: TuiInputEvent): TuiInputDecision | Promise<TuiInputDecision>',
+    summary: 'Fired before user-typed text is delivered to the model.',
+    description: 'Fired before user-typed text is delivered to the model. A listener may rewrite, consume, or drop the line; the first valid decision wins.',
+    parameters: [{ name: 'event', description: 'the pending input and its followup/steer delivery.' }],
+  },
+  {
+    name: 'tui/rewind-done',
+    mode: 'serial',
+    signature: '\'tui/rewind-done\'(event: TuiRewindDoneEvent): string | undefined | Promise<string | undefined>',
+    summary: 'Fired after rewind completed and the forked session is live.',
+    description: 'Fired after rewind completed and the forked session is live. The first non-empty string is toasted as the post-rewind summary.',
+    parameters: [{ name: 'event', description: 'the completed rewind, including mode and child session.' }],
+  },
+  {
+    name: 'tui/rewind-prompt',
+    mode: 'serial',
+    signature: '\'tui/rewind-prompt\'(event: TuiRewindPromptEvent): TuiRewindPromptDecision | Promise<TuiRewindPromptDecision>',
+    summary: 'Fired when rewind confirms a message, before the fork.',
+    description: 'Fired when rewind confirms a message, before the fork. A listener may abort or offer extra rewind modes; the first valid decision wins.',
+    parameters: [{ name: 'event', description: 'the picked message text and session seq.' }],
+  },
+  {
+    name: 'tui/session-switch',
+    mode: 'serial',
+    signature: '\'tui/session-switch\'(event: TuiSessionSwitchEvent): TuiSessionSwitchDecision | Promise<TuiSessionSwitchDecision>',
+    summary: 'Fired before `/new` or `/resume` replaces the live session.',
+    description: 'Fired before `/new` or `/resume` replaces the live session. A listener may abort the switch; the first valid decision wins.',
+    parameters: [{ name: 'event', description: 'the pending switch kind and optional resume target.' }],
+  },
+  {
+    name: 'tui/session-switched',
+    mode: 'parallel',
+    signature: '\'tui/session-switched\'(event: TuiSessionSwitchedEvent): void | Promise<void>',
+    summary: 'Notification after the live session changed.',
+    description: 'Notification after the live session changed. Listener errors are logged and never propagated; rebind per-session state here.',
+    parameters: [{ name: 'event', description: 'the session that just went live and its predecessor.' }],
+  },
+  {
     name: 'user-questions/request',
     mode: 'waterfall',
     signature: '\'user-questions/request\'( this: Scoped<Agent>, request: AskUserQuestionRequestEvent, next: () => Promise<AskUserQuestionAnswer>, ): Promise<AskUserQuestionAnswer>',
@@ -4075,14 +4146,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type DeepSeekLlmApiJson = null | boolean | number | string | DeepSeekLlmApiJson[] | {\n    [key: string]: DeepSeekLlmApiJson;\n};',
   },
   {
-    name: 'DiffCallView',
-    declaration: 'export interface DiffCallView {\n    card: \'diff\';\n    title: string;\n    diffs: FileDiff[];\n    locations?: FileLocation[];\n}',
-  },
-  {
-    name: 'DiffResultView',
-    declaration: 'export interface DiffResultView {\n    card: \'diff\';\n    title?: string;\n    diffs: FileDiff[];\n}',
-  },
-  {
     name: 'DirectoryEntry',
     declaration: 'export interface DirectoryEntry {\n    name: string;\n    path: string;\n    hidden: boolean;\n}',
   },
@@ -4215,14 +4278,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface FileBlock {\n    type: \'file\';\n    attachment: FileAttachmentRef;\n}',
   },
   {
-    name: 'FileDiff',
-    declaration: 'export interface FileDiff {\n    path: string;\n    oldText: string | null;\n    newText: string;\n}',
-  },
-  {
-    name: 'FileLocation',
-    declaration: 'export interface FileLocation {\n    path: string;\n    line?: number;\n}',
-  },
-  {
     name: 'FileReferenceCandidate',
     declaration: 'export interface FileReferenceCandidate {\n    path: string;\n    kind: \'file\' | \'directory\';\n}',
   },
@@ -4289,14 +4344,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GenerateOptions',
     declaration: 'export interface GenerateOptions {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n    messages: Message[];\n    system?: string;\n    tools?: ToolSchema[];\n    temperature?: number;\n    maxTokens?: number;\n    stop?: string[];\n    signal?: AbortSignal;\n    sessionId?: Branded<\'SessionId\'>;\n    purpose?: \'compaction\' | \'session-title\';\n}',
-  },
-  {
-    name: 'GenericCallView',
-    declaration: 'export interface GenericCallView {\n    card: \'generic\';\n    title: string;\n    kind?: ToolCallKind;\n    rawInput?: unknown;\n    content?: ContentBlock[];\n    locations?: FileLocation[];\n}',
-  },
-  {
-    name: 'GenericResultView',
-    declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
   },
   {
     name: 'GoalActivation',
@@ -4779,10 +4826,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type PrepareSessionOptions = (CreateSessionOptions & {\n    readonly eventState?: undefined;\n}) | RestoredSessionOptions;',
   },
   {
-    name: 'PresetOption',
-    declaration: 'export interface PresetOption {\n    value: string;\n    name: string;\n    description?: string;\n}',
-  },
-  {
     name: 'PresetSpec',
     declaration: 'export interface PresetSpec {\n    sandbox: SandboxMode;\n    approval: ApprovalPolicy;\n    name?: string;\n    description?: string;\n}',
   },
@@ -4857,14 +4900,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PtcDispatchLog',
     declaration: 'export interface PtcDispatchLog {\n    readonly exec: ToolExecution;\n    readonly agent?: Agent;\n    readonly subCallId: ToolCallId;\n    readonly name: string;\n    readonly isError: boolean;\n    readonly content: ContentBlock[];\n}',
-  },
-  {
-    name: 'ReadFileLine',
-    declaration: 'export interface ReadFileLine {\n    number: number;\n    text: string;\n}',
-  },
-  {
-    name: 'ReadResultView',
-    declaration: 'export interface ReadResultView {\n    card: \'read\';\n    title?: string;\n    path: string;\n    offset: number;\n    lines: ReadFileLine[];\n    totalLines: number;\n    lang?: string;\n    content?: ContentBlock[];\n}',
   },
   {
     name: 'ReasoningBlock',
@@ -5007,26 +5042,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ScopeKey = object;',
   },
   {
-    name: 'SearchFileMatches',
-    declaration: 'export interface SearchFileMatches {\n    path: string;\n    matches: SearchLineMatch[];\n}',
-  },
-  {
-    name: 'SearchLineMatch',
-    declaration: 'export interface SearchLineMatch {\n    lineNumber: number;\n    line: string;\n}',
-  },
-  {
-    name: 'SearchMatchesResultView',
-    declaration: 'export interface SearchMatchesResultView {\n    card: \'search\';\n    shape: \'matches\';\n    title?: string;\n    files: SearchFileMatches[];\n    truncated: boolean;\n    total: number;\n}',
-  },
-  {
-    name: 'SearchPathsResultView',
-    declaration: 'export interface SearchPathsResultView {\n    card: \'search\';\n    shape: \'paths\';\n    title?: string;\n    paths: string[];\n    truncated: boolean;\n    total: number;\n}',
-  },
-  {
-    name: 'SearchResultView',
-    declaration: 'export type SearchResultView = SearchMatchesResultView | SearchPathsResultView;',
-  },
-  {
     name: 'SendTeamMessageRequest',
     declaration: 'export interface SendTeamMessageRequest {\n    readonly target: string;\n    readonly content: ContentBlock[];\n    readonly signal: AbortSignal;\n}',
   },
@@ -5036,7 +5051,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'Session',
-    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
+    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    deletionStart(seq: SessionSeq): SessionLogOffset;\n    truncate(length: SessionLogOffset): void;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
   },
   {
     name: 'SessionAccess',
@@ -5093,6 +5108,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionCreateValue',
     declaration: 'export interface SessionCreateValue {\n    readonly sessionId: SessionId;\n    readonly agentPreset?: string;\n}',
+  },
+  {
+    name: 'SessionDeleteFromRequest',
+    declaration: 'export interface SessionDeleteFromRequest {\n    readonly sessionId: SessionId;\n    readonly fromSeq: number;\n}',
+  },
+  {
+    name: 'SessionDeleteFromValue',
+    declaration: 'export interface SessionDeleteFromValue {\n    readonly accepted: true;\n}',
   },
   {
     name: 'SessionEvent',
@@ -5227,6 +5250,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SessionHistoryRecord = SessionEventEntry;',
   },
   {
+    name: 'SessionHistorySuffix',
+    declaration: 'export interface SessionHistorySuffix {\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    readonly events: SessionEvent[];\n    readonly cursor: SessionSeqCursor;\n}',
+  },
+  {
+    name: 'SessionHistorySuffixOptions',
+    declaration: 'export interface SessionHistorySuffixOptions {\n    readonly maxMessages: number;\n    readonly beforeSeq?: number;\n    readonly throughSeq?: number;\n    readonly signal?: AbortSignal;\n}',
+  },
+  {
     name: 'SessionId',
     declaration: 'export type SessionId = Branded<\'SessionId\'>;',
   },
@@ -5313,10 +5344,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionProjectionBaseline',
     declaration: 'export interface SessionProjectionBaseline {\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
-  },
-  {
-    name: 'SessionProjectionHints',
-    declaration: 'export interface SessionProjectionHints {\n    readonly asOfSeq: number;\n    readonly values: SessionProjectionValues;\n}',
   },
   {
     name: 'SessionProjectionMap',
@@ -5439,10 +5466,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionStorageMetadata {\n    readonly meta: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n}',
   },
   {
-    name: 'SessionSummary',
-    declaration: 'export interface SessionSummary {\n    readonly sessionId: SessionId;\n    readonly updatedAt: number;\n    readonly running: boolean;\n    readonly blank: boolean;\n    readonly parentSessionId?: SessionId;\n    readonly origin?: \'subagent\';\n    readonly cwd?: string;\n    readonly projections?: SessionProjectionHints;\n}',
-  },
-  {
     name: 'SessionSurface',
     declaration: 'export interface SessionSurface {\n    readonly nodes: readonly SessionSeq[];\n    readonly replaceGeneration: number;\n}',
   },
@@ -5547,24 +5570,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SettingsNamespace = Branded<\'SettingsNamespace\'>;',
   },
   {
-    name: 'SettingsNamespaceView',
-    declaration: 'export interface SettingsNamespaceView {\n    ns: string;\n    schema: JsonValue;\n    value: JsonValue;\n    base?: JsonValue;\n    user?: JsonValue;\n    applies: \'live\' | \'restart\';\n    secrets: SettingsSecretView[];\n    revision: number;\n}',
-  },
-  {
-    name: 'SettingsPathOp',
-    declaration: 'export type SettingsPathOp = {\n    op: \'set\';\n    path: readonly string[];\n    value: unknown;\n} | {\n    op: \'unset\';\n    path: readonly string[];\n};',
-  },
-  {
     name: 'SettingsPathOpView',
     declaration: 'export type SettingsPathOpView = {\n    op: \'set\';\n    path: string[];\n    value: JsonValue;\n} | {\n    op: \'unset\';\n    path: string[];\n};',
   },
   {
     name: 'SettingsRegisterOptions',
     declaration: 'export interface SettingsRegisterOptions<T> {\n    base?: Partial<T>;\n    applies?: SettingsApplies;\n    validate?: (value: T) => void;\n}',
-  },
-  {
-    name: 'SettingsSecretView',
-    declaration: 'export interface SettingsSecretView {\n    path: string[];\n    set: boolean;\n}',
   },
   {
     name: 'SettingsSectionHooks',
@@ -5939,20 +5950,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TerminalBackendSpawnSpec extends TerminalSpawnRequest {\n    sessionId: TerminalSessionIdValue;\n    owner: Agent;\n    signal?: AbortSignal;\n}',
   },
   {
-    name: 'TerminalCallView',
-    declaration: 'export interface TerminalCallView {\n    card: \'terminal\';\n    title: string;\n    description?: string;\n    cwd?: string;\n}',
-  },
-  {
     name: 'TerminalReadRequest',
     declaration: 'export interface TerminalReadRequest {\n    offset?: number;\n    count?: number;\n}',
   },
   {
     name: 'TerminalReadResult',
     declaration: 'export interface TerminalReadResult {\n    text: string;\n    totalLines: number;\n    lineBegin: number;\n    lineEnd: number;\n    truncated: boolean;\n}',
-  },
-  {
-    name: 'TerminalResultView',
-    declaration: 'export interface TerminalResultView {\n    card: \'terminal\';\n    title?: string;\n    output?: string;\n    exitCode?: number;\n    signal?: string;\n}',
   },
   {
     name: 'TerminalSendOperation',
@@ -6017,18 +6020,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TokenSurfaceNode',
     declaration: 'export interface TokenSurfaceNode {\n    readonly seq: SessionSeq;\n    readonly tokens: number;\n    readonly heuristicTokens: number;\n}',
-  },
-  {
-    name: 'TokenUsage',
-    declaration: 'export interface TokenUsage {\n    inputTokens: number;\n    outputTokens: number;\n    totalTokens?: number;\n    cacheReadTokens?: number;\n    cacheWriteTokens?: number;\n    reasoningTokens?: number;\n}',
-  },
-  {
-    name: 'ToolCallKind',
-    declaration: 'export type ToolCallKind = \'read\' | \'edit\' | \'delete\' | \'move\' | \'search\' | \'execute\' | \'fetch\' | \'other\';',
-  },
-  {
-    name: 'ToolCallView',
-    declaration: 'export type ToolCallView = GenericCallView | TerminalCallView | DiffCallView;',
   },
   {
     name: 'ToolDefinition',
@@ -6111,10 +6102,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ToolResultMessage extends Message {\n    readonly role: \'user\';\n    readonly content: [\n        ToolResultBlock\n    ];\n    readonly source: ToolMessageSource;\n}',
   },
   {
-    name: 'ToolResultView',
-    declaration: 'export type ToolResultView = GenericResultView | TerminalResultView | DiffResultView | SearchResultView | ReadResultView | WebResultView;',
-  },
-  {
     name: 'ToolRunContext',
     declaration: 'export interface ToolRunContext extends ToolExecution {\n    deferContext(context: UserMessage): void;\n    concludeTurn(): void;\n}',
   },
@@ -6129,6 +6116,54 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ToolSchema',
     declaration: 'export interface ToolSchema {\n    name: string;\n    description: string;\n    parameters: Record<string, unknown>;\n}',
+  },
+  {
+    name: 'TuiCompactDecision',
+    declaration: 'export type TuiCompactDecision = {\n    cancel: true;\n    reason?: string;\n} | undefined;',
+  },
+  {
+    name: 'TuiCompactEvent',
+    declaration: 'export interface TuiCompactEvent extends TuiDecisionContext {\n}',
+  },
+  {
+    name: 'TuiDecisionContext',
+    declaration: 'export interface TuiDecisionContext {\n    sessionId: string;\n    cwd: string;\n}',
+  },
+  {
+    name: 'TuiInputDecision',
+    declaration: 'export type TuiInputDecision = {\n    text: string;\n} | {\n    handled: true;\n    notice?: string;\n} | {\n    cancel: true;\n    reason?: string;\n} | undefined;',
+  },
+  {
+    name: 'TuiInputEvent',
+    declaration: 'export interface TuiInputEvent extends TuiDecisionContext {\n    text: string;\n    delivery: \'followup\' | \'steer\';\n}',
+  },
+  {
+    name: 'TuiRewindDoneEvent',
+    declaration: 'export interface TuiRewindDoneEvent extends TuiDecisionContext {\n    text: string;\n    mode: string | null;\n    boundarySeq: number;\n    sourceSessionId: string;\n    childSessionId: string;\n}',
+  },
+  {
+    name: 'TuiRewindMode',
+    declaration: 'export interface TuiRewindMode {\n    id: string;\n    label: string;\n    description?: string;\n}',
+  },
+  {
+    name: 'TuiRewindPromptDecision',
+    declaration: 'export type TuiRewindPromptDecision = {\n    cancel: true;\n    reason?: string;\n} | {\n    modes: readonly TuiRewindMode[];\n} | undefined;',
+  },
+  {
+    name: 'TuiRewindPromptEvent',
+    declaration: 'export interface TuiRewindPromptEvent extends TuiDecisionContext {\n    text: string;\n    seq: number;\n}',
+  },
+  {
+    name: 'TuiSessionSwitchDecision',
+    declaration: 'export type TuiSessionSwitchDecision = {\n    cancel: true;\n    reason?: string;\n} | undefined;',
+  },
+  {
+    name: 'TuiSessionSwitchedEvent',
+    declaration: 'export interface TuiSessionSwitchedEvent extends TuiDecisionContext {\n    kind: \'new\' | \'resume\' | \'rewind\' | \'fork\';\n    sessionId: string;\n    previousSessionId?: string;\n}',
+  },
+  {
+    name: 'TuiSessionSwitchEvent',
+    declaration: 'export interface TuiSessionSwitchEvent extends TuiDecisionContext {\n    kind: \'new\' | \'resume\';\n    targetSessionId?: string;\n}',
   },
   {
     name: 'TurnEndCancelCause',
@@ -6283,10 +6318,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WebFetchResult {\n    readonly url: string;\n    readonly statusCode: number;\n    readonly body: WebFetchBody;\n    readonly truncated: boolean;\n}',
   },
   {
-    name: 'WebFetchResultView',
-    declaration: 'export interface WebFetchResultView {\n    card: \'web\';\n    kind: \'fetch\';\n    title?: string;\n    url: string;\n    statusCode: number;\n    truncated: boolean;\n}',
-  },
-  {
     name: 'WebhookDeliveryId',
     declaration: 'export type WebhookDeliveryId = Branded<\'WebhookDeliveryId\'>;',
   },
@@ -6319,10 +6350,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WebhookSourceId = Branded<\'WebhookSourceId\'>;',
   },
   {
-    name: 'WebResultView',
-    declaration: 'export type WebResultView = WebSearchResultView | WebFetchResultView;',
-  },
-  {
     name: 'WebRoute',
     declaration: 'export interface WebRoute {\n    kind: WebRouteKind;\n    path: string;\n    handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;\n}',
   },
@@ -6343,16 +6370,8 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WebSearchResult {\n    readonly content?: string;\n    readonly sources: readonly WebSearchSource[];\n    readonly truncated: boolean;\n}',
   },
   {
-    name: 'WebSearchResultView',
-    declaration: 'export interface WebSearchResultView {\n    card: \'web\';\n    kind: \'search\';\n    title?: string;\n    sources: WebSource[];\n    answer?: string;\n    truncated: boolean;\n}',
-  },
-  {
     name: 'WebSearchSource',
     declaration: 'export interface WebSearchSource {\n    readonly url: string;\n    readonly title?: string;\n    readonly snippet?: string;\n    readonly publishedAt?: string;\n}',
-  },
-  {
-    name: 'WebSource',
-    declaration: 'export interface WebSource {\n    url: string;\n    title?: string;\n    snippet?: string;\n    publishedAt?: string;\n}',
   },
   {
     name: 'WebUpgradeRoute',

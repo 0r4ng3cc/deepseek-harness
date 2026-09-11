@@ -1639,10 +1639,7 @@ export async function restartTui(sessionId: string, options: TuiRestartOptions =
     const child = spawn(process.execPath, argv, {
       env: {
         ...process.env,
-        // Dual-write the resume contract (issue #120): the cordis layer of a
-        // still-old TUI build reads only DSH_CC_RESUME_SESSION.
         DSH_TUI_RESUME_SESSION: sessionId,
-        DSH_CC_RESUME_SESSION: sessionId,
         // Marks the replacement so its own boot logs to restart.log without
         // noisy logging on every ordinary launch (/restart only).
         ...(kind === 'restart' ? { [RESTART_CHILD_ENV]: '1' } : {}),

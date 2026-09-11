@@ -1,20 +1,10 @@
 {
-  // dsh-std is vendored with its own compiler base, which marks none of its
-  // packages as composite, so the TUI cannot reference them directly. This
-  // project gives the seven packages the TUI imports a referenceable face:
-  // it extends the vendor base so those sources keep compiling under the
-  // flags they were written against, and lists only that import closure —
-  // the sibling packages (adapter-dsh, ui, …) depend on the harness itself
-  // and are outside it.
   "extends": "./vendor/dsh-std/tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
     "emitDeclarationOnly": true,
     "rootDir": "./vendor/dsh-std/packages",
     "outDir": ".dsh-std-types",
-    // rootDir lives outside this config, so the inferred build-info path lands
-    // in a stray packages/packages/ tree and later runs skip the emit while the
-    // declarations are gone. Pin it beside the output.
     "tsBuildInfoFile": ".dsh-std-types/tsconfig.dsh-std.tsbuildinfo",
     "types": ["node"]
   },

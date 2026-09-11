@@ -35,4 +35,5 @@ Space registry calls from one shared timestamp: 1s before every `npm view`, 5s b
 ## Related
 
 [npm publish must not retry 429 internally](2026-09-10-npm-publish-fetch-retries.md) still owns `--fetch-retries 0`.
+
 [Branch publish pauses on npm new-name quota](../process/2026-09-11-branch-publish-quota-pause.md) owns branch vs tagged exits.

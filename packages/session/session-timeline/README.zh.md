@@ -100,7 +100,7 @@ Host 端监听命令和工具 seam。它从会话事件日志生成纯回退计�
 
 #### Token effect
 
-回退后的第一次请求可能因为省略被撤回历史而减少输入 token。插件自身不会增加提示词指令或工具 schema；实际减少量取决于选中的目标和 provider 请求。
+回退后的第一次请求可能因为省略被撤回历史而减少输入 token。`/rewind` 与 `/undo` 只在宿主侧执行：插件不新增提示词文本或工具 schema，因此实际减少量取决于选中的目标和 provider 请求。
 
 #### KV Cache effect
 

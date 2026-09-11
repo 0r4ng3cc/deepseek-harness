@@ -3,7 +3,7 @@
 
 # DSH Base Composition
 
-The dsh-base bundle patch shared by the web, headless, sdk, and acp profiles; their mode bundles and user layers patch over it, while sdk-minimal owns a separate standalone tree.
+The dsh-base bundle patch shared by the web, headless, sdk, acp, and tui profiles; their mode bundles and user layers patch over it, while sdk-minimal owns a separate standalone tree.
 
 ```mermaid
 flowchart LR
@@ -156,10 +156,16 @@ flowchart LR
   cfg --> plugin_dsh_base_tool_goal
   plugin_dsh_base_tool_ralph["tool-ralph<br/>@x1a0f3n9/dsh-tool-ralph"]
   cfg --> plugin_dsh_base_tool_ralph
+  plugin_dsh_base_tool_str_replace_editor["tool-str-replace-editor<br/>@x1a0f3n9/dsh-tool-str-replace-editor"]
+  cfg --> plugin_dsh_base_tool_str_replace_editor
   plugin_dsh_base_repeat_tool_reminder["repeat-tool-reminder<br/>@x1a0f3n9/dsh-repeat-tool-reminder"]
   cfg --> plugin_dsh_base_repeat_tool_reminder
   plugin_dsh_base_web["web<br/>@x1a0f3n9/dsh-web"]
   cfg --> plugin_dsh_base_web
+  plugin_dsh_base_web_search_perplexity["web-search-perplexity<br/>@x1a0f3n9/dsh-web-search-perplexity"]
+  cfg --> plugin_dsh_base_web_search_perplexity
+  plugin_dsh_base_web_search_exa["web-search-exa<br/>@x1a0f3n9/dsh-web-search-exa"]
+  cfg --> plugin_dsh_base_web_search_exa
   plugin_dsh_base_web_search_deepseek["web-search-deepseek<br/>@x1a0f3n9/dsh-web-search-deepseek"]
   cfg --> plugin_dsh_base_web_search_deepseek
   plugin_dsh_base_web_fetch_http["web-fetch-http<br/>@x1a0f3n9/dsh-web-fetch-http"]
@@ -254,8 +260,11 @@ flowchart LR
 | `tool-todo` | `@x1a0f3n9/dsh-tool-todo` |
 | `tool-goal` | `@x1a0f3n9/dsh-tool-goal` |
 | `tool-ralph` | `@x1a0f3n9/dsh-tool-ralph` |
+| `tool-str-replace-editor` | `@x1a0f3n9/dsh-tool-str-replace-editor` |
 | `repeat-tool-reminder` | `@x1a0f3n9/dsh-repeat-tool-reminder` |
 | `web` | `@x1a0f3n9/dsh-web` |
+| `web-search-perplexity` | `@x1a0f3n9/dsh-web-search-perplexity` |
+| `web-search-exa` | `@x1a0f3n9/dsh-web-search-exa` |
 | `web-search-deepseek` | `@x1a0f3n9/dsh-web-search-deepseek` |
 | `web-fetch-http` | `@x1a0f3n9/dsh-web-fetch-http` |
 | `tool-web` | `@x1a0f3n9/dsh-tool-web` |

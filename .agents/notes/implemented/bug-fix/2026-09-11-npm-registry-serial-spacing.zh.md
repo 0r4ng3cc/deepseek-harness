@@ -35,4 +35,5 @@ Status: implemented
 ## Related
 
 [npm publish 不得在内部重试 429](2026-09-10-npm-publish-fetch-retries.zh.md) 仍然负责 `--fetch-retries 0`。
+
 [分支发布遇到 npm 新包名额度时暂停](../process/2026-09-11-branch-publish-quota-pause.zh.md) 负责分支和带 tag 的退出。

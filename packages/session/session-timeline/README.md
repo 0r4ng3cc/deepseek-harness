@@ -100,7 +100,7 @@ The next agent request is rebuilt from the retained prefix after the selected tu
 
 #### Token effect
 
-The first request after a rewind can use fewer input tokens because withdrawn history is omitted. The plugin adds no prompt instructions or tool schemas of its own; the exact reduction depends on the selected target and the provider request.
+The first request after a rewind can use fewer input tokens because withdrawn history is omitted. `/rewind` and `/undo` are host-only commands: the plugin adds no prompt text or tool schema, so the exact reduction depends on the selected target and the provider request.
 
 #### KV Cache effect
 

@@ -49,7 +49,7 @@ The Session object also carries local submission echoes: `session.beginSubmissio
 |---|---:|---|
 | `nativeOpen` | platform-detected | Whether Session workspace paths can be handed to a native desktop opener |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-api-session-controller) is the exhaustive source for accepted fields and their JSDoc.
+The generated [configuration catalog](../../../docs/config-catalog.md#x1a0f3n9dsh-api-session-controller) is the exhaustive source for accepted fields and their JSDoc.
 
 -----
 

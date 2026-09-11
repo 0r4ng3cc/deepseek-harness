@@ -2,7 +2,7 @@
  * Upstream compatibility contract.
  *
  * The TUI is validated against a set of workspace prerelease lines — the
- * current local primary (0.1.2-alpha.6) plus upstream lines kept in backward
+ * current local primary (0.1.5-alpha.2) plus upstream lines kept in backward
  * compatibility across the 0.1.1 and 0.1.0 release families. Every official
  * package this adapter touches is blessed here; anything else must go
  * through upstream channels or the adapter, never the UI.
@@ -62,7 +62,6 @@ export const UPSTREAM_FRAMEWORK_MAJORS: Record<string, number> = {
 export const UPSTREAM_BLESSED_PACKAGES = [
   '@deepseek-ai/cordis',
   '@deepseek-ai/schemastery',
-  '@x1a0f3n9/dsh-invariants',
   '@x1a0f3n9/dsh-agent',
   '@x1a0f3n9/dsh-agent-instructions',
   '@x1a0f3n9/dsh-agent-presets',

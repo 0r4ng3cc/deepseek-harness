@@ -1,9 +1,7 @@
 /**
- * Data-directory paths for the dsh-tui profile, renamed from `~/.dsh-cc` to
- * `~/.dsh-tui` (issue #120). On first launch the legacy directory is COPIED
- * (not moved) to the new location; afterwards only the new directory is read
- * and written. The one exception is `resume.txt`, which sessionHistory
- * dual-writes for old launchers — see the launcher contract there.
+ * Data-directory paths for the dsh-tui profile. On first launch the legacy
+ * `~/.dsh-cc` directory is COPIED (not moved) to `~/.dsh-tui`; afterwards
+ * only the new directory is read and written.
  *
  * The compiled copy (lib/types/utils/paths.js) is also imported by the bin
  * launcher, mirroring the shellQuote precedent.
@@ -50,9 +48,8 @@ export function migrateLegacyDataDir(
 }
 
 /**
- * Env vars renamed in issue #120 that no longer take effect: old name → new
- * name. `DSH_CC_RESUME_SESSION` is deliberately absent — it remains a valid
- * half of the dual-read launcher contract (see sessionHistory.ts).
+ * Env vars renamed from the pre-embed TUI that no longer take effect:
+ * old name → new name.
  */
 export const RENAMED_ENV: Readonly<Record<string, string>> = {
   CC_TUI_THEME: 'DSH_TUI_THEME',
