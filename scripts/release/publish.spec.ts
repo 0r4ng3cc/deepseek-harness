@@ -9,6 +9,7 @@ import {
   isRateLimited,
   isTransientFailure,
   partitionPublishPasses,
+  rateLimitedPublishAction,
   retryBackoffMs,
 } from './publish.ts'
 
@@ -51,6 +52,11 @@ describe('release publish existing versions', () => {
   it('fails a tagged mismatch and skips a branch-publish mismatch', () => {
     expect(existingPublishedVersionAction('sha512-a', 'sha512-b', '')).toBe('fail')
     expect(existingPublishedVersionAction('sha512-a', 'sha512-b', 'refs/heads/dev-x1a0f3n9')).toBe('skip')
+  })
+
+  it('fails a tagged rate limit and pauses a branch-publish rate limit', () => {
+    expect(rateLimitedPublishAction('')).toBe('fail')
+    expect(rateLimitedPublishAction('refs/heads/dev-x1a0f3n9')).toBe('pause')
   })
 })
 

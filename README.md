@@ -72,13 +72,13 @@ npx --package @x1a0f3n9/dsh xfdsh web
 
 `xfdsh` keeps plugins and profiles in `~/.xfdsh` and never writes `~/.dsh/profiles`. Sessions, workspace groups, attachments, settings, and API keys stay in `~/.dsh`, so both CLIs see the same history. Preinstalled timeline, plugin-market, reasoning-effort, context, better-sidebar, and hindsight entries can be disabled from Settings → Plugins.
 
-Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. The Release workflow also runs twice daily on this branch so a failed npm new-name 429 continues without another push. `master` currently tracks upstream and does not publish this fork. A later stable fork publish uses `@xfcodeai/*`.
+Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. An npm new-name quota pause stops that run without failing it; the next push continues remaining names. `master` currently tracks upstream and does not publish this fork. A later stable fork publish uses `@xfcodeai/*`.
 
 ### Branch convention
 
 - `master` tracks upstream dsh. Do not commit fork features directly onto `master`.
 - Each small change lands on a `features/` or `fix/` branch, then merges `--no-ff` into `dev-x1a0f3n9`.
-- Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. A twice-daily schedule retries a failed npm new-name 429 on this branch. When the fork set is ready, merge `dev-x1a0f3n9` into `master` to publish `@xfcodeai/*`.
+- Pushing `dev-x1a0f3n9` publishes `@x1a0f3n9/*`. When the fork set is ready, merge `dev-x1a0f3n9` into `master` to publish `@xfcodeai/*`.
 
 ## Developer preview
 

@@ -944,10 +944,7 @@ describe('npm release workflows', () => {
       throw new TypeError('release.yml must define on and jobs')
     }
     expect(Object.keys(dshRelease.jobs).sort()).toEqual(['dependencies', 'pack', 'publish'])
-    expect(dshRelease.on).toMatchObject({
-      push: { branches: ['dev-x1a0f3n9'] },
-      schedule: [{ cron: '17 2,14 * * *' }],
-    })
+    expect(dshRelease.on).toMatchObject({ push: { branches: ['dev-x1a0f3n9'] } })
     expect(dshRelease.jobs.publish).toMatchObject({
       if: "github.ref == 'refs/heads/dev-x1a0f3n9'",
       environment: 'npm-publish',
@@ -1008,7 +1005,7 @@ describe('npm release workflows', () => {
     const commands = dependencies.steps.flatMap(step =>
       isRecord(step) && typeof step.run === 'string' ? [step.run] : [])
 
-    expect(Object.keys(workflow.on).sort()).toEqual(['pull_request', 'push', 'schedule', 'workflow_dispatch'])
+    expect(Object.keys(workflow.on).sort()).toEqual(['pull_request', 'push', 'workflow_dispatch'])
     expect(commands).toContain('pnpm run verify-package-dependencies')
     expect(commands).toContain('pnpm run verify-npm-install-layout')
   })
