@@ -72,13 +72,13 @@ npx --package @x1a0f3n9/dsh xfdsh web
 
 `xfdsh` 的插件和 profile 放在 `~/.xfdsh`，不会写 `~/.dsh/profiles`。会话、分组、附件、settings 和 API key 仍在 `~/.dsh`，所以两套 CLI 看到同一份历史。预装的 timeline、插件市场、思考强度、上下文面板、better-sidebar 和 hindsight 可以在 Settings → Plugins 关闭。
 
-推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
+推送 `dev-x1a0f3n9` 会发布 `@x1a0f3n9/*`。这个分支上的 Release workflow 每天还会跑两次，所以 npm 新包名 429 失败后不用再推一次也能继续发。`master` 当前跟踪上游，不发布这个 fork。之后的稳定 fork 发布使用 `@xfcodeai/*`。
 
 ### 分支约定
 
 - `master` 跟踪上游 dsh。fork 功能不要直接提交到 `master`。
 - 每个小功能开 `features/` 或 `fix/` 分支，完成后 `--no-ff` 合并到 `dev-x1a0f3n9`。
-- 推送 `dev-x1a0f3n9` 发布 `@x1a0f3n9/*`；功能够多后再把 `dev-x1a0f3n9` 合进 `master`，发布 `@xfcodeai/*`。
+- 推送 `dev-x1a0f3n9` 发布 `@x1a0f3n9/*`；这个分支每天还会定时重试失败的 npm 新包名 429。功能够多后再把 `dev-x1a0f3n9` 合进 `master`，发布 `@xfcodeai/*`。
 
 ## 开发者预览
 
