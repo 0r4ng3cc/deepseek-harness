@@ -2,12 +2,11 @@
  * Publish one packed release family from the tarballs the pack step produced.
  *
  * Publication is decided per package against the registry, never from a list of
- * "what this release includes": a version the registry lacks is published, a
- * version whose published tarball has the same integrity is skipped, and a
- * version whose published tarball differs fails a tagged release. A branch
- * allow-ref publish skips that mismatch: npm will not replace the version, and
- * failing would strand the rest of the family
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
+ * "what this release includes". Every member is probed first. Names the registry
+ * lacks are published in the original order. Names already present are handled
+ * afterwards: identical tarballs skip, a tagged mismatch fails, and a branch
+ * allow-ref publish skips that mismatch because npm will not replace the version
+ * ([rationale](../../.agents/notes/implemented/bug-fix/2026-09-11-publish-absent-names-first.md)).
  *
  * Skipping on identical integrity is what makes re-running the publish step over
  * the same artifact safe.
@@ -106,8 +105,8 @@ async function spaceRegistryCall(minGapMs: number): Promise<void> {
  * How to treat a version the registry already has.
  *
  * Tagged releases fail on a byte mismatch so a changed payload cannot reuse a
- * version. A branch allow-ref publish skips: npm will not replace the version,
- * and failing would strand unpublished members of the same family.
+ * version. A branch allow-ref publish skips: npm will not replace the version.
+ * Callers run this only after every absent name has been attempted.
  * @param localIntegrity - sha512 of the packed tarball.
  * @param registryIntegrity - `dist.integrity` npm recorded for this version.
  * @param allowRef - `RELEASE_PUBLISH_ALLOW_REF`, or empty for tag-only publishes.
@@ -120,6 +119,27 @@ export function existingPublishedVersionAction(
 ): 'skip' | 'fail' {
   if (localIntegrity === registryIntegrity) return 'skip'
   return allowRef === '' ? 'fail' : 'skip'
+}
+
+/** Registry membership used to split a family into publish passes. */
+export type PublishRegistryKind = 'absent' | 'present'
+
+/**
+ * Split probed members into an absent pass and a present pass.
+ *
+ * Each pass keeps the original order. Absent names consume the new-package
+ * write quota. A present mismatch must not fail before unpublished members
+ * are attempted.
+ * @param members - family members in publish-order, each already probed.
+ * @returns absent names first, then names the registry already has.
+ */
+export function partitionPublishPasses<T extends { readonly kind: PublishRegistryKind }>(
+  members: readonly T[],
+): { readonly absent: readonly T[]; readonly present: readonly T[] } {
+  return {
+    absent: members.filter(member => member.kind === 'absent'),
+    present: members.filter(member => member.kind === 'present'),
+  }
 }
 
 /**
@@ -203,6 +223,16 @@ async function publishTarball(
   }
 }
 
+/** One packed family member after its registry probe. */
+interface ProbedMember {
+  readonly index: number
+  readonly tarball: string
+  readonly name: string
+  readonly version: string
+  readonly kind: PublishRegistryKind
+  readonly registryIntegrity: string | undefined
+}
+
 /** Publish the family named by `--family` from the directory named by `--from`. */
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -221,37 +251,56 @@ async function main(): Promise<void> {
   // release that takes minutes per family.
   const order = readPublishOrder(directory)
   const total = String(order.length)
-  let published = 0
-  let skipped = 0
+  const probed: ProbedMember[] = []
   for (const [index, filename] of order.entries()) {
-    const progress = `[${String(index + 1)}/${total}]`
     const tarball = join(directory, filename)
     const { name, version } = packedIdentity(tarball)
     const state = await registryState(name, version)
-    if (state.kind === 'present') {
-      const local = integrityOf(tarball)
-      const allowRef = process.env.RELEASE_PUBLISH_ALLOW_REF?.trim() ?? ''
-      if (existingPublishedVersionAction(local, state.integrity, allowRef) === 'fail') {
-        throw new Error(
-          `${name}@${version} is already published with different content`
-          + `\n  registry: ${state.integrity}\n  packed:   ${local}`
-          + '\nBump the version, or investigate why the build is not reproducible.',
-        )
-      }
-      if (local !== state.integrity) {
-        console.log(
-          `release publish: ${progress} ${name}@${version} already published with different content, skipping`
-          + `\n  registry: ${state.integrity}\n  packed:   ${local}`,
-        )
-      } else {
-        console.log(`release publish: ${progress} ${name}@${version} already published, skipping`)
-      }
-      skipped += 1
-      continue
-    }
-    await publishTarball(tarball, name, version, family.distTagForVersion(version))
-    console.log(`release publish: ${progress} ${name}@${version} published`)
+    probed.push({
+      index,
+      tarball,
+      name,
+      version,
+      kind: state.kind,
+      registryIntegrity: state.kind === 'present' ? state.integrity : undefined,
+    })
+  }
+
+  const { absent, present } = partitionPublishPasses(probed)
+  let published = 0
+  let skipped = 0
+  const allowRef = process.env.RELEASE_PUBLISH_ALLOW_REF?.trim() ?? ''
+
+  for (const member of absent) {
+    const progress = `[${String(member.index + 1)}/${total}]`
+    await publishTarball(member.tarball, member.name, member.version, family.distTagForVersion(member.version))
+    console.log(`release publish: ${progress} ${member.name}@${member.version} published`)
     published += 1
+  }
+
+  for (const member of present) {
+    const progress = `[${String(member.index + 1)}/${total}]`
+    const local = integrityOf(member.tarball)
+    const registryIntegrity = member.registryIntegrity
+    if (registryIntegrity === undefined) {
+      throw new Error(`release publish: ${member.name}@${member.version} probed present without integrity`)
+    }
+    if (existingPublishedVersionAction(local, registryIntegrity, allowRef) === 'fail') {
+      throw new Error(
+        `${member.name}@${member.version} is already published with different content`
+        + `\n  registry: ${registryIntegrity}\n  packed:   ${local}`
+        + '\nBump the version, or investigate why the build is not reproducible.',
+      )
+    }
+    if (local !== registryIntegrity) {
+      console.log(
+        `release publish: ${progress} ${member.name}@${member.version} already published with different content, skipping`
+        + `\n  registry: ${registryIntegrity}\n  packed:   ${local}`,
+      )
+    } else {
+      console.log(`release publish: ${progress} ${member.name}@${member.version} already published, skipping`)
+    }
+    skipped += 1
   }
 
   console.log(
