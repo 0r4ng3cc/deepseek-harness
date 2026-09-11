@@ -2006,8 +2006,8 @@ importers:
         specifier: 0.19.0-alpha.1
         version: 0.19.0-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@npm+@x1a0f3n9+dsh-agent@workspace)(@deepseek-ai/dsh-llm@npm+@x1a0f3n9+dsh-llm@workspace)(@deepseek-ai/dsh-session@npm+@x1a0f3n9+dsh-session@workspace)(@deepseek-ai/dsh-settings@npm+@x1a0f3n9+dsh-settings@workspace)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       dsh-context:
-        specifier: 0.48.0
-        version: 0.48.0(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-session@npm+@x1a0f3n9+dsh-session@workspace)(@deepseek-ai/dsh-settings@npm+@x1a0f3n9+dsh-settings@workspace)(@deepseek-ai/schemastery@vendor+schemastery)(react@18.3.1)
+        specifier: github:LunFengChen/dsh-context#v0.49.6
+        version: https://codeload.github.com/LunFengChen/dsh-context/tar.gz/789da56f5cc1ba64798f2e8acb3bb564355913fa(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-session@npm+@x1a0f3n9+dsh-session@workspace)(@deepseek-ai/dsh-settings@npm+@x1a0f3n9+dsh-settings@workspace)(@deepseek-ai/schemastery@vendor+schemastery)(react@18.3.1)
       dsh-reasoning-effort:
         specifier: github:HanaAyane/dsh-reasoning-effort#v0.7.1
         version: https://codeload.github.com/HanaAyane/dsh-reasoning-effort/tar.gz/c96471f966db8c6d4283c02e6fa6da358aca521a(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-runtime@0.1.0-rc.8(5df0fdd8cfed3960dcc27eb4916d7181))(react@18.3.1)
@@ -15800,8 +15800,9 @@ packages:
       '@huanlin/dsh-plugin-better-locale':
         optional: true
 
-  dsh-context@0.48.0:
-    resolution: {integrity: sha512-gJnhrZ7DV6ETZvJrMIxZ7kSEZ9pYqZaYotUJCOIfQYAo43TFSTLmaOJFhajdadKPN2IX779i741qJvB/A+jADg==}
+  dsh-context@https://codeload.github.com/LunFengChen/dsh-context/tar.gz/789da56f5cc1ba64798f2e8acb3bb564355913fa:
+    resolution: {gitHosted: true, integrity: sha512-qFYYOc4A62akilxlElrvtGdl932iDAz9eDQCC082KiQtYOMmcelcptOhH1flf9ZeVeGfu6H8inbD7C3lZ1TkSQ==, tarball: https://codeload.github.com/LunFengChen/dsh-context/tar.gz/789da56f5cc1ba64798f2e8acb3bb564355913fa}
+    version: 0.49.6
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.2
@@ -23159,7 +23160,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  dsh-context@0.48.0(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-session@npm+@x1a0f3n9+dsh-session@workspace)(@deepseek-ai/dsh-settings@npm+@x1a0f3n9+dsh-settings@workspace)(@deepseek-ai/schemastery@vendor+schemastery)(react@18.3.1):
+  dsh-context@https://codeload.github.com/LunFengChen/dsh-context/tar.gz/789da56f5cc1ba64798f2e8acb3bb564355913fa(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-session@npm+@x1a0f3n9+dsh-session@workspace)(@deepseek-ai/dsh-settings@npm+@x1a0f3n9+dsh-settings@workspace)(@deepseek-ai/schemastery@vendor+schemastery)(react@18.3.1):
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-session': link:npm:@x1a0f3n9/dsh-session@workspace:*
