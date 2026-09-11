@@ -26,7 +26,7 @@ import { packedIdentity, readPublishOrder } from './tarball.ts'
  * rejection of what was sent. `E409 Failed to save packument` is a packument
  * race from back-to-back writes and may retry. `E429` is npm refusing further
  * writes after a burst, especially new package names; it is classified here so
- * the job can fail with the quota message, not retried. A rejected payload
+ * the run can stop further PUTs, not retried. A rejected payload
  * (`E403` over an existing version, a malformed manifest) never clears on a
  * retry and must surface.
  */
@@ -50,8 +50,31 @@ export const PUBLISH_SPACING_MS = 5_000
  */
 export const REGISTRY_PROBE_SPACING_MS = 1_000
 
-/** How many `E429` answers one tarball may retry before the job fails. */
+/** How many `E429` answers one tarball may retry before this run stops PUTs. */
 export const RATE_LIMIT_ATTEMPTS = 1
+
+/**
+ * npm refused further new-package writes. Remaining absent names wait for a
+ * later run; this error is not retried.
+ */
+export class NpmWriteQuotaError extends Error {
+  override readonly name = 'NpmWriteQuotaError'
+
+  /**
+   * @param packageName - member that received `E429`.
+   * @param packageVersion - version that was being published.
+   * @param output - combined npm output.
+   */
+  constructor(
+    readonly packageName: string,
+    readonly packageVersion: string,
+    output: string,
+  ) {
+    super(
+      `npm publish ${packageName}@${packageVersion} hit the npm new-package write quota (E429).\n${output}`,
+    )
+  }
+}
 
 let lastRegistryCallAt = 0
 
@@ -80,7 +103,7 @@ export function isRateLimited(output: string): boolean {
 
 /**
  * How long to wait before the next publish attempt after a packument race.
- * `E429` never reaches this helper: the job fails on the first rate limit.
+ * `E429` never reaches this helper: the run stops PUTs on the first rate limit.
  * @param output - combined npm output of the failed attempt.
  * @param tries - 1-based attempt that just failed.
  * @returns Backoff in milliseconds.
@@ -119,6 +142,19 @@ export function existingPublishedVersionAction(
 ): 'skip' | 'fail' {
   if (localIntegrity === registryIntegrity) return 'skip'
   return allowRef === '' ? 'fail' : 'skip'
+}
+
+/**
+ * How a branch vs tagged publish treats npm's new-package write quota.
+ *
+ * A tagged release must fail: the version did not finish publishing. A branch
+ * allow-ref publish pauses: already-published names are skipped on the next
+ * push, and GitHub Actions is not a drip queue.
+ * @param allowRef - `RELEASE_PUBLISH_ALLOW_REF`, or empty for tag-only publishes.
+ * @returns `pause` to exit 0 after stopping PUTs, or `fail` to fail the job.
+ */
+export function rateLimitedPublishAction(allowRef: string): 'pause' | 'fail' {
+  return allowRef === '' ? 'fail' : 'pause'
 }
 
 /** Registry membership used to split a family into publish passes. */
@@ -208,11 +244,7 @@ async function publishTarball(
       throw new Error(`npm publish ${name}@${version} failed:\n${output}`)
     }
     if (isRateLimited(output) && tries >= RATE_LIMIT_ATTEMPTS) {
-      throw new Error(
-        `npm publish ${name}@${version} hit the npm new-package write quota (E429). `
-        + 'Re-run this job after the quota window; already-published members are skipped.\n'
-        + output,
-      )
+      throw new NpmWriteQuotaError(name, version, output)
     }
     const backoff = retryBackoffMs(output, tries)
     console.log(
@@ -269,11 +301,27 @@ async function main(): Promise<void> {
   const { absent, present } = partitionPublishPasses(probed)
   let published = 0
   let skipped = 0
+  let quotaPaused = false
   const allowRef = process.env.RELEASE_PUBLISH_ALLOW_REF?.trim() ?? ''
 
   for (const member of absent) {
     const progress = `[${String(member.index + 1)}/${total}]`
-    await publishTarball(member.tarball, member.name, member.version, family.distTagForVersion(member.version))
+    try {
+      await publishTarball(member.tarball, member.name, member.version, family.distTagForVersion(member.version))
+    } catch (error) {
+      if (
+        error instanceof NpmWriteQuotaError
+        && rateLimitedPublishAction(allowRef) === 'pause'
+      ) {
+        console.log(
+          `release publish: ${progress} paused at ${error.packageName}@${error.packageVersion} after npm E429;`
+          + ' remaining absent names wait for a later push',
+        )
+        quotaPaused = true
+        break
+      }
+      throw error
+    }
     console.log(`release publish: ${progress} ${member.name}@${member.version} published`)
     published += 1
   }
@@ -305,7 +353,10 @@ async function main(): Promise<void> {
 
   console.log(
     `release publish: family ${family.id}, ${total} member(s),`
-    + ` ${String(published)} published, ${String(skipped)} already present`,
+    + ` ${String(published)} published, ${String(skipped)} already present`
+    + (quotaPaused
+      ? `, paused on npm new-package write quota (${String(absent.length - published)} absent remaining)`
+      : ''),
   )
 }
 

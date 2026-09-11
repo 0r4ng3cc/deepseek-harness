@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-11-npm-registry-serial-spacing.md
-2026-09-11-npm-registry-serial-spacing.md: 03ed45f4b016a15bda618d07e5e2dd1ce357bab3
-2026-09-11-npm-registry-serial-spacing.zh.md: cb0e6fca2697ee17af32e79336da883cc0f0c0a6
+2026-09-11-npm-registry-serial-spacing.md: 2e2989a31c0ecdbad6d81952ad02e58e12a84193
+2026-09-11-npm-registry-serial-spacing.zh.md: d03c9b8e8bc9570b779c704e523ab1383816d38b
