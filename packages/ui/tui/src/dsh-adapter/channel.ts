@@ -895,6 +895,12 @@ export interface Channel {
   readonly gitBranch: string | undefined
   /** True between turn/start and turn/end — drives the working spinner. */
   readonly working: boolean
+  /**
+   * Live `/compact` overlay. Set for the whole `compactNow` flight; cleared
+   * when it settles or a session switch aborts it. `tokens` is the
+   * conversation usage captured at start (the engine has no live percent).
+   */
+  readonly compacting: { readonly tokens: number } | undefined
   /** True while a user-requested abort (Ctrl+C/Esc interrupt) has not yet
    *  converged — no turn/start or turn/end has retired the aborted turn.
    *  Chat uses it so a repeated Ctrl+C during a stuck abort force-exits. */
@@ -1410,6 +1416,8 @@ export interface ChannelState {
   displayCwd: string
   gitBranch: string | undefined
   working: boolean
+  /** Live `/compact` overlay (see the public Channel type). */
+  compacting: { tokens: number } | undefined
   /** Whether a requested abort is still converging (see the public Channel type). */
   cancelPending: boolean
   spinnerMode: SpinnerMode
@@ -3447,8 +3455,15 @@ export function createChannel(
    * whole. The settle race is capped so a stuck stream can never wedge the
    * session switch itself.
    */
+  const clearCompacting = (): void => {
+    if (state.compacting === undefined) return
+    state.compacting = undefined
+    state.emit()
+  }
+
   const settleManualCompaction = async (): Promise<void> => {
     const active = manualCompaction
+    clearCompacting()
     if (active === undefined) return
     manualCompaction = undefined
     cancelledCompactions.add(active.controller)
@@ -3741,6 +3756,7 @@ export function createChannel(
     displayCwd: workspaceService.describe(options.cwd).description ?? options.cwd,
     gitBranch: undefined,
     working: false,
+    compacting: undefined,
     cancelPending: false,
     spinnerMode: 'requesting',
     responseChars: 0,
@@ -6515,11 +6531,13 @@ export function createChannel(
       const liveTarget = agentsService?.get(SessionId(sessionId))
       if (liveTarget !== undefined) {
         if (await sessionSwitchVetoed('agent-view', sessionId)) return { ok: false, reason: 'cancelled' }
+        await settleManualCompaction()
         return adoptLiveAgent(liveTarget)
       }
       // Not alive in this process: resume it through the persistence seam,
       // keeping the current agent running in the background.
       if (await sessionSwitchVetoed('agent-view', sessionId)) return { ok: false, reason: 'cancelled' }
+      await settleManualCompaction()
       return resumeInto(sessionId, 'agent-view', true)
     },
     async peekAgentSession(sessionId) {
@@ -6560,6 +6578,7 @@ export function createChannel(
         state.notify(t('agentview-dispatch-unavailable'), { color: 'error' })
         return { ok: false }
       }
+      await settleManualCompaction()
       const sessionId = SessionId(randomUUID())
       const composed = await composePreset(ctx, options.configuredPreset ?? readPresetPref())
       const resolved = resolveModelRoute(
@@ -6777,6 +6796,20 @@ export function createChannel(
         state.notify(t('compact-while-working'), { color: 'warning' })
         return
       }
+      if (manualCompaction !== undefined || state.compacting !== undefined) {
+        return
+      }
+      // Overlay + abort hook go up before the plugin veto await so a second
+      // /compact cannot start a parallel flight, and so a session switch
+      // during the veto can cancel before compactNow is armed.
+      const controller = new AbortController()
+      state.compacting = {
+        tokens:
+          state.contextSegments.prompt +
+          state.contextSegments.assistant +
+          state.contextSegments.thinking +
+          state.contextSegments.tools,
+      }
       // Plugin veto point (tui/compact): the first answering plugin may
       // cancel the compaction before anything runs.
       const originAgentId = state.agentId
@@ -6785,76 +6818,62 @@ export function createChannel(
       // agent), so an id comparison has an ABA hole that would hand the new
       // agent to the OLD scope's compaction service.
       const originAgent = agent
-      void (async () => {
-        const decision = await withDecisionPending('tui/compact', dispatchTuiDecision(ctx, 'tui/compact', {
-          sessionId: originAgentId,
-          cwd: state.cwd,
-        }, normalizeCancelDecision))
-        if (decision !== undefined) {
-          state.notify(decision.reason ?? t('ext-action-cancelled'), { color: 'warning', timeoutMs: 4000 })
-          return
-        }
-        // Stale-drop (same rule as tui/input): the await parked us while the
-        // user switched sessions — `compactService` was resolved through the
-        // OLD agent's scope chain, and the mutable `agent` now points at the
-        // new session. Running now would hand the new agent to the old
-        // service (or call into an unloaded one).
-        if (agent !== originAgent) {
-          state.notify(t('ext-compact-stale'), { color: 'warning', timeoutMs: 4000 })
-          return
-        }
-        if (state.working) {
-          // The await above gave a queued turn time to start; compacting
-          // mid-turn now would be the same race the check upfront avoided.
-          state.notify(t('compact-while-working'), { color: 'warning' })
-          return
-        }
-        const controller = new AbortController()
-        state.notify(t('compact-working'))
-        // Register the in-flight transaction so any agent-replacing path
-        // (rewind/resume/new/model switch) can cancel it before snapshotting
-        // the session — see settleManualCompaction. `settled` never rejects:
-        // every branch lands in a notification.
-        const settled = (async () => {
-          try {
-            const result = await compactService.compactNow(agent, controller.signal)
-            state.notify(result ? t('compact-done') : t('compact-nothing'))
-            // Compaction quip rides the next thinking rotation (pi parity).
-            if (result) updateWorkingActivity('compaction', () => { activityTracker.onCompact('done') })
-          } catch (error: unknown) {
-            // ManualCompactionError('persistence'): the replacement checkpoint
-            // is ALREADY committed — only the durability flush failed. The
-            // surface is now the summary, so a plain "failed" toast here sent
-            // users to /model expecting full history and finding only the
-            // summary ("context lost"). Distinguish it, structurally — the
-            // TUI must not import the error class across the adapter seam.
-            if ((error as { code?: unknown }).code === 'persistence') {
-              state.notify(t('compact-flush-failed'), { color: 'warning', timeoutMs: 12000 })
-              return
-            }
-            // A switch-initiated abort rejects compactNow with the abort reason;
-            // the cancellation was already toasted above — a second generic
-            // "failed" toast for the same, expected rejection would mislead.
-            if (cancelledCompactions.has(controller)) return
-            state.notify(
-              t('compact-failed', { err: error instanceof Error ? error.message : String(error) }),
-              { color: 'error', timeoutMs: 8000 },
-            )
+      const settled = (async () => {
+        try {
+          const decision = await withDecisionPending('tui/compact', dispatchTuiDecision(ctx, 'tui/compact', {
+            sessionId: originAgentId,
+            cwd: state.cwd,
+          }, normalizeCancelDecision))
+          if (cancelledCompactions.has(controller) || controller.signal.aborted) return
+          if (decision !== undefined) {
+            state.notify(decision.reason ?? t('ext-action-cancelled'), { color: 'warning', timeoutMs: 4000 })
+            return
           }
-        })()
-        manualCompaction = { controller, settled }
-        void settled.finally(() => {
-          if (manualCompaction?.controller === controller) manualCompaction = undefined
-        })
-      })().catch((error: unknown) => {
-        // Sync throws from compactNow (e.g. runMaintenance rejecting a
-        // non-idle agent right after /resume) reject this IIFE itself;
-        // uncaught, that is an unhandled rejection and Node exits the
-        // whole TUI. Surface it as the same failure notification.
-        state.notify(
-          t('compact-failed', { err: error instanceof Error ? error.message : String(error) }),
-          { color: 'error', timeoutMs: 8000 },
-        )
+          // Stale-drop (same rule as tui/input): the await parked us while the
+          // user switched sessions — `compactService` was resolved through the
+          // OLD agent's scope chain, and the mutable `agent` now points at the
+          // new session. Running now would hand the new agent to the old
+          // service (or call into an unloaded one).
+          if (agent !== originAgent) {
+            state.notify(t('ext-compact-stale'), { color: 'warning', timeoutMs: 4000 })
+            return
+          }
+          if (state.working) {
+            // The await above gave a queued turn time to start; compacting
+            // mid-turn now would be the same race the check upfront avoided.
+            state.notify(t('compact-while-working'), { color: 'warning' })
+            return
+          }
+          const result = await compactService.compactNow(agent, controller.signal)
+          state.notify(result ? t('compact-done') : t('compact-nothing'))
+          // Compaction quip rides the next thinking rotation (pi parity).
+          if (result) updateWorkingActivity('compaction', () => { activityTracker.onCompact('done') })
+        } catch (error: unknown) {
+          // ManualCompactionError('persistence'): the replacement checkpoint
+          // is ALREADY committed — only the durability flush failed. The
+          // surface is now the summary, so a plain "failed" toast here sent
+          // users to /model expecting full history and finding only the
+          // summary ("context lost"). Distinguish it, structurally — the
+          // TUI must not import the error class across the adapter seam.
+          if ((error as { code?: unknown }).code === 'persistence') {
+            state.notify(t('compact-flush-failed'), { color: 'warning', timeoutMs: 12000 })
+            return
+          }
+          // A switch-initiated abort rejects compactNow with the abort reason;
+          // the cancellation was already toasted above — a second generic
+          // "failed" toast for the same, expected rejection would mislead.
+          if (cancelledCompactions.has(controller)) return
+          state.notify(
+            t('compact-failed', { err: error instanceof Error ? error.message : String(error) }),
+            { color: 'error', timeoutMs: 8000 },
+          )
+        }
+      })()
+      manualCompaction = { controller, settled }
+      state.emit()
+      void settled.finally(() => {
+        if (manualCompaction?.controller === controller) manualCompaction = undefined
+        clearCompacting()
       })
     },
     runExternalCommand(name, rawInput) {

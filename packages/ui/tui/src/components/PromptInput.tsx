@@ -33,23 +33,35 @@ import { CommandSuggestions } from './CommandSuggestions.js'
 import { FileSuggestions } from './FileSuggestions.js'
 import { HelpMenu } from './HelpMenu.js'
 import { OverlayAbove } from './OverlayAbove.js'
-import { SuggestionCard, cardContentWidth } from './SuggestionCard.js'
 
 const HISTORY_LIMIT = 50
 
 /**
- * Paste fold (CC-style collapse with a visible preview, no black box):
- * a paste that leaves the input this big folds into a one-line chip
- * showing the line/char count PLUS the first line of content. Hover peeks
- * at the full text (window pinned to the head); clicking the chip — or
- * the `▾` prefix on the first row while expanded — toggles the fold; Esc
- * or any editing key unfolds first. Enter still submits the FULL text:
- * folding never drops data.
+ * Paste fold: a paste that leaves the input this big folds into a one-line
+ * chip `[Pasted text #N +M lines]` (or `+M characters` for a long single
+ * line). The chip never echoes paste content — a stack dump's first line
+ * would otherwise occupy the prompt. Clicking the chip — or the `▾`
+ * prefix on the first row while expanded — toggles the fold. Enter still
+ * submits the FULL text: folding never drops data.
  */
 const FOLD_MIN_LINES = 6
 const FOLD_MIN_CHARS = 600
 const isBigInput = (text: string): boolean =>
   text.split('\n').length >= FOLD_MIN_LINES || text.length >= FOLD_MIN_CHARS
+
+type FoldBlock = { start: number; end: number; pasteIndex?: number }
+
+/** Extra rows in `text` (Claude's `+M lines` is newlines, not the raw line count). */
+function extraNewlineCount(text: string): number {
+  return text.split('\n').length - 1
+}
+
+/** One-line chip; never echoes paste content. */
+function pasteChipLabel(text: string, pasteIndex: number): string {
+  const extra = extraNewlineCount(text)
+  if (extra > 0) return t('input-fold-paste-lines', { n: pasteIndex, count: extra })
+  return t('input-fold-paste-chars', { n: pasteIndex, count: text.length })
+}
 
 /**
  * Editable prompt text must have one stable source-to-screen geometry. The
@@ -399,9 +411,13 @@ export function PromptInput({
    * by a big paste; only an EXPLICIT expand (chip/card click, Esc) or
    * delete removes it — typing NEVER unfolds the block.
    */
-  const [foldBlock, setFoldBlock] = React.useState<{ start: number; end: number } | null>(null)
+  const [foldBlock, setFoldBlock] = React.useState<FoldBlock | null>(null)
   /** Synchronous mirror used by batched keys, controller clear, and mouse drag. */
-  const foldBlockRef = React.useRef<{ start: number; end: number } | null>(null)
+  const foldBlockRef = React.useRef<FoldBlock | null>(null)
+  /** Session-scoped paste-fold counter — Claude's `[Pasted text #N …]`. */
+  const pasteSeqRef = React.useRef(0)
+  /** Survives expand so Esc / ▾ can re-fold the same paste under the same number. */
+  const lastPasteIndexRef = React.useRef<number | undefined>(undefined)
   /**
    * Fullscreen draft editor (`expandEditor`, default Ctrl+Shift+E, or the
    * ⛶ affordance at the end of the input row). While expanded the SAME
@@ -431,23 +447,6 @@ export function PromptInput({
   const expandEnabled = channel.expandEditor ?? true
   /** Latest expanded viewport metrics for the useInput wheel branch. */
   const editorViewportRef = React.useRef<{ maxRows: number; total: number } | null>(null)
-  /** Hover state of the ⤢/⛶ expand affordance in the input row. */
-  /** Pointer over the input box (drives the hover peek card). */
-  const [hovered, setHovered] = React.useState(false)
-  /** 120ms grace so the pointer crossing the input border row from the
-   *  chip up onto the peek card never flickers the card. */
-  const hoverLeaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hoverEnter = React.useCallback(() => {
-    if (hoverLeaveTimerRef.current) {
-      clearTimeout(hoverLeaveTimerRef.current)
-      hoverLeaveTimerRef.current = null
-    }
-    setHovered(true)
-  }, [])
-  const hoverLeave = React.useCallback(() => {
-    if (hoverLeaveTimerRef.current) clearTimeout(hoverLeaveTimerRef.current)
-    hoverLeaveTimerRef.current = setTimeout(() => { setHovered(false) }, 120)
-  }, [])
   const valueRef = React.useRef(value)
   const cursorRef = React.useRef(cursor)
   valueRef.current = value
@@ -540,7 +539,6 @@ export function PromptInput({
   React.useEffect(() => {
     return () => {
       if (escTimerRef.current) clearTimeout(escTimerRef.current)
-      if (hoverLeaveTimerRef.current) clearTimeout(hoverLeaveTimerRef.current)
     }
   }, [])
   const { columns, rows: terminalRows } = useTerminalSize()
@@ -619,7 +617,12 @@ export function PromptInput({
   /** Fold-block state + a synchronous mirror (setInput reads the ref).
    *  Creating a block also drags a caret that sits inside it out to the
    *  block's end (the block is atomic; typing continues after it). */
-  const updateFoldBlock = (block: { start: number; end: number } | null) => {
+  const updateFoldBlock = (block: FoldBlock | null) => {
+    if (block === null) {
+      lastPasteIndexRef.current = foldBlockRef.current?.pasteIndex ?? lastPasteIndexRef.current
+    } else if (block.pasteIndex !== undefined) {
+      lastPasteIndexRef.current = block.pasteIndex
+    }
     foldBlockRef.current = block
     setFoldBlock(block)
     if (block) {
@@ -629,6 +632,13 @@ export function PromptInput({
         setCursor(block.end)
       }
     }
+  }
+
+  const foldSpan = (start: number, end: number, reuse: boolean) => {
+    const pasteIndex = reuse && lastPasteIndexRef.current !== undefined
+      ? lastPasteIndexRef.current
+      : (pasteSeqRef.current += 1)
+    updateFoldBlock({ start, end, pasteIndex })
   }
 
   const setInput = (next: string, cursorOffset = next.length) => {
@@ -665,10 +675,13 @@ export function PromptInput({
       start = Math.max(0, Math.min(start, next.length))
       end = Math.max(start, Math.min(end, next.length))
       if (start >= end) updateFoldBlock(null)
-      else if (start !== block.start || end !== block.end) updateFoldBlock({ start, end })
+      else if (start !== block.start || end !== block.end) {
+        updateFoldBlock({ start, end, pasteIndex: block.pasteIndex })
+      }
     }
     // The synchronous mirrors are what batch-dispatched events (one stdin
     // read → several keys, no render in between) read on their next turn.
+    if (next.length === 0) lastPasteIndexRef.current = undefined
     valueRef.current = next
     cursorRef.current = offset
     // Every real edit drops the selection: its offsets describe the OLD
@@ -1100,11 +1113,11 @@ export function PromptInput({
     if (event.isPasted && input.length > 0) {
       const text = sanitizeEditableText(input.replace(/\r\n/g, '\n').replace(/\r/g, '\n'))
       const at = insertAtCaret(text)
-      // A big paste becomes a CC-style fold block right away (hover peeks
-      // at it); an existing block is replaced by the new paste's span.
+      // A big paste becomes a CC-style fold block right away; an existing
+      // block is replaced by the new paste's span.
       // The EXPANDED editor never folds — pasting there is plain text
       // (fold semantics would clamp the caret out of the pasted span).
-      if (!expandedRef.current && isBigInput(text)) updateFoldBlock({ start: at, end: at + text.length })
+      if (!expandedRef.current && isBigInput(text)) foldSpan(at, at + text.length, false)
       return
     }
 
@@ -1157,7 +1170,7 @@ export function PromptInput({
           const { at } = insertClipboardAtCaret(text)
           // Same fold as bracketed paste — but never inside the expanded
           // editor (plain text there, see the isPasted branch).
-          if (!expandedRef.current && isBigInput(text)) updateFoldBlock({ start: at, end: at + text.length })
+          if (!expandedRef.current && isBigInput(text)) foldSpan(at, at + text.length, false)
         })
         .catch(() => {
           channel.notify(t('input-clipboard-read-failed'), { color: 'warning' })
@@ -1870,7 +1883,7 @@ export function PromptInput({
       // stays reachable via the block-delete Backspace or Ctrl+C).
       if (value.length > 0) {
         if (isBigInput(value)) {
-          updateFoldBlock({ start: 0, end: value.length })
+          foldSpan(0, value.length, true)
           setSelectedCommand(0)
           setFileSelected(0)
           return
@@ -1977,15 +1990,11 @@ export function PromptInput({
   const caretCharCol = caretPlaced.charCol
   const caretVisualCol = caretPlaced.visualCol
 
-  // Fold stats describe the BLOCK (or the whole input when expanded and
-  // the ▾ prefix offers a manual whole-input fold). The chip shows the
-  // block's own line/char count + first-line preview — the preview text
-  // around it is unaffected.
+  // Fold stats describe the BLOCK (or the whole input when the ▾ prefix
+  // offers a manual whole-input fold). The chip itself never echoes
+  // paste content — Claude's `[Pasted text #N +M lines]` token.
   const big = isBigInput(foldText)
-  const stats = big
-    ? t('input-fold-stats', { lines: foldText.split('\n').length, chars: foldText.length })
-    : ''
-  const peekOpen = block !== null && hovered && !selectionActive
+  const stats = t('input-fold-stats', { lines: foldText.split('\n').length, chars: foldText.length })
 
   // 展开态的编辑区行高预算：圆角边框 2 + 标题行 1 + 状态行 1 + 按钮行 1。
   const editorMaxRows = Math.max(1, terminalRows - EDITOR_CHROME_ROWS)
@@ -2028,20 +2037,13 @@ export function PromptInput({
     editorViewportRef.current = { maxRows: editorMaxRows, total: visualLines.length }
   }
 
-  // Folded chip content: block stats + first-line preview + hover hint,
-  // all pre-truncated to the input width (the row is one line, always).
-  const foldBadge = `▸ ${stats}`
-  const foldHint = t('input-fold-hover')
-  const foldPreviewWidth =
-    inputWidth - stringWidth(foldBadge) - stringWidth(` · ${foldHint}`) - 6
-  const foldPreview =
-    foldPreviewWidth >= 8
-      ? truncateToWidth(foldText.split('\n')[0] ?? '', foldPreviewWidth)
-      : ''
+  const foldChip = block
+    ? truncateToWidth(pasteChipLabel(foldText, block.pasteIndex ?? lastPasteIndexRef.current ?? 1), inputWidth)
+    : ''
 
-  // Expanded-state fold affordance: a `▾` prefix at the start of the FIRST
-  // row (only while the window is at the top and no block exists); its
-  // cells fold the whole input into a block again on click.
+  // Fold affordance: a `▾` prefix at the start of the FIRST row (only
+  // while the window is at the top and no block exists); its cells fold
+  // the whole input into a block again on click.
   const prefixLabel = `▾ ${stats} · `
   const prefixCols =
     !block && !expanded && big && windowStart === 0 ? stringWidth(prefixLabel) : 0
@@ -2112,8 +2114,8 @@ export function PromptInput({
   const rendered = visibleLines.map((line, index) => {
     const absoluteLine = windowStart + index
     if (block && absoluteLine === chipRow) {
-      // The fold block's atomic chip row: click expands it; hover pops the
-      // peek card. The row is one line no matter how big the block is.
+      // The fold block's atomic chip row: click expands it. The row is
+      // one line no matter how big the block is.
       return (
         <Box
           key={`fold-${absoluteLine}`}
@@ -2122,13 +2124,8 @@ export function PromptInput({
             event.stopImmediatePropagation()
             updateFoldBlock(null)
           }}
-          onMouseEnter={hoverEnter}
-          onMouseLeave={hoverLeave}
         >
-          <Text dimColor>{foldBadge}</Text>
-          {foldPreview !== '' && <Text dimColor> · </Text>}
-          {foldPreview !== '' && <Text wrap="truncate-end">{foldPreview}</Text>}
-          <Text dimColor>{` · ${foldHint}`}</Text>
+          <Text dimColor>{foldChip}</Text>
         </Box>
       )
     }
@@ -2201,20 +2198,6 @@ export function PromptInput({
       )
     })
     : null
-
-  // Peek card content: the BLOCK's text wrapped to the card's inner width,
-  // capped at PEEK_MAX_ROWS visual rows (a preview — click to expand and
-  // edit the real input). The footer reports the clipped remainder.
-  const PEEK_MAX_ROWS = 10
-  const peekVisualLines: string[] = []
-  for (const line of foldText.split('\n')) {
-    for (const row of wrapToWidth(line, cardContentWidth(columns))) {
-      if (peekVisualLines.length >= PEEK_MAX_ROWS) break
-      peekVisualLines.push(row)
-    }
-    if (peekVisualLines.length >= PEEK_MAX_ROWS) break
-  }
-  const peekClipped = peekVisualLines.length >= PEEK_MAX_ROWS
 
   // Composer height shrink: clearing multi-line text (Enter/Esc/Ctrl+C/
   // Backspace) collapses the input area within one commit, shifting the
@@ -2370,7 +2353,7 @@ export function PromptInput({
       clearSelection()
       dragAnchorRef.current = null
       setCursor(value.length)
-      updateFoldBlock({ start: 0, end: value.length })
+      foldSpan(0, value.length, true)
       return
     }
     const col =
@@ -2445,7 +2428,7 @@ export function PromptInput({
   // 全屏编辑器接管，内联浮层全部撤下。
   const floatersOpen =
     !expanded &&
-    (helpOpen || channel.pending.length > 0 || fileOverlayOpen || overlayOpen || peekOpen)
+    (helpOpen || channel.pending.length > 0 || fileOverlayOpen || overlayOpen)
   // 顶边框右侧的会话名标签（CC 风格 chip）：色随强调色；超宽截断，宽度
   // 随终端列数伸缩但不超过 28 显示单元。默认关闭——`/settings` 的
   // 「会话名标签」开关（dsh-tui.promptSessionLabel）开启后显示。
@@ -2686,33 +2669,6 @@ export function PromptInput({
                 setSelectedCommand(i => Math.max(0, Math.min(suggestions.length - 1, i + step)))
               }}
             />
-          )}
-          {peekOpen && (
-          // 悬停预览卡片：只读展示折叠内容的头部（输入框自身保持一行，
-          // 布局零跳动）。点击任一行 = 固定展开进入真实输入框编辑；悬停
-          // 期间鼠标直接打字同样先展开（见折叠态按键分支）。卡片自身的
-          // enter/leave 维持 hovered，防止 chip→卡片过渡闪烁。
-            <Box onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
-              <SuggestionCard
-                title={stats}
-                columns={columns}
-                accent={promptAccent}
-                footer={
-                  peekClipped
-                    ? t('input-fold-peek-footer', { lines: foldText.split('\n').length })
-                    : undefined
-                }
-                rows={peekVisualLines.map((row, index) => (
-                  <Text key={index} wrap="truncate-end">
-                    {row}
-                  </Text>
-                ))}
-                onRowPick={() => {
-                  updateFoldBlock(null)
-                  setHovered(false)
-                }}
-              />
-            </Box>
           )}
         </OverlayAbove>
       )}

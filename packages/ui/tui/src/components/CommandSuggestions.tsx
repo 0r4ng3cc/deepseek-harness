@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Text } from '../ui.js'
 import { stringWidth } from '../ink/stringWidth.js'
-import { truncateToWidth } from '../ink/truncateToWidth.js'
+import { foldCommandName, truncateToWidth } from '../ink/truncateToWidth.js'
 import type { LocalCommand } from '../commands.js'
 import { localizedDescription } from '../commands.js'
 import type { WheelEvent } from '../ink/events/wheel-event.js'
@@ -82,8 +82,9 @@ export function CommandSuggestions({
           stringWidth(rawDescription) > descriptionWidth
             ? truncateToWidth(rawDescription, Math.max(0, descriptionWidth - 1)) + '…'
             : rawDescription
-        const parts = splitQueryMatch(command.name, queryToken)
-        const padAfter = Math.max(0, nameWidth - stringWidth(command.name))
+        const displayName = foldCommandName(command.name, nameWidth)
+        const parts = splitQueryMatch(displayName, queryToken)
+        const padAfter = Math.max(0, nameWidth - stringWidth(displayName))
         return (
           <Box
             key={command.name}
@@ -99,7 +100,7 @@ export function CommandSuggestions({
             <Text wrap="truncate">
               {'  '}
               {isSelected ? (
-                <Text color="suggestion">{`${command.name}${' '.repeat(padAfter)}`}</Text>
+                <Text color="suggestion">{`${displayName}${' '.repeat(padAfter)}`}</Text>
               ) : parts ? (
                 // 嵌套 Text 会继承父级 dim（本 fork 的 dimColor 是颜色替换，
                 // dim={false} 盖不掉），故高亮段必须与 dim 段平铺为兄弟。
@@ -109,7 +110,7 @@ export function CommandSuggestions({
                   <Text dimColor>{`${parts.after}${' '.repeat(padAfter)}`}</Text>
                 </>
               ) : (
-                <Text dimColor>{`${command.name}${' '.repeat(padAfter)}`}</Text>
+                <Text dimColor>{`${displayName}${' '.repeat(padAfter)}`}</Text>
               )}
               {tagText ? <Text dimColor>{tagText}</Text> : null}
               <Text color={isSelected ? 'suggestion' : undefined} dimColor={!isSelected}>

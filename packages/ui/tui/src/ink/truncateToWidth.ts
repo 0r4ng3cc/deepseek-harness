@@ -16,3 +16,13 @@ export function truncateToWidth(text: string, maxWidth: number): string {
   }
   return out
 }
+
+/**
+ * 斜杠菜单名字列的显示文本：超过列宽时尾部收成省略号，避免把说明挤出
+ * 行（Claude 长命令名同样收进 40% 名字列）。
+ */
+export function foldCommandName(name: string, nameWidth: number): string {
+  if (nameWidth <= 0) return ''
+  if (stringWidth(name) <= nameWidth) return name
+  return truncateToWidth(name, Math.max(0, nameWidth - 1)) + '…'
+}

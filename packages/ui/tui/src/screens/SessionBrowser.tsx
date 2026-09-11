@@ -331,7 +331,7 @@ export function SessionBrowser({
   // selectable row rather than to nothing, so the list is never unusable.
   const focus = React.useMemo(() => {
     const byId = view.rows.findIndex(row => row.kind === 'session' && row.session.id === focusId)
-    return byId >= 0 ? byId : Math.max(0, seekSelectable(view.rows, 0, 1))
+    return byId >= 0 ? byId : seekSelectable(view.rows, 0, 1)
   }, [view.rows, focusId])
 
   const focused = sessionAt(view.rows, focus)

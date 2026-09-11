@@ -375,7 +375,7 @@ export function moveSelection(rows: readonly BrowserRow[], current: number, step
 /** The session under the cursor, when the cursor is on one. */
 export function sessionAt(rows: readonly BrowserRow[], index: number): SessionSummary | undefined {
   const row = rows[index]
-  return row.kind === 'session' ? row.session : undefined
+  return row?.kind === 'session' ? row.session : undefined
 }
 
 /** Lines one row occupies: a session shows a title and a metadata line. */
@@ -408,7 +408,7 @@ export function anchorTop(
   budget: number,
   previous: number,
 ): number {
-  if (rows.length === 0 || budget <= 0) return 0
+  if (rows.length === 0 || budget <= 0 || focus < 0 || focus >= rows.length) return 0
   let top = Math.min(Math.max(0, previous), Math.max(0, rows.length - 1))
   if (focus < top) top = focus
   // Scroll down only until the focused row's last line fits.

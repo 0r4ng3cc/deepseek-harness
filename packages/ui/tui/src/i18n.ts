@@ -214,7 +214,8 @@ const dict = {
   'model-unknown': { zh: '未知模型「{{spec}}」· /model 查看全部', en: 'Unknown model "{{spec}}" · /model to view all' },
   'compact-unavailable': { zh: '压缩不可用——当前 leaf 没有压缩服务', en: 'Compaction unavailable · no compaction service in this leaf' },
   'compact-while-working': { zh: '回合运行中，无法压缩会话', en: 'Cannot compact while a turn is running' },
-  'compact-working': { zh: '正在压缩会话…', en: 'Compacting conversation…' },
+  'compact-progress-title': { zh: '正在压缩会话', en: 'Compacting conversation' },
+  'compact-progress-tokens': { zh: '↓ {{tokens}} tokens', en: '↓ {{tokens}} tokens' },
   'compact-done': { zh: '会话已压缩', en: 'Conversation compacted' },
   'compact-nothing': { zh: '没有可压缩的内容', en: 'Nothing to compact' },
   'compact-failed': { zh: '压缩失败 · {{err}}', en: 'Compaction failed · {{err}}' },
@@ -549,8 +550,14 @@ const dict = {
   'input-pending-queue-label': { zh: '排队 · 回合结束后送达', en: 'Queued · delivered after the turn' },
   'input-pending-actions-hint': { zh: '撤回 · Esc 打断并立即发送', en: 'Retract · Esc interrupts and sends immediately' },
   'input-fold-stats': { zh: '{{lines}} 行 · {{chars}} 字', en: '{{lines}} lines · {{chars}} chars' },
-  'input-fold-hover': { zh: '悬停查看', en: 'hover to peek' },
-  'input-fold-peek-footer': { zh: '… 共 {{lines}} 行 · 点击展开编辑', en: '… {{lines}} lines total · click to edit' },
+  'input-fold-paste-lines': {
+    zh: '[粘贴文本 #{{n}} +{{count}} 行]',
+    en: { one: '[Pasted text #{{n}} +{{count}} line]', other: '[Pasted text #{{n}} +{{count}} lines]' },
+  },
+  'input-fold-paste-chars': {
+    zh: '[粘贴文本 #{{n}} +{{count}} 字]',
+    en: { one: '[Pasted text #{{n}} +{{count}} character]', other: '[Pasted text #{{n}} +{{count}} characters]' },
+  },
 
   // ── 全屏草稿编辑（PromptInput 展开态 + PromptEditor Layer）─────────
   'input-expand-editor-title': { zh: '草稿编辑', en: 'Draft editor' },
@@ -903,6 +910,27 @@ const dict = {
   'thinking-disabled-desc': { zh: '隐藏思考过程；模型仍会照常思考', en: 'Hide reasoning; the model will still think as usual' },
   'thinking-label': { zh: '思考', en: 'Thinking' },
   'thinking-thought-for': { zh: '思考了 {{duration}}', en: 'Thought for {{duration}}' },
+  'activity-searched': {
+    zh: '搜索了 {{count}} 次',
+    en: { one: 'searched for {{count}} pattern', other: 'searched for {{count}} patterns' },
+  },
+  'activity-read': {
+    zh: '读了 {{count}} 个文件',
+    en: { one: 'read {{count}} file', other: 'read {{count}} files' },
+  },
+  'activity-edited': {
+    zh: '编辑了 {{count}} 个文件',
+    en: { one: 'edited {{count}} file', other: 'edited {{count}} files' },
+  },
+  'activity-ran': {
+    zh: '跑了 {{count}} 条命令',
+    en: { one: 'ran {{count}} shell command', other: 'ran {{count}} shell commands' },
+  },
+  'activity-used': {
+    zh: '用了 {{count}} 个工具',
+    en: { one: 'used {{count}} tool', other: 'used {{count}} tools' },
+  },
+  'activity-join': { zh: '，', en: ', ' },
 
   // ── components/HistorySearchDialog.tsx ──────────────────────────────
   'history-search-title': { zh: '搜索历史', en: 'Search history' },
@@ -1161,6 +1189,7 @@ const dict = {
   'cmd-desc-quit': { zh: '退出 dsh' },
   'cmd-desc-q': { zh: '退出 dsh' },
   'cmd-desc-rewind': { zh: '回退会话到历史消息' },
+  'cmd-desc-undo': { zh: '回退会话到历史消息' },
   'cmd-desc-tree': { zh: '浏览会话分叉树（回退/分叉/切分支）' },
   'cmd-desc-fork': { zh: '把当前会话分叉为可恢复副本' },
   'cmd-desc-export': { zh: '导出会话为 Markdown 文件' },

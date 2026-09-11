@@ -10,6 +10,8 @@ import { AssistantTextMessage } from './messages/AssistantTextMessage.js'
 import { AssistantThinkingMessage } from './messages/AssistantThinkingMessage.js'
 import { TurnSummaryMessage } from './messages/TurnSummaryMessage.js'
 import { AssistantToolUseMessage } from './messages/AssistantToolUseMessage.js'
+import { ActivitySummaryMessage } from './messages/ActivitySummaryMessage.js'
+import { collapseActivityRows, formatActivitySummary, type ActivityCounts } from './activitySummary.js'
 import { SubagentMessage } from './Chat/SubagentMessage.js'
 import { JobCard } from './Chat/JobCard.js'
 import { isMinimalMode } from '../minimalMode.js'
@@ -33,7 +35,9 @@ import { useRevealVersion } from '../hooks/useRevealVersion.js'
  * on a grey bubble with a `❯` pointer, assistant text with a `●` bullet and
  * markdown, thinking as a live three-line/full toggle then a settled
  * `🐳 Thinking (ctrl+o to expand)` row, and tool calls as status-dot cards.
- * Completed turns add a dim `✻ Cogitated for … · done …` summary row.
+ * Settled thinking+tool runs collapse to one italic activity line until
+ * click or Ctrl+O restores the cards. Completed turns add a dim
+ * `✻ Cogitated for … · done …` summary row.
  * `expanded` (Ctrl+O) shows full reasoning + full tool
  * args/results; `expandedRows` (message-selection mode, Enter) expands single
  * rows; `selectedId` highlights the selected row.
@@ -69,6 +73,16 @@ const DEFAULT_HEADER_LINES = 12
  *  toggle callback's deps never churn. */
 const NO_STREAM_VIEW_TOGGLED: ReadonlySet<number> = new Set()
 const NOOP_TOGGLE_STREAM_VIEW = (_rowId: number): void => {}
+
+/** 0 = 非活动行，1 = 流式/运行中，2 = 已落定，3 = 已落定且带思考时长。原地 settle 对 rows 身份不可见。 */
+function activityBit(row: ChatRow): number {
+  if (row.kind === 'reasoning') {
+    if (row.streaming === true) return 1
+    return row.durationMs !== undefined && row.durationMs >= 1000 ? 3 : 2
+  }
+  if (row.kind !== 'tool') return 0
+  return row.tool?.status === 'running' ? 1 : 2
+}
 
 // --- smooth-streaming display text -----------------------------------------
 // Render-phase reads of the shared reveal cursors (see smoothReveal.ts for
@@ -128,6 +142,8 @@ function signatureParts(
   failureHintRowId: number | null | undefined,
   failureHint: string | undefined,
   displayTextLen: number,
+  summarized: boolean,
+  activityAnchor: boolean,
 ): Array<string | number | boolean> {
   signatureScratch.length = 0
   // Universal height inputs: width reflows every row; kind switches height
@@ -135,6 +151,10 @@ function signatureParts(
   // REVEALED length while smooth streaming is painting (the height follows
   // what is on screen, not what has arrived).
   signatureScratch.push(columns, row.kind, displayTextLen)
+  if (summarized) {
+    signatureScratch.push('activity')
+    return signatureScratch
+  }
   switch (row.kind) {
     case 'assistant':
       // Streaming vs settled swaps renderers; Ctrl+O/per-row expand adds the
@@ -149,6 +169,7 @@ function signatureParts(
         row.streaming === true,
         expanded,
         expandedRows.has(row.id),
+        activityAnchor,
         streamViewToggledRows.has(row.id),
         thinkingVisible,
         thinkingFold,
@@ -330,79 +351,112 @@ export function MessageList({
   // is a live in-place array (identity changes only on rewind/new session),
   // showAll/thinkingVisible are React state. Rows APPENDED in place keep the
   // identity — the cache must key on rows.length too (streaming appends).
+  const keepKey = `${selectedId ?? ''}:${forceMountRowId ?? ''}:${failureHintRowId ?? ''}`
   const visibleRowsCacheRef = React.useRef<{
     rows: readonly ChatRow[]
     rowsLength: number
     showAll: boolean
     thinkingVisible: boolean
+    filtered: readonly ChatRow[]
+    expanded: boolean
+    expandedRows: ReadonlySet<number>
+    keepKey: string
     out: readonly ChatRow[]
     margins: ReadonlyMap<number, boolean>
-    /** Per-row `streaming === true` bits. The settle flip (streaming cleared
-     * in place, rows identity/length unchanged) changes empty-assistant
-     * filtering below, so the cache must rebuild on any bit change. */
+    summaries: ReadonlyMap<number, ActivityCounts>
+    anchors: ReadonlySet<number>
+    /** Per-row settle bits. In-place streaming/tool-status writes are
+     * invisible to the rows-identity/length key, but they change empty-
+     * assistant filtering and activity-summary collapse. */
     streamBits: Uint8Array
   } | null>(null)
   /** Generation counter for the visibleRows cache (timeline memo key). */
   const visGenRef = React.useRef(0)
   const visibleCache = visibleRowsCacheRef.current
-  // Streaming-bit fingerprint: in-place `streaming = false` writes (turn
-  // settle) are invisible to the rows-identity/length key above, but an
-  // assistant row that settles with EMPTY text crosses the empty-assistant
-  // filter boundary (visible-while-streaming → filtered-when-settled).
-  // Allocation-free scan; rebuild only when a bit actually flipped.
+  // Streaming/activity fingerprint: in-place `streaming = false` and
+  // tool.status writes (turn settle) are invisible to the rows-identity/
+  // length key above, but they change empty-assistant filtering and which
+  // activity clusters can collapse. Allocation-free scan; rebuild only
+  // when a bit actually flipped.
   let streamBitsSame = visibleCache !== null && visibleCache.streamBits.length === rows.length
   if (streamBitsSame && visibleCache !== null) {
     const bits = visibleCache.streamBits
     for (let i = 0; i < rows.length; i++) {
-      if (bits[i] !== (rows[i].streaming === true ? 1 : 0)) { streamBitsSame = false; break }
+      const bit = rows[i].kind === 'assistant'
+        ? (rows[i].streaming === true ? 1 : 0)
+        : activityBit(rows[i])
+      if (bits[i] !== bit) { streamBitsSame = false; break }
     }
   }
-  if (
+  const showAllEffective = showAll || hiddenCount <= 0
+  const filterStale =
     visibleCache === null ||
     visibleCache.rows !== rows ||
     visibleCache.rowsLength !== rows.length ||
-    visibleCache.showAll !== (showAll || hiddenCount <= 0) ||
+    visibleCache.showAll !== showAllEffective ||
     visibleCache.thinkingVisible !== thinkingVisible ||
     !streamBitsSame
-  ) {
-    const sliced = showAll || hiddenCount <= 0
-      ? rows
-      : rows.slice(hiddenCount)
-    // Empty settled assistant rows (PR #383's duplicate-dot bug): when the
-    // model calls a tool without producing text, the assistant/message event
-    // carries empty text — rendered as a lone `●` bullet dangling above the
-    // tool card. Filter them BEFORE virtualization (not by rendering null in
-    // TranscriptRow): a null row never mounts, never enters paintedOnce, and
-    // would stall the main-screen history-paint batch loop forever. A row
-    // that is STILL STREAMING keeps its place even with empty text — the
-    // live dot is the "model is answering" affordance and content may yet
-    // arrive.
-    // The emptiness test must match what RENDERING shows: the `⏵`
-    // self-narration line (dsh-working-activity narrate contract) is
-    // stripped at render (stripNarration below), so a narration-only step —
-    // thinking, `⏵ …` line, straight to a tool call — has non-empty raw
-    // text but RENDERS as that same lone `●`. Test the stripped text, or
-    // the raw-text check lets the dot through forever.
-    const rendersEmptyAssistant = (row: ChatRow): boolean =>
-      row.kind === 'assistant' && row.streaming !== true && stripNarration(row.text ?? '').trim() === ''
-    let hasEmptyAssistant = false
-    for (const row of sliced) {
-      if (rendersEmptyAssistant(row)) {
-        hasEmptyAssistant = true
-        break
+  const collapseStale =
+    filterStale ||
+    visibleCache === null ||
+    visibleCache.expanded !== expanded ||
+    visibleCache.expandedRows !== expandedRows ||
+    visibleCache.keepKey !== keepKey
+  if (filterStale || collapseStale) {
+    let filtered: readonly ChatRow[]
+    let streamBits: Uint8Array
+    if (filterStale || visibleCache === null) {
+      const sliced = showAllEffective ? rows : rows.slice(hiddenCount)
+      // Empty settled assistant rows (PR #383's duplicate-dot bug): when the
+      // model calls a tool without producing text, the assistant/message event
+      // carries empty text — rendered as a lone `●` bullet dangling above the
+      // tool card. Filter them BEFORE virtualization (not by rendering null in
+      // TranscriptRow): a null row never mounts, never enters paintedOnce, and
+      // would stall the main-screen history-paint batch loop forever. A row
+      // that is STILL STREAMING keeps its place even with empty text — the
+      // live dot is the "model is answering" affordance and content may yet
+      // arrive.
+      // The emptiness test must match what RENDERING shows: the `⏵`
+      // self-narration line (dsh-working-activity narrate contract) is
+      // stripped at render (stripNarration below), so a narration-only step —
+      // thinking, `⏵ …` line, straight to a tool call — has non-empty raw
+      // text but RENDERS as that same lone `●`. Test the stripped text, or
+      // the raw-text check lets the dot through forever.
+      const rendersEmptyAssistant = (row: ChatRow): boolean =>
+        row.kind === 'assistant' && row.streaming !== true && stripNarration(row.text ?? '').trim() === ''
+      let hasEmptyAssistant = false
+      for (const row of sliced) {
+        if (rendersEmptyAssistant(row)) {
+          hasEmptyAssistant = true
+          break
+        }
       }
+      filtered = hasEmptyAssistant
+        ? sliced.filter(row =>
+          !rendersEmptyAssistant(row) &&
+            (thinkingVisible || row.kind !== 'reasoning'),
+        )
+        : thinkingVisible
+          ? sliced
+          : sliced.filter(row => row.kind !== 'reasoning')
+      streamBits = new Uint8Array(rows.length)
+      for (let i = 0; i < rows.length; i++) {
+        streamBits[i] = rows[i].kind === 'assistant'
+          ? (rows[i].streaming === true ? 1 : 0)
+          : activityBit(rows[i])
+      }
+    } else {
+      filtered = visibleCache.filtered
+      streamBits = visibleCache.streamBits
     }
-    const out = hasEmptyAssistant
-      ? sliced.filter(row =>
-        !rendersEmptyAssistant(row) &&
-          (thinkingVisible || row.kind !== 'reasoning'),
-      )
-      : thinkingVisible
-        ? sliced
-        : sliced.filter(row => row.kind !== 'reasoning')
-    // CC addMargin: every rendered block gets a 1-row top margin except the
-    // first. Pre-pass over the FULL list so a windowed row keeps the exact
-    // spacing it would have in a fully-mounted list.
+    const keepIds = new Set<number>()
+    if (selectedId !== null) keepIds.add(selectedId)
+    if (forceMountRowId !== undefined && forceMountRowId !== null) keepIds.add(forceMountRowId)
+    if (failureHintRowId !== undefined && failureHintRowId !== null) keepIds.add(failureHintRowId)
+    const collapsed = collapseActivityRows(filtered, expanded, expandedRows, keepIds)
+    const out = collapsed.rows
+    const summaries = collapsed.summaries
+    const anchors = collapsed.anchors
     const margins = new Map<number, boolean>()
     {
       let prev: ChatRow['kind'] | undefined
@@ -411,15 +465,19 @@ export function MessageList({
         prev = row.kind
       }
     }
-    const streamBits = new Uint8Array(rows.length)
-    for (let i = 0; i < rows.length; i++) streamBits[i] = rows[i].streaming === true ? 1 : 0
     visibleRowsCacheRef.current = {
       rows,
       rowsLength: rows.length,
-      showAll: showAll || hiddenCount <= 0,
+      showAll: showAllEffective,
       thinkingVisible,
+      filtered,
+      expanded,
+      expandedRows,
+      keepKey,
       out,
       margins,
+      summaries,
+      anchors,
       streamBits,
     }
     visGenRef.current++
@@ -430,6 +488,8 @@ export function MessageList({
   }
   const visibleRows = visibleRowsCache.out
   const margins = visibleRowsCache.margins
+  const activitySummaries = visibleRowsCache.summaries
+  const activityAnchors = visibleRowsCache.anchors
   // Selection keeps its highlight; expanded rows render with no fill (the
   // diff line tints inside cards are the only backgrounds in the transcript).
   const rowBackground = (rowId: number) => {
@@ -572,6 +632,8 @@ export function MessageList({
         failureHintRowId,
         failureHint,
         revealDisplayLen(row, smoothStreaming),
+        activitySummaries.has(row.id),
+        activityAnchors.has(row.id),
       )
       const cachedParts = sigs.get(row.id)
       let same = false
@@ -1139,6 +1201,8 @@ export function MessageList({
         // CC addMargin: pre-pass result keeps windowed rows at full-mount
         // spacing; only the very first row of the whole list has none.
           const addMargin = margins.get(row.id) === true
+          const summaryCounts = activitySummaries.get(row.id)
+          const activitySummary = summaryCounts === undefined ? undefined : formatActivitySummary(summaryCounts)
           const tool = row.tool
           const subagent = row.kind === 'subagent' ? row.subagent : undefined
           const job = row.kind === 'job' ? row.job : undefined
@@ -1179,6 +1243,8 @@ export function MessageList({
               addMargin={addMargin}
               isSelected={selectedId === row.id}
               isExpanded={expandedRows.has(row.id)}
+              activitySummary={activitySummary}
+              activityAnchor={activityAnchors.has(row.id)}
               expanded={expanded}
               model={model}
               diffLayout={diffLayout}
@@ -1246,6 +1312,10 @@ type MemoRowProps = {
   addMargin: boolean
   isSelected: boolean
   isExpanded: boolean
+  /** 落定活动段收成的一行摘要；有值时该行不再画思考卡/工具卡。 */
+  activitySummary: string | undefined
+  /** 该行是活动段锚点。点开展示卡片，不把思考正文摊开（全文仍走 Ctrl+O）。 */
+  activityAnchor: boolean
   expanded: boolean
   model: string
   /** Edit/Write diff presentation preference (forwarded to tool cards). */
@@ -1327,6 +1397,8 @@ function TranscriptRow({
   addMargin,
   isSelected,
   isExpanded,
+  activitySummary,
+  activityAnchor,
   expanded,
   model,
   diffLayout,
@@ -1375,18 +1447,26 @@ function TranscriptRow({
     if (event.cellIsBlank) return
     onToggleRow(rowId)
   }, [onToggleRow, rowId])
-  // 流式 reasoning 行：点击在三行预览/全文间切换。它反转 thinkingFold
-  // 的默认值，落定后语义自动回到 foldOnClick。
   const streamViewOnClick = React.useCallback((event: ClickEvent): void => {
     if (event.cellIsBlank) return
     onToggleStreamView(rowId)
   }, [onToggleStreamView, rowId])
-  // 子代理卡：点击打开详情场景（不是折叠）。
   const openSubagent = React.useCallback(() => {
     if (subagent !== undefined) onOpenSubagent?.(subagent.agentId)
   }, [onOpenSubagent, subagent])
-  // compact 摘要折叠行 hover 轻指示（∴ 提亮，不刷背景）。
   const [compactHovered, setCompactHovered] = useState(false)
+  if (activitySummary !== undefined && activitySummary !== '') {
+    return (
+      <Box flexDirection="column" ref={ref}>
+        <ActivitySummaryMessage
+          text={activitySummary}
+          addMargin={addMargin}
+          isSelected={isSelected}
+          onClick={foldOnClick}
+        />
+      </Box>
+    )
+  }
 
   switch (kind) {
     case 'user':
@@ -1459,7 +1539,7 @@ function TranscriptRow({
             preview={streamPreview}
             // Settled rows keep the fold-on-settle default and expand via
             // expandedRows/Ctrl+O; a live row is always preview or full.
-            verbose={isExpanded || expanded || (streaming && !streamPreview)}
+            verbose={expanded || (!activityAnchor && isExpanded) || (streaming && !streamPreview)}
             durationMs={durationMs}
             isSelected={isSelected}
             onClick={streaming ? streamViewOnClick : foldOnClick}

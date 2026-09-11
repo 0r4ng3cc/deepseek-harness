@@ -60,6 +60,7 @@ import { BalanceReportRow } from '../components/BalanceReportRow.js'
 import type { BalanceResult } from '../deepseekBalance.js'
 import { StatusLine } from './StatusLine.js'
 import { WorkingSpinner, useThinkingStatus } from '../components/WorkingSpinner.js'
+import { CompactingOverlay } from '../components/CompactingOverlay.js'
 import { ActivityLine, contextPressurePct } from '../components/ActivityLine.js'
 import { ModelPicker } from '../components/ModelPicker.js'
 import { PluginSceneBoundary } from '../components/PluginSceneBoundary.js'
@@ -1628,8 +1629,10 @@ export function Chat({
         return true
       }
       case 'rewind':
+      case 'undo':
         // Same picker as PromptInput's double-Esc on an empty input (CC
         // rewind); `openRewind` notifies when there is nothing to rewind.
+        // `/undo` matches the web session-timeline alias.
         setHelpOpen(false)
         openRewind()
         return true
@@ -3478,7 +3481,9 @@ export function Chat({
           let flex shrink squeeze these fixed-height rows — the ScrollBox
           above absorbs all overflow (it is the scroll container). */}
       <Box flexDirection="column" flexShrink={0}>
-        {channel.working &&
+        {channel.compacting !== undefined ? (
+          <CompactingOverlay tokens={channel.compacting.tokens} />
+        ) : channel.working &&
           (channel.activityEnabled &&
           !channel.minimal &&
           channel.workingActivity !== undefined &&

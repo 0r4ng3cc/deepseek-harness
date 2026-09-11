@@ -78,6 +78,7 @@ export const LOCAL_COMMANDS: LocalCommand[] = [
   { name: 'rename', description: 'Rename the current session' },
   { name: 'recap', description: 'Generate a recap of recent session activity' },
   { name: 'rewind', description: 'Rewind the conversation to a previous message' },
+  { name: 'undo', description: 'Rewind the conversation to a previous message', tag: 'alias of /rewind' },
   { name: 'tree', description: 'Browse the session family tree (rewind / fork / adopt)' },
   { name: 'fork', description: 'Fork the current session into a resumable copy' },
   { name: 'export', description: 'Export the conversation to a markdown file' },
