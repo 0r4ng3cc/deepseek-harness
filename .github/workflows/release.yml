@@ -3,14 +3,19 @@
 # separate sequences with their own workflows and version lines.
 #
 # Pack and dependency-layout verification run without credentials on every pull
-# request and dev-x1a0f3n9 push. This branch publishes the dsh family automatically from
-# a successful dev push; release-publish.yml remains the reviewed tag fallback.
+# request, scheduled run, and dev-x1a0f3n9 push. This branch publishes the dsh family
+# from a successful dev push or the twice-daily schedule; release-publish.yml remains
+# the reviewed tag fallback. GitHub runs `schedule` only on the default branch.
 name: Release (dsh)
 
 on:
   pull_request:
   push:
     branches: [dev-x1a0f3n9]
+  schedule:
+    # 02:17 and 14:17 UTC = 10:17 and 22:17 Asia/Shanghai — off the top-of-hour stampede.
+    # A first npm new-name 429 still fails the job; the next run continues remaining names.
+    - cron: '17 2,14 * * *'
   workflow_dispatch:
 
 permissions:
