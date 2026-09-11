@@ -84,6 +84,27 @@ describe('UI renderer plugin', () => {
     expect(records.some(record => record.target === boot)).toBe(false)
   })
 
+  it('keeps the boot page until a layout entry occupies root', async () => {
+    const { ctx, slots } = await bench()
+    const el = container()
+    el.innerHTML = '<div class="boot" data-dsh-boot=""><div>Loading plugins…</div></div>'
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    act(() => { mounted.push(ctx.get('uiRenderer')!.mount(el)) })
+
+    expect(error).not.toHaveBeenCalled()
+    expect(el.querySelector('[data-dsh-boot]')).toBeTruthy()
+    expect(el.querySelector('[data-testid="root-probe"]')).toBeNull()
+
+    await act(async () => {
+      slots.register({ name: 'root' }, () => <div data-testid="root-probe" />)
+      await Promise.resolve()
+    })
+
+    expect(error).not.toHaveBeenCalled()
+    expect(el.querySelector('[data-testid="root-probe"]')).toBeTruthy()
+  })
+
   it('returns an unmount disposer', async () => {
     const { ctx, slots } = await bench()
     slots.register({ name: 'root' }, () => <div data-testid="root-probe" />)

@@ -16,7 +16,7 @@ Every enabled `dsh.client` package shared one or two application combo scripts. 
 
 **The boot kernel hydrates as soon as `uiRenderer` exists.** `loader.create` runs the immediately-tier wave first. `mountApp` registers the `uiRenderer` inject waiter concurrently with that wave, so React can hydrate before deferred combos start. Deferred entries are created after the immediately wave. `run()` still awaits the full roster and still fails the boot audit if any entry is not active.
 
-**The root outlet waits for the first live registration.** Progressive mount can outrun layout. An empty root is a wait, not a boot-order throw. Abdicated root registrations still render the crash face.
+**The root outlet waits for the first live registration.** `BootHandoff` hydrates the boot DOM and stays there until `slots.entries('root')` is non-empty. Progressive mount can outrun layout. An empty root at mount is a wait; calling `renderSlot('root')` while empty still throws. Abdicated root registrations still render the crash face.
 
 ## Alternatives considered
 
@@ -34,3 +34,8 @@ Every enabled `dsh.client` package shared one or two application combo scripts. 
 - First paint can occur before document-preview, market, and similar deferred combos finish parsing.
 - A later FAILED fiber still replaces the page with the boot failure report after that first paint.
 - Tests that assumed every application combo was preloaded now distinguish immediately-tier batches.
+- `BootHandoff` keeps `[data-dsh-boot]` until a live `root` registration arrives.
+
+## Testing
+
+The [UI renderer plugin spec](../../../../packages/client/ui-renderer/tests/ui-renderer.client.spec.tsx) hydrates the boot page with an empty `root`, then occupies it. Direct `renderSlot('root')` still throws when empty in the [registry spec](../../../../packages/client/ui-renderer/tests/registry.client.spec.ts).
