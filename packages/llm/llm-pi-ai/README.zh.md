@@ -80,7 +80,7 @@ kind: "package-reference"
 | `modelOverrides` | 无 | 重塑个别已安装目录模型，而不替换其余模型 |
 | `compat` | 目录检测 | 无法识别端点的协议兼容开关 |
 | `defaultContextWindow` | `262,144` | 未描述模型的容量回退 |
-| `defaultMaxTokens` | `32,768` | 未描述模型的输出上限回退 |
+| `defaultMaxTokens` | `256,000` | 未描述模型的输出上限回退 |
 | `requestImagePixelBudget` | `4,194,304` | 每张确定性请求图片的总像素预算 |
 | `requestImageMaxBytes` | `1 MiB` | 每张请求图片在 base64 扩展前的编码字节目标 |
 | `maxRequestImageBytes` | `20 MiB` | 带最旧优先卸载的 base64 图片载荷总上限 |
@@ -98,7 +98,7 @@ profile 的 `models` 列表会替换而非扩展路由的已安装目录；每�
 
 ### 带推理与协议兼容运行
 
-`reasoningEfforts` 声明模型可选择的 thinking 等级：每个键都是选择器提供的等级，其值是该等级过线的拼写，因此 `max: ultra` 可以为拥有自有词汇的网关重命名等级。省略该字段时保留已安装目录条目的能力；`false` 声明非推理模型。对于 pi-ai 无法识别的端点，`compat` 开关重塑请求——哪个角色携带系统提示词、哪个字段限制输出、thinking 等级如何传递——可逐路由、逐模型配置。条目与已安装目录都没有尺寸的模型，会采用路由的 `defaultContextWindow` 与 `defaultMaxTokens` 回退值。
+`reasoningEfforts` 声明模型可选择的 thinking 等级：每个键都是选择器提供的等级，其值是该等级过线的拼写，因此 `max: ultra` 可以为拥有自有词汇的网关重命名等级。省略该字段时保留已安装目录条目的能力；`false` 声明非推理模型。对于 pi-ai 无法识别的端点，`compat` 开关重塑请求——哪个角色携带系统提示词、哪个字段限制输出、thinking 等级如何传递——可逐路由、逐模型配置。条目与已安装目录都没有尺寸的模型，会采用路由的 `defaultContextWindow` 与 `defaultMaxTokens` 回退值。适配器还会把该输出上限（或目录模型自己的 `maxTokens`）作为请求默认值发出，这样网关就不能套用更小的隐藏上限。
 
 对于自托管 Chat Completions 端点，`thinkingTokenBudgetField` 选择推理预算参数，`vllmPriority` 在服务端启用优先级调度时设置整数调度优先级。模板参数接受 `$var: thinking.budget`。`openai-responses` 网关可设置 `supportsMaxOutputTokens: false` 来省略 `max_output_tokens`；Azure 与 Codex 传输会忽略这个共享兼容字段。这些控制均需显式启用；目录拥有的 Anthropic effort 和回退能力不是可配置开关。
 
