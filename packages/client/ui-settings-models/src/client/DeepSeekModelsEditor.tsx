@@ -11,6 +11,7 @@ import {
   IconChevronDownOutline14, IconChevronRightOutline14, IconPlusOutline16, IconTrashOutline16,
 } from '@x1a0f3n9/dsh-client-ui-primitives'
 import type { en } from './locales.ts'
+import { validateReasoningEfforts } from './reasoning-efforts.ts'
 import styles from './ModelsSection.module.css'
 
 /** One catalog entry kept structurally open so hidden or future fields survive an edit. */
@@ -74,7 +75,7 @@ export interface DeepSeekModelsValidationFailure {
   index: number
   /** Message key owned by the Models settings section. */
   key: 'modelIdRequired' | 'modelIdDuplicate' | 'modelNameInvalid' | 'modelContextInvalid'
-  | 'modelMaxTokensInvalid'
+  | 'modelMaxTokensInvalid' | 'modelReasoningEmpty' | 'modelReasoningWireRequired'
 }
 
 /** Convert a schema-validated catalog value into records without dropping hidden fields. */
@@ -118,6 +119,8 @@ export function validateDeepSeekModels(value: unknown): DeepSeekModelsValidation
       && (typeof maxTokens !== 'number' || !Number.isInteger(maxTokens) || maxTokens <= 0)) {
       return { index, key: 'modelMaxTokensInvalid' }
     }
+    const reasoning = validateReasoningEfforts(model['reasoningEfforts'])
+    if (reasoning !== undefined) return { index, key: reasoning }
   }
   return undefined
 }

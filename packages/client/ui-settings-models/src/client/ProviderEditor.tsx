@@ -11,14 +11,12 @@
  * display name and wire protocol of a pi-ai route the adapter does not ship —
  * the two fields the create card asked that route for, editable here for the
  * same reason).
- * Reasoning effort is deliberately absent: it is a per-MODEL capability, and
- * the models under one provider disagree about it, so a provider-scoped
- * control can only be set to a value some of them reject. The composer's
- * model picker offers each model its own levels; `settings.yaml` keeps the
- * profile field for a deployment that knows its route. Everything else stays
- * owned by `settings.yaml`. Profile edits land as minimal `settings.mutate`
- * path ops against the stored section — the card names only the fields it can
- * see instead of rebuilding the whole subtree from a partial descriptor.
+ * Provider-scoped reasoning effort stays absent: it is a per-MODEL capability.
+ * Each custom model row offers Default (none) or Custom `reasoningEfforts`.
+ * Everything else stays owned by `settings.yaml`. Profile edits land as
+ * minimal `settings.mutate` path ops against the stored section — the card
+ * names only the fields it can see instead of rebuilding the whole subtree
+ * from a partial descriptor.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -494,7 +492,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       {props.credentialOnly === true || modelFailure === undefined
         ? null
         : (
-          <p className={styles['advancedHint']}>
+          <p className={styles['error']}>
             {`${t('model')} ${String(modelFailure.index + 1)}: ${t(modelFailure.key)}`}
           </p>
         )}
