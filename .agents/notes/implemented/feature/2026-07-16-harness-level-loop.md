@@ -54,7 +54,7 @@ This separation makes session restoration observable and unsurprising. Reopening
 
 Forked sessions inherit the durable goal prefix because that is the natural replay result. The fork starts disarmed, so inheritance does not imply execution authority and no synthetic goal cancellation is inserted into history.
 
-`defaultMaxGoalRounds` is configurable and defaults to `256`. The cap counts only admitted goal rounds. `blockedAfterConsecutiveRounds` is separately configurable in the model-tool policy and defaults to `3`; it is a mechanical lower bound before an autonomous round may report a repeated blocker, not an evaluator of semantic sameness.
+`defaultMaxGoalRounds` is configurable and defaults to `100000`. The cap counts only admitted goal rounds. `blockedAfterConsecutiveRounds` is separately configurable in the model-tool policy and defaults to `3`; it is a mechanical lower bound before an autonomous round may report a repeated blocker, not an evaluator of semantic sameness.
 
 ### Same-session continuation
 

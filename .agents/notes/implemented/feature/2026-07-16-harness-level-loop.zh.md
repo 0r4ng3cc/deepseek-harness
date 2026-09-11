@@ -54,7 +54,7 @@ Status: implemented
 
 fork 会话会继承持久目标前缀，因为这是自然的重放结果。fork 从未激活状态开始，因此继承不等于执行权限，历史中也不会插入合成目标取消。
 
-`defaultMaxGoalRounds` 可配置且默认为 `256`。该上限只计算已接纳的 Goal Round。`blockedAfterConsecutiveRounds` 在模型工具策略中单独配置且默认为 `3`；它只是在自治 Round 报告重复阻塞前的机械下限，不是对语义相同性的评估器。
+`defaultMaxGoalRounds` 可配置且默认为 `100000`。该上限只计算已接纳的 Goal Round。`blockedAfterConsecutiveRounds` 在模型工具策略中单独配置且默认为 `3`；它只是在自治 Round 报告重复阻塞前的机械下限，不是对语义相同性的评估器。
 
 ### 同会话续行
 
