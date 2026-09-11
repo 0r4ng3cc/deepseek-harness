@@ -38,12 +38,12 @@ Load the package with a composition entry; the only deployment choice is the def
 ```yaml
 - name: '@x1a0f3n9/dsh-goal'
   config:
-    defaultMaxGoalRounds: 256
+    defaultMaxGoalRounds: 100000
 ```
 
 | Field | Default | Meaning |
 |---|---|---|
-| `defaultMaxGoalRounds` | `256` | Round cap applied when a create request omits its own |
+| `defaultMaxGoalRounds` | `100000` | Round cap applied when a create request omits its own |
 
 `defaultMaxGoalRounds` must be a positive safe integer; a create request that names its own cap overrides it. The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-goal) is the exhaustive source for every accepted field.
 

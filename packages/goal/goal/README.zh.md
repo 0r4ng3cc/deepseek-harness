@@ -38,12 +38,12 @@ goal 适合一个需要跨自动 Goal Round 持续的长期完成目标——例
 ```yaml
 - name: '@x1a0f3n9/dsh-goal'
   config:
-    defaultMaxGoalRounds: 256
+    defaultMaxGoalRounds: 100000
 ```
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `defaultMaxGoalRounds` | `256` | 当 create 请求省略上限时应用的 Round 上限 |
+| `defaultMaxGoalRounds` | `100000` | 当 create 请求省略上限时应用的 Round 上限 |
 
 `defaultMaxGoalRounds` 必须是正的安全整数；指定了自身上限的 create 请求会覆盖它。生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-goal)是每个受支持字段的穷尽式真源。
 
