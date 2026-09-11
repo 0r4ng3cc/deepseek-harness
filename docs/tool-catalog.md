@@ -1061,10 +1061,6 @@ Create one persisted same-session completion goal when the current direct human 
     "objective": {
       "type": "string",
       "description": "The concrete completion objective inferred from the direct human request."
-    },
-    "max_goal_rounds": {
-      "type": "number",
-      "description": "Optional positive safe-integer limit on automatic continuation rounds."
     }
   },
   "required": [
@@ -1118,10 +1114,6 @@ Update the exact current goal revision. edit, pause, and resume require a direct
     "objective": {
       "type": "string",
       "description": "Replacement objective; valid only with action edit."
-    },
-    "max_goal_rounds": {
-      "type": "number",
-      "description": "Replacement cap; valid only with action edit."
     },
     "blocked_reason": {
       "type": "string",

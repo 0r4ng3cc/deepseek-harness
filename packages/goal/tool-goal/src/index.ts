@@ -6,7 +6,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { DEFAULT_MAX_GOAL_ROUNDS, GoalId } from '@x1a0f3n9/dsh-goal'
+import { GoalId } from '@x1a0f3n9/dsh-goal'
 import type { GoalRef, GoalView } from '@x1a0f3n9/dsh-goal'
 import { boundContextSummary, createUserMessage, HarnessError } from '@x1a0f3n9/dsh-llm'
 import { defineTool } from '@x1a0f3n9/dsh-tools'
@@ -135,17 +135,6 @@ function hasText(value: string | undefined): value is string {
   return value !== undefined && value !== ''
 }
 
-/** Whether an optional round cap is meaningful rather than a strict-schema zero filler. */
-function hasRoundCap(value: number | undefined): value is number {
-  return value !== undefined && value !== 0
-}
-
-/** Floor a model-supplied cap so guessed values such as 3 or 8 cannot stop a long goal. */
-function modelRoundCap(value: number | undefined): number | undefined {
-  if (!hasRoundCap(value)) return undefined
-  return Math.max(value, DEFAULT_MAX_GOAL_ROUNDS)
-}
-
 /** Build the exact compare-and-set ref from model arguments. */
 function goalRef(goalId: string, revision: number): GoalRef {
   if (goalId.length === 0 || goalId !== goalId.trim()
@@ -218,10 +207,6 @@ export function apply(ctx: Context, config: Config): void {
         required: true,
         description: 'The concrete completion objective inferred from the direct human request.',
       },
-      max_goal_rounds: {
-        type: 'number',
-        description: 'Optional positive safe-integer limit on automatic continuation rounds.',
-      },
     },
     output: GOAL_OUTPUT,
     execute(args, exec) {
@@ -251,7 +236,6 @@ export function apply(ctx: Context, config: Config): void {
         description: 'edit | pause | resume | complete | blocked',
       },
       objective: { type: 'string', description: 'Replacement objective; valid only with action edit.' },
-      max_goal_rounds: { type: 'number', description: 'Replacement cap; valid only with action edit.' },
       blocked_reason: {
         type: 'string',
         description: 'Concrete blocking condition; required only with action blocked.',
@@ -261,10 +245,8 @@ export function apply(ctx: Context, config: Config): void {
     execute(args, exec) {
       const execution = goalToolExecution(ctx, exec)
       const ref = goalRef(args.goal_id, args.revision)
-      const cap = modelRoundCap(args.max_goal_rounds)
       const replacements = {
         ...hasText(args.objective) ? { objective: args.objective } : {},
-        ...cap === undefined ? {} : { maxGoalRounds: cap },
       }
       if (args.action === 'edit') {
         requireDirectHuman(ctx, execution)
@@ -276,9 +258,9 @@ export function apply(ctx: Context, config: Config): void {
       }
       if (args.action === 'pause' || args.action === 'resume') {
         requireDirectHuman(ctx, execution)
-        if (hasText(args.objective) || hasRoundCap(args.max_goal_rounds) || hasText(args.blocked_reason)) {
+        if (hasText(args.objective) || hasText(args.blocked_reason)) {
           throw new HarnessError(
-            'objective and max_goal_rounds are valid only with action edit; blocked_reason is valid only with action blocked',
+            'objective is valid only with action edit; blocked_reason is valid only with action blocked',
             'GOAL_TOOL_INVALID_UPDATE',
           )
         }
@@ -296,9 +278,9 @@ export function apply(ctx: Context, config: Config): void {
         return Promise.resolve(goalValue(goal))
       }
       const authority = completionAuthority(ctx, execution)
-      if (hasText(args.objective) || hasRoundCap(args.max_goal_rounds)) {
+      if (hasText(args.objective)) {
         throw new HarnessError(
-          'objective and max_goal_rounds are valid only with action edit',
+          'objective is valid only with action edit',
           'GOAL_TOOL_INVALID_UPDATE',
         )
       }
@@ -345,7 +327,7 @@ export function apply(ctx: Context, config: Config): void {
         ? args.blocked_reason
         : hasText(args.objective)
           ? args.objective
-          : hasRoundCap(args.max_goal_rounds) ? args.max_goal_rounds : args.goal_id,
+          : args.goal_id,
     ),
   }))
 }
