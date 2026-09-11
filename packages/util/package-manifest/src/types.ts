@@ -35,6 +35,10 @@ export interface DshPluginCatalogEntry {
   title?: string
   /** Optional package-owned description. */
   description?: string
+  /** Optional display name for the plugin author. */
+  author?: string
+  /** Optional https://github.com URL opened from the author byline. */
+  homepage?: string
   /** Required features cannot be disabled from profile settings. */
   required?: boolean
   /** Default runtime state when the profile has no saved override. */

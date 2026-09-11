@@ -96,6 +96,8 @@ describe('PluginInventorySettingsTab', () => {
         packageName: '@x1a0f3n9/dsh-client-ui-schedule',
         title: 'Schedule',
         description: 'Schedule management UI and runtime',
+        author: 'vectorize-io',
+        homepage: 'https://github.com/vectorize-io/hindsight/tree/main/hindsight-integrations/coding-agents',
         required: false,
         defaultEnabled: true,
         installed: true,
@@ -103,6 +105,11 @@ describe('PluginInventorySettingsTab', () => {
       }],
     } as unknown as Snapshot), undefined, setEnabled)} />)
     await screen.findByRole('searchbox', { name: en.search })
+    const author = screen.getByRole('link', { name: en.openAuthorGithub.replace('{name}', 'vectorize-io') })
+    expect(author.getAttribute('href')).toBe(
+      'https://github.com/vectorize-io/hindsight/tree/main/hindsight-integrations/coding-agents',
+    )
+    expect(author.getAttribute('target')).toBe('_blank')
     const toggle = screen.getByRole('switch', { name: en.disablePlugin.replace('{name}', 'Schedule') })
     expect(toggle.getAttribute('aria-checked')).toBe('true')
     fireEvent.click(toggle)
